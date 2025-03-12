@@ -59,6 +59,9 @@ const headers = {
   'X-Signature': signature,
   'Content-Type': 'application/json'
 };
+
+// Full request URL would be:
+// const url = 'http://localhost:3001/api/account/balances';
 ```
 
 ### Security Notes
@@ -85,16 +88,16 @@ Returns the current balances for your team across all tokens.
   "success": true,
   "balances": [
     {
-      "token": "USDC",
-      "amount": 100000.00
+      "token": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "amount": "100000.00"
     },
     {
-      "token": "SOL",
-      "amount": 50.0
+      "token": "So11111111111111111111111111111111111111112",
+      "amount": "50.0"
     },
     {
       "token": "4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R",
-      "amount": 5.0
+      "amount": "5.0"
     }
   ]
 }
@@ -113,19 +116,19 @@ Returns the portfolio information for your team.
 {
   "success": true,
   "portfolio": {
-    "totalValueUSD": 125000.00,
+    "totalValueUSD": "125000.00",
     "positions": [
       {
-        "token": "USDC",
-        "amount": 100000.00,
-        "valueUSD": 100000.00,
-        "percentage": 80.0
+        "token": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+        "amount": "100000.00",
+        "valueUSD": "100000.00",
+        "percentage": "80.0"
       },
       {
-        "token": "SOL",
-        "amount": 50.0,
-        "valueUSD": 25000.00,
-        "percentage": 20.0
+        "token": "So11111111111111111111111111111111111111112",
+        "amount": "50.0",
+        "valueUSD": "25000.00",
+        "percentage": "20.0"
       }
     ]
   }
@@ -151,13 +154,13 @@ Returns the trade history for your team.
   "trades": [
     {
       "id": "t_12345",
-      "fromToken": "USDC",
-      "toToken": "SOL",
-      "fromAmount": 1000.00,
-      "toAmount": 5.0,
-      "priceAtExecution": 200.00,
+      "fromToken": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "toToken": "So11111111111111111111111111111111111111112",
+      "fromAmount": "1000.00",
+      "toAmount": "5.0",
+      "priceAtExecution": "200.00",
       "timestamp": "2025-03-11T21:54:54.386Z",
-      "slippage": 0.05
+      "slippage": "0.05"
     }
   ],
   "pagination": {
@@ -174,21 +177,38 @@ Returns the trade history for your team.
 
 Returns the current price for a specific token.
 
-- **URL:** `/api/price/current`
+- **URL:** `/api/price`
 - **Method:** `GET`
-- **Query Parameters:** `token` (required, e.g., "SOL")
+- **Query Parameters:** `token` (required, token address e.g., "So11111111111111111111111111111111111111112" for SOL)
 - **Authentication:** Required
 
 **Response Example:**
 ```json
 {
   "success": true,
-  "price": {
-    "token": "SOL",
-    "usdPrice": 123.45,
-    "timestamp": "2025-03-11T21:54:54.386Z",
-    "source": "jupiter"
-  }
+  "price": 123.45,
+  "token": "So11111111111111111111111111111111111111112"
+}
+```
+
+#### Get Price From Provider
+
+Returns the price for a specific token from a specific provider.
+
+- **URL:** `/api/price/provider`
+- **Method:** `GET`
+- **Query Parameters:** 
+  - `token` (required, token address)
+  - `provider` (required, one of: "jupiter", "raydium", "serum")
+- **Authentication:** Required
+
+**Response Example:**
+```json
+{
+  "success": true,
+  "price": 123.45,
+  "token": "So11111111111111111111111111111111111111112",
+  "provider": "jupiter"
 }
 ```
 
@@ -236,10 +256,11 @@ Executes a trade between two tokens.
 - **Request Body:**
 ```json
 {
-  "fromToken": "USDC",
-  "toToken": "SOL",
-  "amount": 1000.00,
-  "slippageTolerance": 0.5
+  "fromToken": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+  "toToken": "So11111111111111111111111111111111111111112",
+  "amount": "1000.00",
+  "price": "125.45",
+  "slippageTolerance": "0.5"
 }
 ```
 
@@ -247,22 +268,22 @@ Executes a trade between two tokens.
 ```json
 {
   "success": true,
-  "trade": {
-    "id": "t_12345",
-    "fromToken": "USDC",
-    "toToken": "SOL",
-    "fromAmount": 1000.00,
-    "toAmount": 4.975,
-    "priceAtExecution": 200.00,
+  "transaction": {
+    "id": "21fd8603-8fc3-4ff2-9012-baa6b05838fc",
     "timestamp": "2025-03-11T21:54:54.386Z",
-    "slippage": 0.5
-  },
-  "balances": {
-    "USDC": 99000.00,
-    "SOL": 54.975
+    "fromToken": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+    "toToken": "So11111111111111111111111111111111111111112",
+    "fromAmount": "1000.00",
+    "toAmount": "7.97",
+    "price": "125.45",
+    "success": true,
+    "teamId": "2cbb016d-0002-4d01-ba32-8dd400e25756",
+    "competitionId": "8b912dfa-22a5-4a4f-b660-e7715dde10f2"
   }
 }
 ```
+
+**Note**: The client should handle the conversion between the easier-to-use format (tokenAddress, side, amount) and the API format (fromToken, toToken, amount).
 
 #### Get Quote
 
@@ -281,11 +302,11 @@ Returns a quote for a potential trade.
 {
   "success": true,
   "quote": {
-    "fromToken": "USDC",
-    "toToken": "SOL",
-    "fromAmount": 1000.00,
-    "estimatedToAmount": 4.975,
-    "estimatedPriceImpact": 0.5,
+    "fromToken": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+    "toToken": "So11111111111111111111111111111111111111112",
+    "fromAmount": "1000.00",
+    "estimatedToAmount": "4.975",
+    "estimatedPriceImpact": "0.5",
     "timestamp": "2025-03-11T21:54:54.386Z"
   }
 }
@@ -336,14 +357,14 @@ Returns the current competition leaderboard.
     {
       "rank": 1,
       "teamName": "Alpha Traders",
-      "portfolioValue": 120345.67,
-      "percentageGain": 20.34
+      "portfolioValue": "120345.67",
+      "percentageGain": "20.34"
     },
     {
       "rank": 2,
       "teamName": "Beta Investment",
-      "portfolioValue": 115678.90,
-      "percentageGain": 15.68
+      "portfolioValue": "115678.90",
+      "percentageGain": "15.68"
     }
   ]
 }

@@ -10,18 +10,23 @@ import * as crypto from 'crypto';
 // Replace these with your team's credentials
 const apiKey = 'your-api-key';
 const apiSecret = 'your-api-secret';
-const baseUrl = 'http://localhost:3000';
+const baseUrl = 'http://localhost:3001';
 
 // API endpoint details
 const method = 'POST';
 const path = '/api/trade/execute';
 
+// Token addresses (use these instead of symbols)
+const USDC_ADDRESS = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
+const SOL_ADDRESS = 'So11111111111111111111111111111111111111112';
+
 // Trade details
 const tradeDetails = {
-  fromToken: 'USDC',
-  toToken: 'SOL',
-  amount: 100.00,
-  slippageTolerance: 0.5 // Optional slippage tolerance in percentage
+  fromToken: USDC_ADDRESS, // Buying SOL with USDC
+  toToken: SOL_ADDRESS,
+  amount: "100.00",        // Amount as string, not number
+  price: "125.45",         // Optional price limit (can help with slippage)
+  slippageTolerance: "0.5" // Optional slippage tolerance in percentage
 };
 
 async function executeTrade() {
@@ -30,6 +35,8 @@ async function executeTrade() {
     const bodyStr = JSON.stringify(tradeDetails);
     
     // Generate timestamp and signature
+    // Note: For testing purposes, you may use a timestamp 2 years in future to avoid expiration
+    // const timestamp = new Date(Date.now() + 2 * 365 * 24 * 60 * 60 * 1000).toISOString();
     const timestamp = new Date().toISOString();
     const data = method + path + timestamp + bodyStr;
     

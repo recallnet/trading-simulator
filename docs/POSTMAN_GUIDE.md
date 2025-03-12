@@ -25,9 +25,11 @@ This guide explains how to set up and use Postman to interact with the Trading S
 
 | Variable | Initial Value | Description |
 |----------|---------------|-------------|
-| baseUrl | http://localhost:3000 | API base URL |
+| baseUrl | http://localhost:3001 | API base URL |
 | apiKey | your_api_key_here | Your team's API key |
 | apiSecret | your_api_secret_here | Your team's API secret |
+| usdcAddress | EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v | USDC token address |
+| solAddress | So11111111111111111111111111111111111111112 | SOL token address |
 
 5. Click "Save"
 6. Make sure to select this environment from the dropdown in the top right corner
@@ -107,12 +109,24 @@ console.log('Signature:', signature);
 1. Right-click on the collection and select "Add Request"
 2. Name it "Get Current Price"
 3. Set method to **GET**
-4. Set URL to `{{baseUrl}}/api/price/current`
+4. Set URL to `{{baseUrl}}/api/price`
 5. Go to the "Params" tab
-6. Add a query parameter with key `token` and value `SOL`
+6. Add a query parameter with key `token` and value `{{solAddress}}`
 7. Click "Save"
 
-### 4. Execute a Trade
+### 4. Get Price From Provider
+
+1. Right-click on the collection and select "Add Request"
+2. Name it "Get Price From Provider"
+3. Set method to **GET**
+4. Set URL to `{{baseUrl}}/api/price/provider`
+5. Go to the "Params" tab
+6. Add the following query parameters:
+   - Key: `token`, Value: `{{solAddress}}`
+   - Key: `provider`, Value: `jupiter`
+7. Click "Save"
+
+### 5. Execute a Trade
 
 1. Right-click on the collection and select "Add Request"
 2. Name it "Execute Trade"
@@ -123,26 +137,14 @@ console.log('Signature:', signature);
 7. Enter the following JSON:
 ```json
 {
-  "fromToken": "USDC",
-  "toToken": "SOL",
-  "amount": 100.00,
-  "slippageTolerance": 0.5
+  "fromToken": "{{usdcAddress}}",
+  "toToken": "{{solAddress}}",
+  "amount": "100.00",
+  "price": "125.45",
+  "slippageTolerance": "0.5"
 }
 ```
 8. Click "Save"
-
-### 5. Get Trade Quote
-
-1. Right-click on the collection and select "Add Request"
-2. Name it "Get Trade Quote"
-3. Set method to **GET**
-4. Set URL to `{{baseUrl}}/api/trade/quote`
-5. Go to the "Params" tab
-6. Add the following query parameters:
-   - Key: `fromToken`, Value: `USDC`
-   - Key: `toToken`, Value: `SOL`
-   - Key: `amount`, Value: `100.00`
-7. Click "Save"
 
 ### 6. Get Competition Status
 
@@ -150,6 +152,14 @@ console.log('Signature:', signature);
 2. Name it "Competition Status"
 3. Set method to **GET**
 4. Set URL to `{{baseUrl}}/api/competition/status`
+5. Click "Save"
+
+### 7. Get Leaderboard
+
+1. Right-click on the collection and select "Add Request"
+2. Name it "Competition Leaderboard"
+3. Set method to **GET**
+4. Set URL to `{{baseUrl}}/api/competition/leaderboard`
 5. Click "Save"
 
 ## Making Requests

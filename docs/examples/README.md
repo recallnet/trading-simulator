@@ -45,27 +45,32 @@ The `api-client.ts` file contains a reusable `TradingSimulatorClient` class that
 ```typescript
 import { TradingSimulatorClient } from './api-client';
 
+// Common token addresses
+const USDC_ADDRESS = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
+const SOL_ADDRESS = 'So11111111111111111111111111111111111111112';
+
 // Create a client instance
 const client = new TradingSimulatorClient(
   'your-api-key',
   'your-api-secret',
-  'http://localhost:3000' // Change this to the actual API URL
+  'http://localhost:3001' // Use the correct API URL
 );
 
 // Get balances
 const balances = await client.getBalances();
 console.log('Balances:', balances);
 
-// Get portfolio
-const portfolio = await client.getPortfolio();
-console.log('Portfolio:', portfolio);
-
-// Get price
-const price = await client.getPrice('SOL');
+// Get price for SOL
+const price = await client.getPrice(SOL_ADDRESS);
 console.log('SOL Price:', price);
 
-// Execute a trade
-const tradeResult = await client.executeTrade('USDC', 'SOL', 100.00, 0.5);
+// Execute a trade to buy SOL with USDC
+const tradeResult = await client.executeTrade({
+  tokenAddress: SOL_ADDRESS,
+  side: 'buy',
+  amount: '100.00', // Use strings for amounts
+  price: '125.45'   // Optional price limit
+});
 console.log('Trade Result:', tradeResult);
 ```
 

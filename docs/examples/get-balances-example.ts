@@ -10,7 +10,7 @@ import * as crypto from 'crypto';
 // Replace these with your team's credentials
 const apiKey = 'your-api-key';
 const apiSecret = 'your-api-secret';
-const baseUrl = 'http://localhost:3000';
+const baseUrl = 'http://localhost:3001';
 
 // API endpoint details
 const method = 'GET';
@@ -19,6 +19,8 @@ const path = '/api/account/balances';
 async function getBalances() {
   try {
     // Generate timestamp and signature
+    // Note: For testing purposes, you may use a timestamp 2 years in future to avoid expiration
+    // const timestamp = new Date(Date.now() + 2 * 365 * 24 * 60 * 60 * 1000).toISOString();
     const timestamp = new Date().toISOString();
     const data = method + path + timestamp + ''; // Empty string for body
     
@@ -59,6 +61,23 @@ async function getBalances() {
     
     const balances = await response.json();
     console.log('Balances:', JSON.stringify(balances, null, 2));
+    
+    /* Expected response format:
+    {
+      "success": true,
+      "balances": [
+        {
+          "token": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",  // USDC address
+          "amount": "100000.00"
+        },
+        {
+          "token": "So11111111111111111111111111111111111111112",  // SOL address
+          "amount": "50.0"
+        }
+      ]
+    }
+    */
+    
     return balances;
     
   } catch (error) {
