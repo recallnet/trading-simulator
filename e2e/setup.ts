@@ -9,6 +9,7 @@ import path from 'path';
 import { Server } from 'http';
 import { initializeDb, closeDb } from './utils/database';
 import { startServer, stopServer, killExistingServers } from './utils/server';
+import { SchedulerService } from '../src/services/scheduler.service';
 
 // Store global server reference
 let server: Server;
@@ -17,6 +18,9 @@ let server: Server;
 export async function setup() {
   // Load test environment variables
   config({ path: path.resolve(__dirname, '../.env.test') });
+  
+  // Ensure TEST_MODE is set
+  process.env.TEST_MODE = 'true';
   
   console.log('🚀 Setting up E2E test environment...');
   
@@ -44,6 +48,10 @@ export async function teardown() {
   console.log('🧹 Cleaning up test environment...');
   
   try {
+    // Clear all scheduler timers first
+    console.log('🕒 Clearing all scheduler timers...');
+    SchedulerService.clearAllTimers();
+    
     // Stop server
     if (server) {
       console.log('🛑 Stopping server...');

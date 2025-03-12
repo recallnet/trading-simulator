@@ -417,4 +417,27 @@ For a more comprehensive test run with database setup:
 npm run test:e2e:runner
 ```
 
-For more information on the E2E testing architecture, see the [E2E test documentation](./e2e/README.md). 
+For more information on the E2E testing architecture, see the [E2E test documentation](./e2e/README.md).
+
+## Portfolio Snapshots
+
+The system automatically takes snapshots of team portfolios at regular intervals for performance tracking. The snapshot interval is configurable via environment variables:
+
+```
+# Configure portfolio snapshot interval in milliseconds (default: 2 minutes)
+PORTFOLIO_SNAPSHOT_INTERVAL_MS=120000
+```
+
+You can adjust this interval based on your needs:
+- For testing environments, you may want to use a shorter interval (e.g., 10000ms = 10 seconds)
+- For production environments, you might want to use a longer interval to reduce database load (e.g., 300000ms = 5 minutes)
+
+Portfolio snapshots are taken:
+1. When a competition starts
+2. At regular intervals throughout the competition (controlled by the environment variable)
+3. When a competition ends
+
+Snapshot data is available via the admin API endpoint:
+```
+GET /api/admin/competition/:competitionId/snapshots
+``` 

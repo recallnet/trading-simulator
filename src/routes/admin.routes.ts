@@ -27,6 +27,9 @@ router.post('/competition/start', AdminController.startCompetition);
 // POST /api/admin/competition/end - End a competition
 router.post('/competition/end', AdminController.endCompetition);
 
+// GET /api/admin/competition/:competitionId/snapshots - Get competition snapshots
+router.get('/competition/:competitionId/snapshots', AdminController.getCompetitionSnapshots);
+
 // GET /api/admin/reports/performance - Get performance reports
 router.get('/reports/performance', AdminController.getPerformanceReports);
 

@@ -344,4 +344,69 @@ export class AdminController {
       next(error);
     }
   }
+
+  /**
+   * Get portfolio snapshots for a competition
+   * @param req Express request
+   * @param res Express response
+   * @param next Express next function
+   */
+  static async getCompetitionSnapshots(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { competitionId } = req.params;
+      
+      // Validate required parameters
+      if (!competitionId) {
+        throw new ApiError(400, 'Missing required parameter: competitionId');
+      }
+      
+      // Check if the competition exists
+      const competition = await services.competitionManager.getCompetition(competitionId);
+      if (!competition) {
+        throw new ApiError(404, 'Competition not found');
+      }
+      
+      // Get team ID from query param if provided
+      const teamId = req.query.teamId as string;
+      
+      // Get snapshots based on whether a team ID was provided
+      let snapshots;
+      if (teamId) {
+        // Check if the team exists and is in the competition
+        const team = await repositories.teamRepository.findById(teamId);
+        if (!team) {
+          throw new ApiError(404, 'Team not found');
+        }
+        
+        const isTeamInCompetition = await repositories.teamRepository.isTeamInCompetition(
+          teamId, 
+          competitionId
+        );
+        
+        if (!isTeamInCompetition) {
+          throw new ApiError(400, 'Team is not participating in this competition');
+        }
+        
+        // Get snapshots for the specific team
+        snapshots = await services.competitionManager.getTeamPortfolioSnapshots(competitionId, teamId);
+      } else {
+        // Get snapshots for all teams in the competition
+        const teams = await repositories.competitionRepository.getCompetitionTeams(competitionId);
+        snapshots = [];
+        
+        for (const teamId of teams) {
+          const teamSnapshots = await services.competitionManager.getTeamPortfolioSnapshots(competitionId, teamId);
+          snapshots.push(...teamSnapshots);
+        }
+      }
+      
+      // Return the snapshots
+      res.status(200).json({
+        success: true,
+        snapshots
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 } 

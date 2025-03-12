@@ -40,6 +40,10 @@ export const config = {
     usdt: 'Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB',
   },
   priceCacheDuration: 30000, // 30 seconds
+  portfolio: {
+    // Default snapshot interval: 2 minutes (120000ms), configurable via env
+    snapshotIntervalMs: parseInt(process.env.PORTFOLIO_SNAPSHOT_INTERVAL_MS || '120000', 10),
+  },
 };
 
 export default config; 

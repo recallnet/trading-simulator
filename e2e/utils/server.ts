@@ -24,13 +24,16 @@ export async function startServer(): Promise<Server> {
     try {
       const testPort = process.env.TEST_PORT || '3001';
       
+      console.log(`Starting test server on port ${testPort}...`);
+      
       // Start the server script in a separate process
       // Use the index.ts file which is the main entry point
       serverProcess = spawn('npx', ['ts-node', 'src/index.ts'], {
         env: {
           ...process.env,
           NODE_ENV: 'test',
-          PORT: testPort
+          PORT: testPort,
+          TEST_MODE: 'true'
         },
         stdio: 'inherit',
         detached: true
@@ -58,11 +61,24 @@ export async function startServer(): Promise<Server> {
         reject(error);
       });
       
-      // Give the server some time to start up
-      setTimeout(() => {
-        console.log(`Server started on port ${testPort}`);
-        resolve(mockServer);
-      }, 2000);
+      // Wait for the server to be ready
+      waitForServerReady(30, 500) // 30 retries, 500ms interval = 15 seconds max
+        .then(() => {
+          console.log(`Server started and ready on port ${testPort}`);
+          resolve(mockServer);
+        })
+        .catch((error) => {
+          console.error('Server failed to start:', error);
+          // Try to kill the process if it's hanging
+          if (serverProcess && serverProcess.pid) {
+            try {
+              process.kill(-serverProcess.pid);
+            } catch (err) {
+              console.error('Error killing server process during startup failure:', err);
+            }
+          }
+          reject(error);
+        });
     } catch (error) {
       console.error('Failed to start server:', error);
       reject(error);
@@ -148,7 +164,7 @@ export async function killExistingServers(): Promise<void> {
 /**
  * Wait for the server to be ready by polling the health endpoint
  */
-async function waitForServerReady(maxRetries = 10, interval = 500): Promise<void> {
+async function waitForServerReady(maxRetries = 30, interval = 500): Promise<void> {
   console.log('⏳ Waiting for server to be ready...');
   
   let retries = 0;
@@ -158,12 +174,28 @@ async function waitForServerReady(maxRetries = 10, interval = 500): Promise<void
       const response = await axios.get(`${BASE_URL}/health`);
       if (response.status === 200) {
         console.log('✅ Server is ready');
+        
+        // Additional verification of API endpoints
+        try {
+          // Wait a bit more to ensure all routes are registered
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          
+          // Verify admin setup endpoint is available
+          const adminSetupResponse = await axios.get(`${BASE_URL}/api/health`);
+          console.log(`Admin API health check: ${adminSetupResponse.status === 200 ? 'OK' : 'Failed'}`);
+        } catch (err) {
+          console.warn('Additional API verification failed, but continuing:', err);
+        }
+        
         return;
       }
     } catch (error) {
       // Server not ready yet, retry after interval
-      await new Promise(resolve => setTimeout(resolve, interval));
       retries++;
+      if (retries % 5 === 0) {
+        console.log(`Still waiting for server... (${retries}/${maxRetries})`);
+      }
+      await new Promise(resolve => setTimeout(resolve, interval));
     }
   }
   

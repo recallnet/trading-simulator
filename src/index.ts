@@ -70,6 +70,10 @@ const startServer = async () => {
     await initializeDatabase();
     console.log('Database connection and schema verification completed');
     databaseInitialized = true;
+    
+    // Start snapshot scheduler
+    services.scheduler.startSnapshotScheduler();
+    console.log('Portfolio snapshot scheduler started');
   } catch (error) {
     console.error('Database initialization error:', error);
     if (process.env.NODE_ENV === 'production') {

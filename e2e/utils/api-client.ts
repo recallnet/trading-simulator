@@ -374,4 +374,45 @@ export class ApiClient {
       return this.handleApiError(error, 'get leaderboard');
     }
   }
+  
+  /**
+   * End a competition (admin only)
+   * @param competitionId ID of the competition to end
+   */
+  async endCompetition(competitionId: string): Promise<any> {
+    try {
+      const response = await this.axiosInstance.post('/api/admin/competition/end', {
+        competitionId
+      });
+      return response.data;
+    } catch (error) {
+      return this.handleApiError(error, 'end competition');
+    }
+  }
+  
+  /**
+   * Generic API request method for custom endpoints
+   * @param method HTTP method (get, post, put, delete)
+   * @param path API path
+   * @param data Optional request data
+   */
+  async request(method: 'get' | 'post' | 'put' | 'delete', path: string, data?: any): Promise<any> {
+    try {
+      let response;
+      if (method === 'get') {
+        response = await this.axiosInstance.get(path);
+      } else if (method === 'post') {
+        response = await this.axiosInstance.post(path, data);
+      } else if (method === 'put') {
+        response = await this.axiosInstance.put(path, data);
+      } else if (method === 'delete') {
+        response = await this.axiosInstance.delete(path);
+      } else {
+        throw new Error(`Unsupported method: ${method}`);
+      }
+      return response.data;
+    } catch (error) {
+      return this.handleApiError(error, `${method} ${path}`);
+    }
+  }
 } 

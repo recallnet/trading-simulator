@@ -89,7 +89,8 @@ describe('Trading API', () => {
     expect(tradeHistoryResponse.trades.length).toBeGreaterThan(0);
     
     // Execute a sell trade (selling SOL for USDC)
-    const tokenToSell = 5; // Sell a smaller amount that's less than what we have
+    // Sell 50% of what we have to ensure we never try to sell more than we have
+    const tokenToSell = updatedSolBalance * 0.5; 
     console.log(`Token to sell: ${tokenToSell} (should be less than ${updatedSolBalance})`);
     
     const sellTradeResponse = await teamClient.executeTrade({

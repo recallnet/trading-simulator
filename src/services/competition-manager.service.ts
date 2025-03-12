@@ -136,6 +136,9 @@ export class CompetitionManager {
     console.log(`[CompetitionManager] Started competition: ${competition.name} (${competitionId})`);
     console.log(`[CompetitionManager] Participating teams: ${teamIds.join(', ')}`);
     
+    // Take initial portfolio snapshots
+    await this.takePortfolioSnapshots(competitionId);
+    
     return competition;
   }
 

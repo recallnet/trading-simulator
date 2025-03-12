@@ -1,0 +1,46 @@
+{
+  "name": "portal",
+  "version": "0.0.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "clean": "rm -rf .turbo .next node_modules"
+  },
+  "dependencies": {
+    "@hookform/resolvers": "^4.0.0",
+    "@rainbow-me/rainbowkit": "^2.2.2",
+    "@recallnet/address-utils": "workspace:*",
+    "@recallnet/bigint-utils": "workspace:*",
+    "@recallnet/chains": "workspace:*",
+    "@recallnet/sdkx": "workspace:*",
+    "@recallnet/ui": "workspace:*",
+    "@tanstack/react-query": "^5.64.2",
+    "@vercel/analytics": "^1.5.0",
+    "javascript-time-ago": "^2.5.11",
+    "lucide-react": "0.456.0",
+    "moment": "^2.30.1",
+    "next": "^15.1.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-dropzone": "^14.3.5",
+    "react-hook-form": "^7.54.2",
+    "react-time-ago": "^7.3.3",
+    "viem": "2.x",
+    "wagmi": "^2.14.8",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@recallnet/eslint-config": "workspace:^",
+    "@recallnet/typescript-config": "workspace:*",
+    "@types/node": "^20",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "postcss": "^8",
+    "tailwindcss": "^3.4.1",
+    "typescript": "^5.7.3"
+  }
+}
