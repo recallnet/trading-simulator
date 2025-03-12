@@ -70,6 +70,7 @@ export interface Team {
   contactPerson: string;
   apiKey: string;
   apiSecret: string;
+  apiSecretRaw?: string;  // Raw API secret for HMAC validation
   isAdmin?: boolean;
   createdAt: Date;
   updatedAt: Date;

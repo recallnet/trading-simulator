@@ -23,6 +23,7 @@ export const config = {
     jwtSecret: process.env.JWT_SECRET || 'default_jwt_secret_do_not_use_in_production',
     apiKeySecret: process.env.API_KEY_SECRET || 'default_api_key_secret_do_not_use_in_production',
     hmacSecret: process.env.HMAC_SECRET || 'default_hmac_secret_do_not_use_in_production',
+    masterEncryptionKey: process.env.MASTER_ENCRYPTION_KEY || 'default_encryption_key_do_not_use_in_production',
   },
   rateLimiting: {
     windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '60000', 10),

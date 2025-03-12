@@ -139,237 +139,106 @@ The server will be available at http://localhost:3000 by default.
 
 ## Admin Setup Guide
 
-As the administrator of this application, you'll need to properly configure the system before teams can use it. This section covers the essential setup steps.
+As the administrator of this application, you'll need to properly configure the system before teams can use it. This guide covers how to set up the system quickly and efficiently.
 
-### Environment Configuration
+### Quick Setup (Recommended)
+
+For a seamless setup experience, we've created a single command that handles everything for you:
+
+```bash
+npm run setup:all
+```
+
+This command will:
+1. Generate all required security secrets
+2. Initialize the database
+3. Run all database migrations
+4. Build the application
+5. Start the server temporarily
+6. Set up the admin account (with a prompt for credentials)
+7. Provide final instructions
+
+This is the easiest way to get the system up and running with minimal effort.
+
+### Manual Setup 
+
+If you prefer to set up each component separately, you can follow these steps:
+
+#### 1. Environment Configuration
 
 The application uses environment variables for configuration. Create a `.env` file in the root directory based on `.env.example`.
 
-#### Security Secret Generation
+#### 2. Security Secret Generation
 
-Three critical security secrets need to be generated for your deployment:
-
-1. **JWT_SECRET**: Used for admin authentication
-2. **API_KEY_SECRET**: Used when generating API keys for teams
-3. **HMAC_SECRET**: Used for verifying request signatures
-
-You can generate these secrets automatically by running:
+Generate all required security secrets with:
 
 ```bash
 npm run generate:secrets
 ```
 
-This will:
-- Create a `.env` file if it doesn't exist (based on `.env.example`)
-- Generate strong random values for all three secrets
-- Update only the security-related values in your existing `.env` file (if it already exists)
-- Display the generated values for your reference
+This will create the following secrets:
+- `JWT_SECRET`: Used for admin authentication
+- `API_KEY_SECRET`: Used for team API key generation
+- `HMAC_SECRET`: Used for request signing
+- `MASTER_ENCRYPTION_KEY`: Used for encrypting API secrets
 
-Alternatively, if you prefer to generate them manually:
+#### 3. Database Initialization
+
+Initialize the database with:
 
 ```bash
-# Using Node.js to generate random 64-character hexadecimal strings
-node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+npm run db:init
 ```
 
-Run this command three times to generate three different values, and update your `.env` file:
+#### 4. Run Migrations
 
-```
-JWT_SECRET=your_generated_jwt_secret_here
-API_KEY_SECRET=your_generated_api_key_secret_here
-HMAC_SECRET=your_generated_hmac_secret_here
-```
+Apply all database migrations:
 
-⚠️ **IMPORTANT**: 
-- Use different secrets for development and production environments
-- Never commit these secrets to version control
-- Store backups of these values securely - if lost, all teams would need new API credentials
-- In production, consider using a secret manager service rather than .env files
-
-#### How These Secrets Work
-
-- **JWT_SECRET**: Used by the application to sign and verify JSON Web Tokens for admin authentication sessions
-- **API_KEY_SECRET**: Used as a seed when generating unique API keys for teams (through the team registration endpoint)
-- **HMAC_SECRET**: Used in the validation process for API request signatures
-
-### Database Configuration
-
-Configure your PostgreSQL connection:
-
-```
-DB_HOST=your_database_host
-DB_PORT=5432
-DB_USERNAME=your_database_user
-DB_PASSWORD=your_database_password
-DB_NAME=solana_trading_simulator
+```bash
+npm run db:migrate
 ```
 
-For production, use a dedicated database with proper security measures.
+#### 5. Build the Application
 
-### Starting the Application
+Build the TypeScript application:
 
-For production deployment:
-
-1. Build the application:
-   ```
-   npm run build
-   ```
-
-2. Start the production server:
-   ```
-   npm start
-   ```
-
-For development:
+```bash
+npm run build
 ```
+
+#### 6. Start the Server
+
+Start the server:
+
+```bash
+npm run start
+```
+
+#### 7. Set Up Admin Account
+
+In a separate terminal, set up the admin account:
+
+```bash
+npm run setup:admin
+```
+
+This will prompt you to enter admin credentials or will generate them for you.
+
+### Starting the Server
+
+After completing the setup, start the server with:
+
+```bash
+npm run start
+```
+
+For development with hot reloading:
+
+```bash
 npm run dev
 ```
 
-### Creating an Admin Account
-
-The first time you run the application, you'll need to create an admin account (if not already seeded):
-
-1. Access the admin registration endpoint (only available before any admin exists):
-   ```
-   POST /api/admin/setup
-   {
-     "username": "admin",
-     "password": "secure-password",
-     "email": "admin@example.com"
-   }
-   ```
-
-2. Save the credentials securely - you'll need them to access the admin dashboard.
-
-### Registering Teams
-
-As an admin, you can register teams through the admin API:
-
-1. Login as admin to get your JWT token:
-   ```
-   POST /api/auth/login
-   {
-     "username": "admin",
-     "password": "your-password"
-   }
-   ```
-
-2. Register a new team (using your JWT token in the Authorization header):
-   ```
-   POST /api/admin/teams/register
-   {
-     "teamName": "Team Alpha",
-     "email": "team@example.com", 
-     "contactPerson": "John Doe"
-   }
-   ```
-
-3. The response will include the team's API key and secret:
-   ```json
-   {
-     "success": true,
-     "team": {
-       "id": "uuid",
-       "name": "Team Alpha",
-       "email": "team@example.com",
-       "contactPerson": "John Doe",
-       "apiKey": "generated-api-key",
-       "apiSecret": "generated-api-secret",
-       "createdAt": "2023-01-01T00:00:00Z"
-     }
-   }
-   ```
-
-4. Securely share these credentials with the team (this is the only time the full secret will be shown)
-
-### Managing Competitions
-
-Once teams are registered, you can manage competitions:
-
-1. Start a competition:
-   ```
-   POST /api/admin/competition/start
-   {
-     "name": "Trading Competition Q2 2023",
-     "description": "Quarterly trading competition",
-     "teamIds": ["team-id-1", "team-id-2", "team-id-3"]
-   }
-   ```
-
-2. End a competition:
-   ```
-   POST /api/admin/competition/end
-   {
-     "competitionId": "competition-id"
-   }
-   ```
-
-3. View performance reports:
-   ```
-   GET /api/admin/reports/performance?competitionId=competition-id
-   ```
-
-### Production Deployment Considerations
-
-For production deployments:
-
-1. **Security**:
-   - Use HTTPS with a valid SSL certificate
-   - Set up a reverse proxy (Nginx/Apache) in front of the application
-   - Configure proper firewall rules
-   - Consider using a Web Application Firewall (WAF)
-
-2. **Performance**:
-   - Configure a production-ready PostgreSQL instance
-   - Set up Redis for improved caching (optional but recommended)
-   - Consider deploying behind a load balancer for high availability
-
-3. **Monitoring**:
-   - Implement application monitoring (e.g., Prometheus, Grafana)
-   - Set up logging and log aggregation
-   - Configure alerts for system health issues
-
-### Database Setup
-
-The application requires a PostgreSQL database. Database schema files are located in `src/database/init.sql`.
-
-To manually initialize the database with the complete schema:
-
-```bash
-# Connect to PostgreSQL
-psql -U your_username -d your_database_name
-
-# Run the initialization script
-\i /path/to/src/database/init.sql
-```
-
-Or use the provided setup script which handles both initialization and migrations:
-```
-npm run db:init
-```
-
-#### Database Management Tools
-
-For development, you can use these commands to manage your database:
-
-```bash
-# Initialize database with full schema (including all migrations)
-npm run db:init
-
-# Check database status and schema
-npm run db:check
-
-# Clean the database (truncate all tables and reset sequences)
-npm run db:clean
-
-# Reset the database (clean tables + re-initialize schema)
-npm run db:reset
-
-# Run specific migrations (if upgrading an existing installation)
-npm run db:migrate:admin  # Adds admin support to the database
-```
-
-⚠️ **WARNING**: The clean and reset commands will delete all data in your database tables. They only work when `NODE_ENV=development` to prevent accidental data loss in production environments.
+The server will be available at http://localhost:3000 by default.
 
 ## API Endpoints
 
@@ -412,6 +281,27 @@ Signature calculation:
 ```
 Signature = HMAC-SHA256(requestMethod + path + timestamp + requestBody, apiSecret)
 ```
+
+### API Secret Encryption
+
+For enhanced security, API secrets are stored using a dual approach:
+- A bcrypt hash of the API secret for authentication
+- An AES-256-CBC encrypted version of the raw API secret for HMAC signature validation
+
+This approach ensures:
+1. The original API secret is never stored in plaintext in the database
+2. The server can still validate HMAC signatures without compromising security
+3. Even if database contents are exposed, the API secrets remain protected
+
+The encryption uses:
+- AES-256-CBC encryption algorithm
+- A unique initialization vector (IV) for each encrypted secret
+- A master encryption key from environment variables (`MASTER_ENCRYPTION_KEY`)
+
+For production deployments, it's recommended to:
+- Use a hardware security module (HSM) or key management service (KMS) for the master encryption key
+- Rotate the master encryption key periodically
+- Implement proper key management procedures
 
 ### Rate Limiting
 
@@ -499,4 +389,32 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details. 
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Testing
+
+### Unit Tests
+
+Run the unit tests with:
+
+```bash
+npm test
+```
+
+### End-to-End Tests
+
+The project includes comprehensive end-to-end tests that verify the entire application stack from server startup to database operations and API endpoints.
+
+To run the E2E tests:
+
+```bash
+npm run test:e2e
+```
+
+For a more comprehensive test run with database setup:
+
+```bash
+npm run test:e2e:runner
+```
+
+For more information on the E2E testing architecture, see the [E2E test documentation](./e2e/README.md). 

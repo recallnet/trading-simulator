@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { services } from '../services';
+import { repositories } from '../database';
 import { ApiError } from '../middleware/errorHandler';
 
 /**
@@ -27,6 +28,24 @@ export class CompetitionController {
       const competition = await services.competitionManager.getCompetition(competitionId);
       if (!competition) {
         throw new ApiError(404, 'Competition not found');
+      }
+      
+      // Check if the team is part of the competition
+      // @ts-ignore - teamId is added to the request by team-auth middleware
+      const teamId = req.teamId;
+      
+      // If no team ID, they can't be in the competition
+      if (!teamId) {
+        throw new ApiError(401, 'Authentication required to view leaderboard');
+      }
+      
+      const isTeamInCompetition = await repositories.teamRepository.isTeamInCompetition(
+        teamId, 
+        competitionId
+      );
+      
+      if (!isTeamInCompetition) {
+        throw new ApiError(403, 'Your team is not participating in this competition');
       }
       
       // Get leaderboard
@@ -73,6 +92,34 @@ export class CompetitionController {
           success: true,
           active: false,
           message: 'No active competition'
+        });
+      }
+      
+      // Check if the team is part of the competition
+      // @ts-ignore - teamId is added to the request by team-auth middleware
+      const teamId = req.teamId;
+      
+      // If no team ID, they can't be in the competition
+      if (!teamId) {
+        return res.status(200).json({
+          success: true,
+          active: false,
+          competition: null,
+          message: 'Authentication required to view competition details'
+        });
+      }
+      
+      const isTeamInCompetition = await repositories.teamRepository.isTeamInCompetition(
+        teamId, 
+        activeCompetition.id
+      );
+      
+      if (!isTeamInCompetition) {
+        return res.status(200).json({
+          success: true,
+          active: false,
+          competition: null,
+          message: 'Your team is not participating in the active competition'
         });
       }
       

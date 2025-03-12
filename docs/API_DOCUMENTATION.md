@@ -100,15 +100,83 @@ Returns the current balances for your team across all tokens.
 }
 ```
 
-### Market Data
+#### Get Portfolio
+
+Returns the portfolio information for your team.
+
+- **URL:** `/api/account/portfolio`
+- **Method:** `GET`
+- **Authentication:** Required
+
+**Response Example:**
+```json
+{
+  "success": true,
+  "portfolio": {
+    "totalValueUSD": 125000.00,
+    "positions": [
+      {
+        "token": "USDC",
+        "amount": 100000.00,
+        "valueUSD": 100000.00,
+        "percentage": 80.0
+      },
+      {
+        "token": "SOL",
+        "amount": 50.0,
+        "valueUSD": 25000.00,
+        "percentage": 20.0
+      }
+    ]
+  }
+}
+```
+
+#### Get Trades
+
+Returns the trade history for your team.
+
+- **URL:** `/api/account/trades`
+- **Method:** `GET`
+- **Authentication:** Required
+- **Query Parameters:**
+  - `limit` (optional, default: 50)
+  - `offset` (optional, default: 0)
+  - `token` (optional, filter by token)
+
+**Response Example:**
+```json
+{
+  "success": true,
+  "trades": [
+    {
+      "id": "t_12345",
+      "fromToken": "USDC",
+      "toToken": "SOL",
+      "fromAmount": 1000.00,
+      "toAmount": 5.0,
+      "priceAtExecution": 200.00,
+      "timestamp": "2025-03-11T21:54:54.386Z",
+      "slippage": 0.05
+    }
+  ],
+  "pagination": {
+    "total": 1,
+    "limit": 50,
+    "offset": 0
+  }
+}
+```
+
+### Price Information
 
 #### Get Current Price
 
 Returns the current price for a specific token.
 
-- **URL:** `/api/market/prices/:tokenAddress`
+- **URL:** `/api/price/current`
 - **Method:** `GET`
-- **Parameters:** `tokenAddress` (e.g., "4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R")
+- **Query Parameters:** `token` (required, e.g., "SOL")
 - **Authentication:** Required
 
 **Response Example:**
@@ -116,24 +184,24 @@ Returns the current price for a specific token.
 {
   "success": true,
   "price": {
-    "tokenAddress": "4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R",
-    "tokenSymbol": "SOL",
-    "price": 123.45,
-    "timestamp": "2025-03-11T21:54:54.386Z"
+    "token": "SOL",
+    "usdPrice": 123.45,
+    "timestamp": "2025-03-11T21:54:54.386Z",
+    "source": "jupiter"
   }
 }
 ```
 
-#### Get Historical Prices
+#### Get Price History
 
 Returns historical price data for a specific token.
 
-- **URL:** `/api/market/prices/:tokenAddress/history`
+- **URL:** `/api/price/history`
 - **Method:** `GET`
-- **Parameters:** 
-  - `tokenAddress` (e.g., "4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R")
-  - `start` (optional, ISO timestamp)
-  - `end` (optional, ISO timestamp)
+- **Query Parameters:** 
+  - `token` (required, e.g., "SOL")
+  - `startTime` (optional, ISO timestamp)
+  - `endTime` (optional, ISO timestamp)
   - `interval` (optional, "1m", "5m", "15m", "1h", "4h", "1d")
 - **Authentication:** Required
 
@@ -141,17 +209,15 @@ Returns historical price data for a specific token.
 ```json
 {
   "success": true,
-  "prices": [
+  "priceHistory": [
     {
-      "tokenAddress": "4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R",
-      "tokenSymbol": "SOL",
-      "price": 123.45,
+      "token": "SOL",
+      "usdPrice": 123.45,
       "timestamp": "2025-03-11T21:00:00.000Z"
     },
     {
-      "tokenAddress": "4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R",
-      "tokenSymbol": "SOL",
-      "price": 124.50,
+      "token": "SOL",
+      "usdPrice": 124.50,
       "timestamp": "2025-03-11T22:00:00.000Z"
     }
   ]
@@ -162,17 +228,18 @@ Returns historical price data for a specific token.
 
 #### Execute Trade
 
-Executes a buy or sell trade for a specific token.
+Executes a trade between two tokens.
 
-- **URL:** `/api/trading/execute`
+- **URL:** `/api/trade/execute`
 - **Method:** `POST`
 - **Authentication:** Required
 - **Request Body:**
 ```json
 {
-  "tokenAddress": "4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R",
-  "side": "buy",
-  "amount": 0.1
+  "fromToken": "USDC",
+  "toToken": "SOL",
+  "amount": 1000.00,
+  "slippageTolerance": 0.5
 }
 ```
 
@@ -182,55 +249,44 @@ Executes a buy or sell trade for a specific token.
   "success": true,
   "trade": {
     "id": "t_12345",
-    "tokenAddress": "4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R",
-    "tokenSymbol": "SOL",
-    "side": "buy",
-    "amount": 0.1,
-    "price": 123.45,
+    "fromToken": "USDC",
+    "toToken": "SOL",
+    "fromAmount": 1000.00,
+    "toAmount": 4.975,
+    "priceAtExecution": 200.00,
     "timestamp": "2025-03-11T21:54:54.386Z",
-    "cost": 12.345,
-    "fees": 0.037
+    "slippage": 0.5
   },
   "balances": {
-    "USDC": 99987.618,
-    "SOL": 0.1
+    "USDC": 99000.00,
+    "SOL": 54.975
   }
 }
 ```
 
-#### Get Trade History
+#### Get Quote
 
-Returns the trade history for your team.
+Returns a quote for a potential trade.
 
-- **URL:** `/api/trading/history`
+- **URL:** `/api/trade/quote`
 - **Method:** `GET`
 - **Authentication:** Required
 - **Query Parameters:**
-  - `limit` (optional, default: 50)
-  - `offset` (optional, default: 0)
-  - `tokenAddress` (optional, filter by token)
+  - `fromToken` (required)
+  - `toToken` (required)
+  - `amount` (required)
 
 **Response Example:**
 ```json
 {
   "success": true,
-  "trades": [
-    {
-      "id": "t_12345",
-      "tokenAddress": "4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R",
-      "tokenSymbol": "SOL",
-      "side": "buy",
-      "amount": 0.1,
-      "price": 123.45,
-      "timestamp": "2025-03-11T21:54:54.386Z",
-      "cost": 12.345,
-      "fees": 0.037
-    }
-  ],
-  "pagination": {
-    "total": 1,
-    "limit": 50,
-    "offset": 0
+  "quote": {
+    "fromToken": "USDC",
+    "toToken": "SOL",
+    "fromAmount": 1000.00,
+    "estimatedToAmount": 4.975,
+    "estimatedPriceImpact": 0.5,
+    "timestamp": "2025-03-11T21:54:54.386Z"
   }
 }
 ```
@@ -280,12 +336,14 @@ Returns the current competition leaderboard.
     {
       "rank": 1,
       "teamName": "Alpha Traders",
-      "portfolioValue": 120345.67
+      "portfolioValue": 120345.67,
+      "percentageGain": 20.34
     },
     {
       "rank": 2,
       "teamName": "Beta Investment",
-      "portfolioValue": 115678.90
+      "portfolioValue": 115678.90,
+      "percentageGain": 15.68
     }
   ]
 }
@@ -305,15 +363,18 @@ Returns the rules for the current competition.
   "success": true,
   "rules": {
     "tradingRules": [
-      "Initial balance is 100,000 USDC",
+      "Initial balance is 10 SOL, 1000 USDC, 1000 USDT",
       "Trading is allowed 24/7 during the competition period",
-      "Market orders only (no limit orders)"
+      "Maximum single trade: 25% of team's total portfolio value"
     ],
     "rateLimits": {
-      "requestsPerMinute": 60,
-      "tradesPerMinute": 10
+      "tradeRequestsPerMinute": 100,
+      "priceRequestsPerMinute": 300,
+      "accountRequestsPerMinute": 30,
+      "totalRequestsPerMinute": 3000,
+      "totalRequestsPerHour": 10000
     },
-    "slippageFormula": "0.1% × trade amount"
+    "slippageFormula": "baseSlippage = (tradeAmountUSD / 10000) * 0.5%, actualSlippage = baseSlippage * (0.8 + (Math.random() * 0.4))"
   }
 }
 ```
@@ -348,8 +409,13 @@ The API returns standard HTTP status codes and a JSON response with error detail
 
 ## Rate Limits
 
-- 60 requests per minute per team
-- 10 trade executions per minute per team
+As specified in the competition rules endpoint, the following rate limits apply:
+
+- 100 requests per minute for trade operations
+- 300 requests per minute for price queries
+- 30 requests per minute for balance/portfolio checks
+- 3,000 requests per minute across all endpoints per team
+- 10,000 requests per hour per team
 
 Exceeding these limits will result in a `429 Too Many Requests` response with a `RATE_LIMIT_EXCEEDED` error code.
 

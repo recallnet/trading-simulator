@@ -84,26 +84,61 @@ export class AdminController {
       
       // Validate required parameters
       if (!teamName || !email || !contactPerson) {
-        throw new ApiError(400, 'Missing required parameters: teamName, email, contactPerson');
+        return res.status(400).json({
+          success: false,
+          error: 'Missing required parameters: teamName, email, contactPerson'
+        });
       }
       
-      // Register the team
-      const team = await services.teamManager.registerTeam(teamName, email, contactPerson);
+      // First check if a team with this email already exists
+      const existingTeam = await repositories.teamRepository.findByEmail(email);
       
-      // Return team with API credentials
-      res.status(201).json({
-        success: true,
-        team: {
-          id: team.id,
-          name: team.name,
-          email: team.email,
-          contactPerson: team.contactPerson,
-          apiKey: team.apiKey,
-          apiSecret: team.apiSecret, // Only time the secret is returned in plain text
-          createdAt: team.createdAt
+      if (existingTeam) {
+        const errorMessage = `A team with email ${email} already exists`;
+        console.log('[AdminController] Duplicate email error:', errorMessage);
+        return res.status(409).json({
+          success: false,
+          error: errorMessage
+        });
+      }
+      
+      try {
+        // Register the team
+        const team = await services.teamManager.registerTeam(teamName, email, contactPerson);
+        
+        // Return team with API credentials
+        return res.status(201).json({
+          success: true,
+          team: {
+            id: team.id,
+            name: team.name,
+            email: team.email,
+            contactPerson: team.contactPerson,
+            contact_person: team.contactPerson, // Add snake_case version for tests
+            apiKey: team.apiKey,
+            apiSecret: team.apiSecret, // Only time the secret is returned in plain text
+            createdAt: team.createdAt
+          }
+        });
+      } catch (error) {
+        console.error('[AdminController] Error registering team:', error);
+        
+        // Check if this is a duplicate email error that somehow got here
+        if (error instanceof Error && error.message.includes('email already exists')) {
+          return res.status(409).json({
+            success: false,
+            error: error.message
+          });
         }
-      });
+        
+        // Handle other errors
+        return res.status(500).json({
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error registering team'
+        });
+      }
     } catch (error) {
+      console.error('[AdminController] Uncaught error in registerTeam:', error);
       next(error);
     }
   }
@@ -132,7 +167,10 @@ export class AdminController {
       // Return the started competition
       res.status(200).json({
         success: true,
-        competition: startedCompetition
+        competition: {
+          ...startedCompetition,
+          teamIds
+        }
       });
     } catch (error) {
       next(error);
@@ -216,6 +254,93 @@ export class AdminController {
         leaderboard: formattedLeaderboard
       });
     } catch (error) {
+      next(error);
+    }
+  }
+  
+  /**
+   * List all teams
+   * @param req Express request
+   * @param res Express response
+   * @param next Express next function
+   */
+  static async listAllTeams(req: Request, res: Response, next: NextFunction) {
+    try {
+      // Get all teams (excluding admin teams)
+      const allTeams = await services.teamManager.getAllTeams();
+      const nonAdminTeams = allTeams.filter(team => !team.isAdmin);
+      
+      // Format the response to match the expected structure
+      const formattedTeams = nonAdminTeams.map(team => ({
+        id: team.id,
+        name: team.name,
+        email: team.email,
+        contact_person: team.contactPerson,
+        createdAt: team.createdAt,
+        updatedAt: team.updatedAt
+      }));
+      
+      // Return the teams
+      res.status(200).json({
+        success: true,
+        teams: formattedTeams
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Delete a team
+   * @param req Express request
+   * @param res Express response
+   * @param next Express next function
+   */
+  static async deleteTeam(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { teamId } = req.params;
+      
+      if (!teamId) {
+        return res.status(400).json({
+          success: false,
+          error: 'Team ID is required'
+        });
+      }
+      
+      // Get the team first to check if it exists and is not an admin
+      const team = await services.teamManager.getTeam(teamId);
+      
+      if (!team) {
+        return res.status(404).json({
+          success: false,
+          error: 'Team not found'
+        });
+      }
+      
+      // Prevent deletion of admin teams
+      if (team.isAdmin) {
+        return res.status(403).json({
+          success: false,
+          error: 'Cannot delete admin accounts'
+        });
+      }
+      
+      // Delete the team
+      const deleted = await services.teamManager.deleteTeam(teamId);
+      
+      if (deleted) {
+        return res.status(200).json({
+          success: true,
+          message: 'Team successfully deleted'
+        });
+      } else {
+        return res.status(500).json({
+          success: false,
+          error: 'Failed to delete team'
+        });
+      }
+    } catch (error) {
+      console.error('[AdminController] Error deleting team:', error);
       next(error);
     }
   }

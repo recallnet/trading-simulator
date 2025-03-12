@@ -8,8 +8,8 @@ import * as crypto from 'crypto';
  */
 
 // Replace these with your team's credentials
-const apiKey = 'sk_ee08b6e5d6571bd78c3efcc64ae1da0e';
-const apiSecret = 'f097f3c2a7ee7e043c1152c7943ea95906b7bcd54276b506aa19931efd45239c';
+const apiKey = 'your-api-key';
+const apiSecret = 'your-api-secret';
 const baseUrl = 'http://localhost:3000';
 
 // API endpoint details
@@ -47,8 +47,14 @@ async function getBalances() {
     
     // Handle response
     if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Request failed with status ${response.status}: ${errorText}`);
+      let errorMessage;
+      try {
+        const errorBody = await response.json();
+        errorMessage = errorBody.message || errorBody.error?.message || 'Unknown error';
+      } catch (e) {
+        errorMessage = await response.text();
+      }
+      throw new Error(`Request failed with status ${response.status}: ${errorMessage}`);
     }
     
     const balances = await response.json();

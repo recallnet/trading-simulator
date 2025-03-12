@@ -94,30 +94,62 @@ console.log('Signature:', signature);
 4. Set URL to `{{baseUrl}}/api/account/balances`
 5. Click "Save"
 
-### 2. Execute a Trade
+### 2. Get Portfolio
+
+1. Right-click on the collection and select "Add Request"
+2. Name it "Get Portfolio"
+3. Set method to **GET**
+4. Set URL to `{{baseUrl}}/api/account/portfolio`
+5. Click "Save"
+
+### 3. Get Current Price
+
+1. Right-click on the collection and select "Add Request"
+2. Name it "Get Current Price"
+3. Set method to **GET**
+4. Set URL to `{{baseUrl}}/api/price/current`
+5. Go to the "Params" tab
+6. Add a query parameter with key `token` and value `SOL`
+7. Click "Save"
+
+### 4. Execute a Trade
 
 1. Right-click on the collection and select "Add Request"
 2. Name it "Execute Trade"
 3. Set method to **POST**
-4. Set URL to `{{baseUrl}}/api/trading/execute`
+4. Set URL to `{{baseUrl}}/api/trade/execute`
 5. Go to the "Body" tab
 6. Select "raw" and "JSON"
 7. Enter the following JSON:
 ```json
 {
-  "tokenAddress": "4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R",
-  "side": "buy",
-  "amount": 0.01
+  "fromToken": "USDC",
+  "toToken": "SOL",
+  "amount": 100.00,
+  "slippageTolerance": 0.5
 }
 ```
 8. Click "Save"
 
-### 3. Get Trade History
+### 5. Get Trade Quote
 
 1. Right-click on the collection and select "Add Request"
-2. Name it "Trade History"
+2. Name it "Get Trade Quote"
 3. Set method to **GET**
-4. Set URL to `{{baseUrl}}/api/trading/history`
+4. Set URL to `{{baseUrl}}/api/trade/quote`
+5. Go to the "Params" tab
+6. Add the following query parameters:
+   - Key: `fromToken`, Value: `USDC`
+   - Key: `toToken`, Value: `SOL`
+   - Key: `amount`, Value: `100.00`
+7. Click "Save"
+
+### 6. Get Competition Status
+
+1. Right-click on the collection and select "Add Request"
+2. Name it "Competition Status"
+3. Set method to **GET**
+4. Set URL to `{{baseUrl}}/api/competition/status`
 5. Click "Save"
 
 ## Making Requests

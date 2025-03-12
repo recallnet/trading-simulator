@@ -53,6 +53,34 @@ export class TeamRepository extends BaseRepository<Team> {
   }
 
   /**
+   * Find a team by email
+   * @param email The email to search for
+   * @param client Optional database client for transactions
+   */
+  async findByEmail(email: string, client?: PoolClient): Promise<Team | null> {
+    try {
+      const query = `
+        SELECT * FROM teams
+        WHERE LOWER(email) = LOWER($1)
+        LIMIT 1
+      `;
+      
+      const values = [email];
+      
+      const result = client 
+        ? await client.query(query, values) 
+        : await this.db.query(query, values);
+      
+      return result.rows.length > 0 
+        ? this.mapToEntity(this.toCamelCase(result.rows[0])) 
+        : null;
+    } catch (error) {
+      console.error('[TeamRepository] Error in findByEmail:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Update an existing team
    * @param team Team to update
    * @param client Optional database client for transactions

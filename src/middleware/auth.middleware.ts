@@ -13,6 +13,10 @@ export const authMiddleware = (
 ) => {
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
+      console.log(`[AuthMiddleware] Received request to ${req.method} ${req.originalUrl}`);
+      console.log(`[AuthMiddleware] req.path: ${req.path}`);
+      console.log(`[AuthMiddleware] req.baseUrl: ${req.baseUrl}`);
+      
       // Get API key from header
       const apiKey = req.header('X-API-Key');
       if (!apiKey) {
@@ -31,12 +35,15 @@ export const authMiddleware = (
         throw new ApiError(401, 'Request signature is required');
       }
 
+      // For signature validation, use the full URL path
+      const fullPath = req.originalUrl.split('?')[0]; // Remove query params if any
+      
       // Validate API request
       const teamId = await teamManager.validateApiRequest(
         apiKey,
         signature,
         req.method,
-        req.path,
+        fullPath,
         timestamp,
         JSON.stringify(req.body)
       );
@@ -52,13 +59,17 @@ export const authMiddleware = (
       const activeCompetition = await competitionManager.getActiveCompetition();
       
       // For trade endpoints, ensure competition is active
-      if (req.path.startsWith('/api/trade/execute') && req.method === 'POST') {
+      const fullRoutePath = `${req.baseUrl}${req.path}`;
+      console.log(`[AuthMiddleware] Full route path: ${fullRoutePath}`);
+      
+      if (fullRoutePath.includes('/api/trade/execute') && req.method === 'POST') {
         if (!activeCompetition) {
           throw new ApiError(403, 'No active competition');
         }
         
         // Set competition ID in request
         req.competitionId = activeCompetition.id;
+        console.log(`[AuthMiddleware] Set competition ID: ${req.competitionId}`);
       }
 
       next();

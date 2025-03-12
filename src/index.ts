@@ -29,7 +29,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(rateLimiterMiddleware);
 
 // Apply authentication middleware to protected routes
-const protectedRoutes = ['/api/account', '/api/trade'];
+const protectedRoutes = ['/api/account', '/api/trade', '/api/competition'];
 app.use(protectedRoutes, authMiddleware(services.teamManager, services.competitionManager));
 
 // Apply routes

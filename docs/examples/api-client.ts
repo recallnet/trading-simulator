@@ -56,100 +56,135 @@ export class TradingSimulatorClient {
   /**
    * Make a request to the API
    * 
-   * @param method The HTTP method (GET, POST, etc.)
-   * @param path The API endpoint path (e.g., /api/account/balances)
+   * @param method The HTTP method
+   * @param path The API endpoint path
    * @param body The request body (if any)
-   * @returns A promise that resolves to the response data
+   * @returns A promise that resolves to the API response
    */
   private async request<T>(method: string, path: string, body: any = null): Promise<T> {
-    const url = this.baseUrl + path;
-    const bodyStr = body ? JSON.stringify(body) : '';
-    const headers = this.generateHeaders(method, path, bodyStr);
+    const url = `${this.baseUrl}${path}`;
+    const bodyString = body ? JSON.stringify(body) : '';
+    const headers = this.generateHeaders(method, path, bodyString);
     
     const options: RequestInit = {
       method,
       headers,
-      body: bodyStr || undefined,
+      body: bodyString || undefined
     };
 
-    const response = await fetch(url, options);
-    
-    if (!response.ok) {
-      const errorBody = await response.text();
-      throw new Error(`API request failed: ${response.status} ${response.statusText}\n${errorBody}`);
+    try {
+      const response = await fetch(url, options);
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error?.message || 'API request failed');
+      }
+      
+      return data as T;
+    } catch (error) {
+      console.error('API request error:', error);
+      throw error;
     }
-    
-    return response.json() as Promise<T>;
   }
 
   /**
-   * Get account balances for your team
+   * Get the current balances for your team
    * 
-   * @returns A promise that resolves to the account balances
+   * @returns A promise that resolves to the balances response
    */
   async getBalances(): Promise<any> {
     return this.request<any>('GET', '/api/account/balances');
   }
 
   /**
-   * Get the current price of a token
+   * Get the current portfolio for your team
    * 
-   * @param tokenAddress The Solana token address (e.g., '4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R' for SOL)
-   * @returns A promise that resolves to the current price data
+   * @returns A promise that resolves to the portfolio response
    */
-  async getPrice(tokenAddress: string): Promise<any> {
-    return this.request<any>('GET', `/api/market/prices/${tokenAddress}`);
+  async getPortfolio(): Promise<any> {
+    return this.request<any>('GET', '/api/account/portfolio');
+  }
+
+  /**
+   * Get the current price for a token
+   * 
+   * @param token The token to get the price for (e.g., "SOL")
+   * @returns A promise that resolves to the price response
+   */
+  async getPrice(token: string): Promise<any> {
+    // Use query parameters for token
+    return this.request<any>('GET', `/api/price/current?token=${encodeURIComponent(token)}`);
+  }
+
+  /**
+   * Get a quote for a trade
+   * 
+   * @param fromToken The token to sell
+   * @param toToken The token to buy
+   * @param amount The amount to sell
+   * @returns A promise that resolves to the quote response
+   */
+  async getTradeQuote(fromToken: string, toToken: string, amount: number): Promise<any> {
+    return this.request<any>(
+      'GET', 
+      `/api/trade/quote?fromToken=${encodeURIComponent(fromToken)}&toToken=${encodeURIComponent(toToken)}&amount=${amount}`
+    );
   }
 
   /**
    * Execute a trade
    * 
-   * @param tokenAddress The Solana token address (e.g., '4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R')
-   * @param side The trade side ('buy' or 'sell')
-   * @param amount The amount to trade
-   * @returns A promise that resolves to the trade result
+   * @param fromToken The token to sell
+   * @param toToken The token to buy
+   * @param amount The amount to sell
+   * @param slippageTolerance Optional slippage tolerance percentage
+   * @returns A promise that resolves to the trade response
    */
-  async executeTrade(tokenAddress: string, side: 'buy' | 'sell', amount: number): Promise<any> {
-    const body = {
-      tokenAddress,
-      side,
-      amount
-    };
-    
-    return this.request<any>('POST', '/api/trading/execute', body);
+  async executeTrade(
+    fromToken: string,
+    toToken: string,
+    amount: number,
+    slippageTolerance?: number
+  ): Promise<any> {
+    return this.request<any>('POST', '/api/trade/execute', {
+      fromToken,
+      toToken,
+      amount,
+      slippageTolerance
+    });
   }
 
   /**
-   * Get trade history
+   * Get trade history for your team
    * 
-   * @returns A promise that resolves to the trade history
+   * @returns A promise that resolves to the trade history response
    */
-  async getTradeHistory(): Promise<any> {
-    return this.request<any>('GET', '/api/trading/history');
+  async getTrades(): Promise<any> {
+    return this.request<any>('GET', '/api/account/trades');
   }
 
   /**
-   * Get competition status
+   * Get the status of the current competition
    * 
-   * @returns A promise that resolves to the competition status
+   * @returns A promise that resolves to the competition status response
    */
   async getCompetitionStatus(): Promise<any> {
     return this.request<any>('GET', '/api/competition/status');
   }
 
   /**
-   * Get competition leaderboard
+   * Get the leaderboard for the current competition
    * 
-   * @returns A promise that resolves to the competition leaderboard
+   * @returns A promise that resolves to the leaderboard response
    */
   async getLeaderboard(): Promise<any> {
     return this.request<any>('GET', '/api/competition/leaderboard');
   }
 
   /**
-   * Get competition rules
+   * Get the rules for the current competition
    * 
-   * @returns A promise that resolves to the competition rules
+   * @returns A promise that resolves to the competition rules response
    */
   async getCompetitionRules(): Promise<any> {
     return this.request<any>('GET', '/api/competition/rules');
@@ -158,37 +193,36 @@ export class TradingSimulatorClient {
 
 // Example usage
 async function example() {
-  // Replace with actual team credentials
-  const apiKey = 'sk_ee08b6e5d6571bd78c3efcc64ae1da0e';
-  const apiSecret = 'f097f3c2a7ee7e043c1152c7943ea95906b7bcd54276b506aa19931efd45239c';
-  
-  const client = new TradingSimulatorClient(apiKey, apiSecret);
-  
+  const client = new TradingSimulatorClient(
+    'your-api-key',
+    'your-api-secret',
+    'http://localhost:3000'
+  );
+
   try {
-    // Get account balances
+    // Get balances
     const balances = await client.getBalances();
     console.log('Balances:', balances);
-    
-    // Get current price of a Solana token
-    const solToken = '4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R';
-    const tokenPrice = await client.getPrice(solToken);
-    console.log('Token Price:', tokenPrice);
-    
-    // Execute a trade for a Solana token
-    const tradeResult = await client.executeTrade(solToken, 'buy', 0.1);
-    console.log('Trade Result:', tradeResult);
-    
-    // Get trade history
-    const tradeHistory = await client.getTradeHistory();
-    console.log('Trade History:', tradeHistory);
-    
+
+    // Get portfolio
+    const portfolio = await client.getPortfolio();
+    console.log('Portfolio:', portfolio);
+
+    // Get price
+    const price = await client.getPrice('SOL');
+    console.log('SOL Price:', price);
+
+    // Execute a trade
+    const trade = await client.executeTrade('USDC', 'SOL', 100);
+    console.log('Trade Result:', trade);
+
     // Get competition status
-    const competitionStatus = await client.getCompetitionStatus();
-    console.log('Competition Status:', competitionStatus);
+    const status = await client.getCompetitionStatus();
+    console.log('Competition Status:', status);
   } catch (error) {
     console.error('Error:', error);
   }
 }
 
 // Uncomment to run the example
-// example().catch(console.error); 
+// example(); 

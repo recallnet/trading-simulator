@@ -3,6 +3,12 @@ import { AccountController } from '../controllers/account.controller';
 
 const router = Router();
 
+// GET /api/account/profile - Get profile for the authenticated team
+router.get('/profile', AccountController.getProfile);
+
+// PUT /api/account/profile - Update profile for the authenticated team
+router.put('/profile', AccountController.updateProfile);
+
 // GET /api/account/balances - Get balances for the authenticated team
 router.get('/balances', AccountController.getBalances);
 

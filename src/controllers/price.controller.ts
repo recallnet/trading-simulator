@@ -8,33 +8,25 @@ import { ApiError } from '../middleware/errorHandler';
  */
 export class PriceController {
   /**
-   * Get current price for a token
+   * Get price for a token
    * @param req Express request
    * @param res Express response
    * @param next Express next function
    */
-  static async getCurrentPrice(req: Request, res: Response, next: NextFunction) {
+  static async getPrice(req: Request, res: Response, next: NextFunction) {
     try {
       const { token } = req.query;
       
-      // Validate required parameters
-      if (!token) {
-        throw new ApiError(400, 'Missing required parameter: token');
+      if (!token || typeof token !== 'string') {
+        throw new ApiError(400, 'Token address is required');
       }
       
-      // Get the price
-      const price = await services.priceTracker.getPrice(token as string);
+      const price = await services.priceTracker.getPrice(token);
       
-      if (price === null) {
-        throw new ApiError(404, `Price not available for token: ${token}`);
-      }
-      
-      // Return the price
       res.status(200).json({
-        success: true,
-        token,
+        success: price !== null,
         price,
-        timestamp: new Date().toISOString()
+        token
       });
     } catch (error) {
       next(error);
@@ -42,36 +34,66 @@ export class PriceController {
   }
   
   /**
-   * Get price history for a token
+   * Get price from a specific provider
    * @param req Express request
    * @param res Express response
    * @param next Express next function
    */
-  static async getPriceHistory(req: Request, res: Response, next: NextFunction) {
+  static async getPriceFromProvider(req: Request, res: Response, next: NextFunction) {
     try {
-      const { token, timeframe } = req.query;
+      const { token, provider } = req.query;
       
-      // Validate required parameters
-      if (!token) {
-        throw new ApiError(400, 'Missing required parameter: token');
+      if (!token || typeof token !== 'string') {
+        throw new ApiError(400, 'Token address is required');
       }
       
-      // Default timeframe to '24h' if not provided
-      const tf = (timeframe as string) || '24h';
-      
-      // Get the price history
-      const history = await services.priceTracker.getPriceHistory(token as string, tf);
-      
-      if (!history) {
-        throw new ApiError(404, `Price history not available for token: ${token}`);
+      if (!provider || typeof provider !== 'string') {
+        throw new ApiError(400, 'Provider name is required');
       }
       
-      // Return the price history
+      let price = null;
+      
+      // Get price from the specified provider
+      switch (provider.toLowerCase()) {
+        case 'jupiter':
+          try {
+            const jupiterProvider = services.priceTracker.getProviderByName('Jupiter');
+            if (jupiterProvider) {
+              price = await jupiterProvider.getPrice(token);
+            }
+          } catch (error) {
+            console.error('Error getting price from Jupiter provider:', error);
+          }
+          break;
+        case 'raydium':
+          try {
+            const raydiumProvider = services.priceTracker.getProviderByName('Raydium');
+            if (raydiumProvider) {
+              price = await raydiumProvider.getPrice(token);
+            }
+          } catch (error) {
+            console.error('Error getting price from Raydium provider:', error);
+          }
+          break;
+        case 'serum':
+          try {
+            const serumProvider = services.priceTracker.getProviderByName('Serum');
+            if (serumProvider) {
+              price = await serumProvider.getPrice(token);
+            }
+          } catch (error) {
+            console.error('Error getting price from Serum provider:', error);
+          }
+          break;
+        default:
+          throw new ApiError(400, `Unknown provider: ${provider}`);
+      }
+      
       res.status(200).json({
-        success: true,
+        success: price !== null,
+        price,
         token,
-        timeframe: tf,
-        history
+        provider
       });
     } catch (error) {
       next(error);

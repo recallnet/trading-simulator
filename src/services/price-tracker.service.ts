@@ -1,7 +1,8 @@
 import { PriceSource } from '../types';
 import { JupiterProvider } from './providers/jupiter.provider';
 import { RaydiumProvider } from './providers/raydium.provider';
-import { SolanaProvider } from './providers/solana.provider';
+import { SerumProvider } from './providers/serum.provider';
+// import { SolanaProvider } from './providers/solana.provider'; // No longer using Solana provider
 import { config } from '../config';
 import { repositories } from '../database';
 
@@ -26,14 +27,25 @@ export class PriceTracker {
     // Initialize providers in priority order
     const jupiterProvider = new JupiterProvider();
     const raydiumProvider = new RaydiumProvider();
-    const solanaProvider = new SolanaProvider();
+    const serumProvider = new SerumProvider();
+    // const solanaProvider = new SolanaProvider(); // No longer using Solana provider
 
     this.providers = [
       jupiterProvider, // Jupiter for most tokens
       raydiumProvider, // Raydium as another source
-      solanaProvider,  // Basic Solana fallback for main tokens
+      serumProvider,   // Serum as a third source
+      // solanaProvider,  // Removed as it doesn't provide real prices
     ];
     this.priceCache = new Map();
+  }
+
+  /**
+   * Get a provider by name
+   * @param name The name of the provider to get
+   * @returns The provider instance or null if not found
+   */
+  getProviderByName(name: string): PriceSource | null {
+    return this.providers.find(p => p.getName().toLowerCase() === name.toLowerCase()) || null;
   }
 
   /**

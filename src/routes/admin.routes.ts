@@ -15,6 +15,12 @@ router.use(adminAuthMiddleware);
 // POST /api/admin/teams/register - Register a new team
 router.post('/teams/register', AdminController.registerTeam);
 
+// GET /api/admin/teams - List all teams
+router.get('/teams', AdminController.listAllTeams);
+
+// DELETE /api/admin/teams/:teamId - Delete a team
+router.delete('/teams/:teamId', AdminController.deleteTeam);
+
 // POST /api/admin/competition/start - Start a competition
 router.post('/competition/start', AdminController.startCompetition);
 

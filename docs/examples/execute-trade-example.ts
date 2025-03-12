@@ -4,23 +4,24 @@ import * as crypto from 'crypto';
  * Example: Execute a Trade
  * 
  * This example demonstrates how to make an authenticated request to
- * execute a trade (buy or sell).
+ * execute a trade between two tokens.
  */
 
 // Replace these with your team's credentials
-const apiKey = 'sk_ee08b6e5d6571bd78c3efcc64ae1da0e';
-const apiSecret = 'f097f3c2a7ee7e043c1152c7943ea95906b7bcd54276b506aa19931efd45239c';
+const apiKey = 'your-api-key';
+const apiSecret = 'your-api-secret';
 const baseUrl = 'http://localhost:3000';
 
 // API endpoint details
 const method = 'POST';
-const path = '/api/trading/execute';
+const path = '/api/trade/execute';
 
 // Trade details
 const tradeDetails = {
-  tokenAddress: '4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R', // Solana token
-  side: 'buy',
-  amount: 0.01 // Buy 0.01 tokens
+  fromToken: 'USDC',
+  toToken: 'SOL',
+  amount: 100.00,
+  slippageTolerance: 0.5 // Optional slippage tolerance in percentage
 };
 
 async function executeTrade() {
@@ -59,8 +60,14 @@ async function executeTrade() {
     
     // Handle response
     if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Request failed with status ${response.status}: ${errorText}`);
+      let errorMessage;
+      try {
+        const errorBody = await response.json();
+        errorMessage = errorBody.message || errorBody.error?.message || 'Unknown error';
+      } catch (e) {
+        errorMessage = await response.text();
+      }
+      throw new Error(`Request failed with status ${response.status}: ${errorMessage}`);
     }
     
     const result = await response.json();

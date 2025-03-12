@@ -56,6 +56,15 @@ export class TradeSimulator {
           error: 'Trade amount too small (minimum: 0.000001)',
         };
       }
+      
+      // Prevent trading between identical tokens
+      if (fromToken === toToken) {
+        console.log(`[TradeSimulator] Cannot trade between identical tokens: ${fromToken}`);
+        return {
+          success: false,
+          error: 'Cannot trade between identical tokens',
+        };
+      }
 
       // Validate balances
       const currentBalance = await this.balanceManager.getBalance(teamId, fromToken);

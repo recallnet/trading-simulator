@@ -30,6 +30,13 @@ export class TradeController {
         throw new ApiError(400, 'Amount must be a positive number');
       }
       
+      // Validate that we have a competition ID
+      if (!competitionId) {
+        throw new ApiError(400, 'Missing competitionId: No active competition or competition ID not set');
+      }
+      
+      console.log(`[TradeController] Executing trade with competition ID: ${competitionId}`);
+      
       // Execute the trade
       const result = await services.tradeSimulator.executeTrade(
         teamId,
@@ -47,7 +54,7 @@ export class TradeController {
       // Return successful trade result
       res.status(200).json({
         success: true,
-        trade: result.trade
+        transaction: result.trade
       });
     } catch (error) {
       next(error);

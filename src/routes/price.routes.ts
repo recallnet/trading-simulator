@@ -1,12 +1,12 @@
 import { Router } from 'express';
 import { PriceController } from '../controllers/price.controller';
 
-const router = Router();
+export const priceRoutes = Router();
 
-// GET /api/price/current - Get current price for a token
-router.get('/current', PriceController.getCurrentPrice);
+// GET /api/price - Get price for a token
+priceRoutes.get('/', PriceController.getPrice);
 
-// GET /api/price/history - Get price history for a token
-router.get('/history', PriceController.getPriceHistory);
+// GET /api/price/provider - Get price from a specific provider
+priceRoutes.get('/provider', PriceController.getPriceFromProvider);
 
-export default router; 
+export default priceRoutes; 

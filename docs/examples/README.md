@@ -56,9 +56,16 @@ const client = new TradingSimulatorClient(
 const balances = await client.getBalances();
 console.log('Balances:', balances);
 
+// Get portfolio
+const portfolio = await client.getPortfolio();
+console.log('Portfolio:', portfolio);
+
+// Get price
+const price = await client.getPrice('SOL');
+console.log('SOL Price:', price);
+
 // Execute a trade
-const solToken = '4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R';
-const tradeResult = await client.executeTrade(solToken, 'buy', 0.01);
+const tradeResult = await client.executeTrade('USDC', 'SOL', 100.00, 0.5);
 console.log('Trade Result:', tradeResult);
 ```
 
