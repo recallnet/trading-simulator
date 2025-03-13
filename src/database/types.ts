@@ -1,3 +1,5 @@
+import { BlockchainType, SpecificChain } from '../types';
+
 /**
  * Database Types
  * Type definitions for database entities and records
@@ -11,6 +13,8 @@ export interface PriceRecord {
   token: string;
   price: number;
   timestamp: Date;
+  chain?: BlockchainType;
+  specificChain?: SpecificChain;
 }
 
 /**
@@ -34,6 +38,7 @@ export interface PortfolioTokenValue {
   amount: number;
   valueUsd: number;
   price: number;
+  specificChain?: SpecificChain;
 }
 
 /**

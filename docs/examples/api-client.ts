@@ -6,6 +6,27 @@ import * as crypto from 'crypto';
  * This example client demonstrates how to authenticate and make requests
  * to the Trading Simulator API using TypeScript.
  */
+
+// Define blockchain types
+export enum BlockchainType {
+  SVM = 'svm', // Solana Virtual Machine
+  EVM = 'evm'  // Ethereum Virtual Machine
+}
+
+// Common token addresses
+export const COMMON_TOKENS = {
+  // Solana tokens
+  SVM: {
+    USDC: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
+    SOL: 'So11111111111111111111111111111111111111112'
+  },
+  // Ethereum tokens
+  EVM: {
+    USDC: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
+    ETH: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2' // WETH
+  }
+};
+
 export class TradingSimulatorClient {
   private apiKey: string;
   private apiSecret: string;
@@ -90,6 +111,22 @@ export class TradingSimulatorClient {
   }
 
   /**
+   * Detect blockchain type from token address format
+   * 
+   * @param token The token address
+   * @returns The detected blockchain type (SVM or EVM)
+   */
+  public detectChain(token: string): BlockchainType {
+    // Ethereum addresses start with '0x' followed by 40 hex characters
+    if (/^0x[a-fA-F0-9]{40}$/.test(token)) {
+      return BlockchainType.EVM;
+    }
+    // Solana addresses are base58 encoded, typically around 44 characters
+    // This is a simplified detection, could be more robust
+    return BlockchainType.SVM;
+  }
+
+  /**
    * Get the current balances for your team
    * 
    * @returns A promise that resolves to the balances response
@@ -101,35 +138,64 @@ export class TradingSimulatorClient {
   /**
    * Get the trade history for your team
    * 
+   * @param options Optional filtering parameters
    * @returns A promise that resolves to the trade history response
    */
-  async getTrades(): Promise<any> {
-    return this.request<any>('GET', '/api/account/trades');
+  async getTrades(options?: {
+    limit?: number;
+    offset?: number;
+    token?: string;
+    chain?: BlockchainType;
+  }): Promise<any> {
+    let query = '';
+    
+    if (options) {
+      const params = new URLSearchParams();
+      if (options.limit) params.append('limit', options.limit.toString());
+      if (options.offset) params.append('offset', options.offset.toString());
+      if (options.token) params.append('token', options.token);
+      if (options.chain) params.append('chain', options.chain);
+      query = `?${params.toString()}`;
+    }
+    
+    return this.request<any>('GET', `/api/account/trades${query}`);
   }
 
   /**
    * Get the current price for a token
    * 
-   * @param token The token address to get the price for (e.g., the SOL token address)
+   * @param token The token address to get the price for
+   * @param chain Optional blockchain type (auto-detected if not provided)
    * @returns A promise that resolves to the price response
    */
-  async getPrice(token: string): Promise<any> {
-    // Use query parameters for token
-    return this.request<any>('GET', `/api/price?token=${encodeURIComponent(token)}`);
+  async getPrice(token: string, chain?: BlockchainType): Promise<any> {
+    let query = `?token=${encodeURIComponent(token)}`;
+    
+    // Add chain parameter if explicitly provided
+    if (chain) {
+      query += `&chain=${chain}`;
+    }
+    
+    return this.request<any>('GET', `/api/price${query}`);
   }
 
   /**
    * Get a price from a specific provider
    * 
    * @param token The token address to get the price for
-   * @param provider The provider name (e.g., "jupiter", "raydium", "serum")
+   * @param provider The provider name (e.g., "jupiter", "raydium", "serum", "noves")
+   * @param chain Optional blockchain type (auto-detected if not provided)
    * @returns A promise that resolves to the price response
    */
-  async getPriceFromProvider(token: string, provider: string): Promise<any> {
-    return this.request<any>(
-      'GET',
-      `/api/price/provider?token=${encodeURIComponent(token)}&provider=${encodeURIComponent(provider)}`
-    );
+  async getPriceFromProvider(token: string, provider: string, chain?: BlockchainType): Promise<any> {
+    let query = `?token=${encodeURIComponent(token)}&provider=${encodeURIComponent(provider)}`;
+    
+    // Add chain parameter if explicitly provided
+    if (chain) {
+      query += `&chain=${chain}`;
+    }
+    
+    return this.request<any>('GET', `/api/price/provider${query}`);
   }
 
   /**
@@ -144,17 +210,48 @@ export class TradingSimulatorClient {
     amount: string;
     price?: string;
     slippageTolerance?: string;
+    usdcAddress?: string; // Optional USDC address to use (defaults to chain-specific USDC)
   }): Promise<any> {
+    // Detect the chain based on token address format
+    const chain = this.detectChain(params.tokenAddress);
+    
+    // Determine the appropriate USDC address based on the detected chain
+    const USDC_ADDRESS = params.usdcAddress || 
+      (chain === BlockchainType.EVM ? 
+        COMMON_TOKENS.EVM.USDC : 
+        COMMON_TOKENS.SVM.USDC);
+    
     // Format parameters for API call
     // For buy orders, we're buying tokenAddress using USDC
     // For sell orders, we're selling tokenAddress to get USDC
-    const USDC_ADDRESS = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
     const fromToken = params.side === 'buy' ? USDC_ADDRESS : params.tokenAddress;
     const toToken = params.side === 'buy' ? params.tokenAddress : USDC_ADDRESS;
     
     return this.request<any>('POST', '/api/trade/execute', {
       fromToken,
       toToken,
+      amount: params.amount,
+      price: params.price,
+      slippageTolerance: params.slippageTolerance
+    });
+  }
+
+  /**
+   * Execute a cross-chain trade (e.g., from Solana USDC to Ethereum ETH)
+   * 
+   * @param params Cross-chain trading parameters
+   * @returns A promise that resolves to the trade response
+   */
+  async executeCrossChainTrade(params: {
+    fromToken: string;
+    toToken: string;
+    amount: string;
+    price?: string;
+    slippageTolerance?: string;
+  }): Promise<any> {
+    return this.request<any>('POST', '/api/trade/execute', {
+      fromToken: params.fromToken,
+      toToken: params.toToken,
       amount: params.amount,
       price: params.price,
       slippageTolerance: params.slippageTolerance
@@ -208,7 +305,7 @@ async function example() {
   );
 
   try {
-    // Get balances
+    // Get balances (shows all tokens across all chains)
     const balances = await client.getBalances();
     console.log('Balances:', balances);
 
@@ -216,23 +313,45 @@ async function example() {
     const profile = await client.getProfile();
     console.log('Team Profile:', profile);
 
-    // Get price for SOL
-    const solTokenAddress = 'So11111111111111111111111111111111111111112';
-    const price = await client.getPrice(solTokenAddress);
-    console.log('SOL Price:', price);
+    // Get price for SOL (Solana)
+    const solPrice = await client.getPrice(COMMON_TOKENS.SVM.SOL);
+    console.log('SOL Price:', solPrice);
 
-    // Execute a trade to buy SOL
-    const trade = await client.executeTrade({
-      tokenAddress: solTokenAddress,
+    // Get price for ETH (Ethereum)
+    const ethPrice = await client.getPrice(COMMON_TOKENS.EVM.ETH);
+    console.log('ETH Price:', ethPrice);
+
+    // Execute a trade to buy SOL on Solana
+    const solTrade = await client.executeTrade({
+      tokenAddress: COMMON_TOKENS.SVM.SOL,
       side: 'buy',
       amount: '10', // 10 USDC
       price: '1.0' // Optional
     });
-    console.log('Trade Result:', trade);
+    console.log('SOL Trade Result:', solTrade);
 
-    // Get trade history
-    const trades = await client.getTrades();
-    console.log('Trade History:', trades);
+    // Execute a trade to buy ETH on Ethereum
+    const ethTrade = await client.executeTrade({
+      tokenAddress: COMMON_TOKENS.EVM.ETH,
+      side: 'buy',
+      amount: '10', // 10 USDC
+      price: '3500.0' // Optional
+    });
+    console.log('ETH Trade Result:', ethTrade);
+
+    // Execute a cross-chain trade (Solana USDC to Ethereum ETH)
+    const crossChainTrade = await client.executeCrossChainTrade({
+      fromToken: COMMON_TOKENS.SVM.USDC,
+      toToken: COMMON_TOKENS.EVM.ETH,
+      amount: '100',
+      price: '3500.0',
+      slippageTolerance: '0.5'
+    });
+    console.log('Cross-Chain Trade Result:', crossChainTrade);
+
+    // Get trade history (filtered by chain)
+    const solTrades = await client.getTrades({ chain: BlockchainType.SVM });
+    console.log('Solana Trade History:', solTrades);
 
     // Get competition status
     const status = await client.getCompetitionStatus();

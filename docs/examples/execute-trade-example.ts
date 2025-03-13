@@ -4,7 +4,7 @@ import * as crypto from 'crypto';
  * Example: Execute a Trade
  * 
  * This example demonstrates how to make an authenticated request to
- * execute a trade between two tokens.
+ * execute a trade between two tokens on the same chain or across chains.
  */
 
 // Replace these with your team's credentials
@@ -17,17 +17,57 @@ const method = 'POST';
 const path = '/api/trade/execute';
 
 // Token addresses (use these instead of symbols)
-const USDC_ADDRESS = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
+// Solana tokens
+const USDC_SOL_ADDRESS = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
 const SOL_ADDRESS = 'So11111111111111111111111111111111111111112';
+// Ethereum tokens
+const USDC_ETH_ADDRESS = '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48';
+const ETH_ADDRESS = '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2'; // WETH
 
-// Trade details
-const tradeDetails = {
-  fromToken: USDC_ADDRESS, // Buying SOL with USDC
-  toToken: SOL_ADDRESS,
-  amount: "100.00",        // Amount as string, not number
-  price: "125.45",         // Optional price limit (can help with slippage)
-  slippageTolerance: "0.5" // Optional slippage tolerance in percentage
-};
+// Choose which example to run
+const tradeType = process.argv[2] || 'solana'; // Options: 'solana', 'ethereum', 'cross-chain'
+
+// Trade details based on selected type
+let tradeDetails;
+
+switch (tradeType) {
+  case 'ethereum':
+    // Example: Buy ETH with USDC on Ethereum
+    tradeDetails = {
+      fromToken: USDC_ETH_ADDRESS, // Buying ETH with USDC (Ethereum)
+      toToken: ETH_ADDRESS,
+      amount: "100.00",         // Amount as string, not number
+      price: "3500.00",         // Optional price limit (can help with slippage)
+      slippageTolerance: "0.5"  // Optional slippage tolerance in percentage
+    };
+    console.log('Executing Ethereum trade: Buy ETH with USDC on Ethereum');
+    break;
+  
+  case 'cross-chain':
+    // Example: Buy ETH with USDC on Solana (cross-chain trade)
+    tradeDetails = {
+      fromToken: USDC_SOL_ADDRESS, // Using USDC from Solana
+      toToken: ETH_ADDRESS,        // To buy ETH on Ethereum
+      amount: "100.00",            // Amount as string, not number
+      price: "3500.00",            // Optional price limit
+      slippageTolerance: "0.5"     // Optional slippage tolerance in percentage
+    };
+    console.log('Executing cross-chain trade: Buy ETH with Solana USDC');
+    break;
+  
+  case 'solana':
+  default:
+    // Example: Buy SOL with USDC on Solana
+    tradeDetails = {
+      fromToken: USDC_SOL_ADDRESS, // Buying SOL with USDC
+      toToken: SOL_ADDRESS,
+      amount: "100.00",        // Amount as string, not number
+      price: "125.45",         // Optional price limit (can help with slippage)
+      slippageTolerance: "0.5" // Optional slippage tolerance in percentage
+    };
+    console.log('Executing Solana trade: Buy SOL with USDC on Solana');
+    break;
+}
 
 async function executeTrade() {
   try {
@@ -53,12 +93,13 @@ async function executeTrade() {
       'Content-Type': 'application/json'
     };
     
-    // Make the request
+    // Log request details
     console.log('Executing trade...');
     console.log('URL:', `${baseUrl}${path}`);
     console.log('Headers:', headers);
     console.log('Body:', bodyStr);
     
+    // Make the request
     const response = await fetch(`${baseUrl}${path}`, {
       method,
       headers,
@@ -79,6 +120,12 @@ async function executeTrade() {
     
     const result = await response.json();
     console.log('Trade Result:', JSON.stringify(result, null, 2));
+    
+    // Check chain information in the response
+    if (result.transaction) {
+      console.log(`Transaction executed on chains: From=${result.transaction.fromChain}, To=${result.transaction.toChain}`);
+    }
+    
     return result;
     
   } catch (error) {
@@ -91,4 +138,17 @@ async function executeTrade() {
 executeTrade().catch(error => {
   console.error('Failed to execute trade:', error);
   process.exit(1);
-}); 
+});
+
+/**
+ * To run this example with different trade types, use:
+ * 
+ * For Solana trade:
+ *   npx ts-node execute-trade-example.ts solana
+ * 
+ * For Ethereum trade:
+ *   npx ts-node execute-trade-example.ts ethereum
+ * 
+ * For cross-chain trade:
+ *   npx ts-node execute-trade-example.ts cross-chain
+ */ 

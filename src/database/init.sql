@@ -45,10 +45,12 @@ CREATE TABLE IF NOT EXISTS balances (
   amount DECIMAL(30, 15) NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  specific_chain VARCHAR(20), -- New column to track specific chain (eth, polygon, base, etc.)
   UNIQUE(team_id, token_address)
 );
 
 CREATE INDEX IF NOT EXISTS idx_balances_team_id ON balances(team_id);
+CREATE INDEX IF NOT EXISTS idx_balances_specific_chain ON balances(specific_chain);
 
 -- Trades table
 CREATE TABLE IF NOT EXISTS trades (
@@ -62,24 +64,36 @@ CREATE TABLE IF NOT EXISTS trades (
   price DECIMAL(30, 15) NOT NULL,
   success BOOLEAN NOT NULL,
   error TEXT,
-  timestamp TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+  timestamp TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  chain VARCHAR(10), -- General chain type (evm, svm)
+  from_specific_chain VARCHAR(20), -- New column to track specific chain for from_token
+  to_specific_chain VARCHAR(20) -- New column to track specific chain for to_token
 );
 
 CREATE INDEX IF NOT EXISTS idx_trades_team_id ON trades(team_id);
 CREATE INDEX IF NOT EXISTS idx_trades_competition_id ON trades(competition_id);
 CREATE INDEX IF NOT EXISTS idx_trades_timestamp ON trades(timestamp);
+CREATE INDEX IF NOT EXISTS idx_trades_chain ON trades(chain);
+CREATE INDEX IF NOT EXISTS idx_trades_from_specific_chain ON trades(from_specific_chain);
+CREATE INDEX IF NOT EXISTS idx_trades_to_specific_chain ON trades(to_specific_chain);
 
 -- Prices table
 CREATE TABLE IF NOT EXISTS prices (
   id SERIAL PRIMARY KEY,
   token VARCHAR(50) NOT NULL,
   price DECIMAL(30, 15) NOT NULL,
-  timestamp TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+  timestamp TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  chain VARCHAR(10), -- General chain type (evm, svm)
+  specific_chain VARCHAR(20) -- New column to track specific chain (eth, polygon, base, etc.)
 );
 
 CREATE INDEX IF NOT EXISTS idx_prices_token ON prices(token);
 CREATE INDEX IF NOT EXISTS idx_prices_timestamp ON prices(timestamp);
 CREATE INDEX IF NOT EXISTS idx_prices_token_timestamp ON prices(token, timestamp);
+CREATE INDEX IF NOT EXISTS idx_prices_chain ON prices(chain);
+CREATE INDEX IF NOT EXISTS idx_prices_token_chain ON prices(token, chain);
+CREATE INDEX IF NOT EXISTS idx_prices_specific_chain ON prices(specific_chain);
+CREATE INDEX IF NOT EXISTS idx_prices_token_specific_chain ON prices(token, specific_chain);
 
 -- Portfolio Snapshots table
 CREATE TABLE IF NOT EXISTS portfolio_snapshots (
@@ -100,10 +114,12 @@ CREATE TABLE IF NOT EXISTS portfolio_token_values (
   token_address VARCHAR(50) NOT NULL,
   amount DECIMAL(30, 15) NOT NULL,
   value_usd DECIMAL(30, 15) NOT NULL,
-  price DECIMAL(30, 15) NOT NULL
+  price DECIMAL(30, 15) NOT NULL,
+  specific_chain VARCHAR(20) -- New column to track specific chain
 );
 
 CREATE INDEX IF NOT EXISTS idx_portfolio_token_values_snapshot_id ON portfolio_token_values(portfolio_snapshot_id);
+CREATE INDEX IF NOT EXISTS idx_portfolio_token_values_specific_chain ON portfolio_token_values(specific_chain);
 
 -- Function to update updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()

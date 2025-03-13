@@ -1,4 +1,4 @@
-import { Balance } from '../types';
+import { Balance, BlockchainType, SpecificChain } from '../types';
 import { config } from '../config';
 import { repositories } from '../database';
 
@@ -24,10 +24,14 @@ export class BalanceManager {
     try {
       const initialBalances = new Map<string, number>();
       
-      // Set default balances from config
-      initialBalances.set(config.tokens.sol, config.initialBalances.sol);
-      initialBalances.set(config.tokens.usdc, config.initialBalances.usdc);
-      initialBalances.set(config.tokens.usdt, config.initialBalances.usdt);
+      // Add Solana (SVM) token balances
+      this.addChainTokensToBalances(initialBalances, BlockchainType.SVM);
+      
+      // Add Ethereum (EVM) token balances
+      this.addChainTokensToBalances(initialBalances, BlockchainType.EVM);
+      
+      // Add specific chain token balances (more granular)
+      this.addSpecificChainTokensToBalances(initialBalances);
       
       // Save to database
       await repositories.balanceRepository.initializeTeamBalances(teamId, initialBalances);
@@ -38,6 +42,71 @@ export class BalanceManager {
       console.error(`[BalanceManager] Error initializing balances for team ${teamId}:`, error);
       throw error;
     }
+  }
+
+  /**
+   * Helper method to add token balances for a specific chain
+   * @param balances The balances map to update
+   * @param chain The blockchain type
+   */
+  private addChainTokensToBalances(balances: Map<string, number>, chain: BlockchainType): void {
+    const chainTokens = config.blockchainTokens[chain];
+    const chainBalances = config.multiChainInitialBalances[chain];
+    
+    if (!chainTokens || !chainBalances) {
+      console.warn(`[BalanceManager] No configuration found for chain: ${chain}`);
+      return;
+    }
+    
+    // Add each configured token for this chain
+    Object.entries(chainTokens).forEach(([symbol, tokenAddress]) => {
+      // Use type assertion to handle the index access
+      const balance = chainBalances[symbol as keyof typeof chainBalances];
+      if (balance && balance > 0) {
+        console.log(`[BalanceManager] Setting initial balance for ${chain} ${symbol}: ${balance}`);
+        balances.set(tokenAddress, balance);
+      }
+    });
+  }
+
+  /**
+   * Helper method to add token balances for specific chains
+   * @param balances The balances map to update
+   */
+  private addSpecificChainTokensToBalances(balances: Map<string, number>): void {
+    const specificChainBalances = config.specificChainBalances;
+    const specificChainTokens = config.specificChainTokens;
+    
+    if (!specificChainBalances || !specificChainTokens) {
+      console.warn(`[BalanceManager] No specific chain configuration found`);
+      return;
+    }
+    
+    // Process each specific chain that we have balances for
+    Object.entries(specificChainBalances).forEach(([chain, tokenBalances]) => {
+      const specificChain = chain as SpecificChain;
+      
+      // Only process chains that we have token configurations for
+      if (specificChain === 'eth' || specificChain === 'polygon' || 
+          specificChain === 'base' || specificChain === 'svm') {
+        
+        // Type-safe access to the chain tokens
+        const chainTokens = specificChainTokens[specificChain];
+        
+        // Add each configured token for this specific chain
+        Object.entries(tokenBalances).forEach(([symbol, balance]) => {
+          // Type assertion for the symbol access
+          const tokenAddress = chainTokens[symbol as keyof typeof chainTokens];
+          
+          if (tokenAddress && balance > 0) {
+            console.log(`[BalanceManager] Setting initial balance for specific chain ${chain} ${symbol}: ${balance}`);
+            balances.set(tokenAddress, balance);
+          }
+        });
+      } else {
+        console.warn(`[BalanceManager] No token configuration found for specific chain: ${chain}`);
+      }
+    });
   }
 
   /**
@@ -158,10 +227,14 @@ export class BalanceManager {
     try {
       const initialBalances = new Map<string, number>();
       
-      // Set default balances from config
-      initialBalances.set(config.tokens.sol, config.initialBalances.sol);
-      initialBalances.set(config.tokens.usdc, config.initialBalances.usdc);
-      initialBalances.set(config.tokens.usdt, config.initialBalances.usdt);
+      // Add Solana (SVM) token balances
+      this.addChainTokensToBalances(initialBalances, BlockchainType.SVM);
+      
+      // Add Ethereum (EVM) token balances
+      this.addChainTokensToBalances(initialBalances, BlockchainType.EVM);
+      
+      // Add specific chain token balances (more granular)
+      this.addSpecificChainTokensToBalances(initialBalances);
       
       // Reset in database
       await repositories.balanceRepository.resetTeamBalances(teamId, initialBalances);

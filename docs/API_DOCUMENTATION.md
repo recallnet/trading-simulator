@@ -70,6 +70,24 @@ const headers = {
 - The timestamp must be within 5 minutes of the server time to prevent replay attacks
 - Use HTTPS for all API requests in production environments
 
+## Multi-Chain Support
+
+The Trading Simulator supports tokens on multiple blockchains:
+
+- **Solana Virtual Machine (SVM)** - Token addresses like `So11111111111111111111111111111111111111112` (SOL)
+- **Ethereum Virtual Machine (EVM)** - Token addresses like `0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2` (WETH)
+
+The system automatically detects which blockchain a token belongs to based on its address format. All price-related API responses include a `chain` field that indicates which blockchain the token is on (`svm` or `evm`).
+
+### Token Address Examples
+
+| Chain | Token | Address |
+|-------|-------|---------|
+| Solana | SOL | `So11111111111111111111111111111111111111112` |
+| Solana | USDC | `EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v` |
+| Ethereum | WETH | `0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2` |
+| Ethereum | USDC | `0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48` |
+
 ## API Endpoints
 
 ### Account
@@ -89,15 +107,18 @@ Returns the current balances for your team across all tokens.
   "balances": [
     {
       "token": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
-      "amount": "100000.00"
+      "amount": "100000.00",
+      "chain": "svm"
     },
     {
       "token": "So11111111111111111111111111111111111111112",
-      "amount": "50.0"
+      "amount": "50.0",
+      "chain": "svm"
     },
     {
-      "token": "4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R",
-      "amount": "5.0"
+      "token": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+      "amount": "5.0",
+      "chain": "evm"
     }
   ]
 }
@@ -122,13 +143,15 @@ Returns the portfolio information for your team.
         "token": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
         "amount": "100000.00",
         "valueUSD": "100000.00",
-        "percentage": "80.0"
+        "percentage": "80.0",
+        "chain": "svm"
       },
       {
         "token": "So11111111111111111111111111111111111111112",
         "amount": "50.0",
         "valueUSD": "25000.00",
-        "percentage": "20.0"
+        "percentage": "20.0",
+        "chain": "svm"
       }
     ]
   }
@@ -146,6 +169,7 @@ Returns the trade history for your team.
   - `limit` (optional, default: 50)
   - `offset` (optional, default: 0)
   - `token` (optional, filter by token)
+  - `chain` (optional, filter by chain - "svm" or "evm")
 
 **Response Example:**
 ```json
@@ -155,16 +179,30 @@ Returns the trade history for your team.
     {
       "id": "t_12345",
       "fromToken": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "fromChain": "svm",
       "toToken": "So11111111111111111111111111111111111111112",
+      "toChain": "svm",
       "fromAmount": "1000.00",
       "toAmount": "5.0",
       "priceAtExecution": "200.00",
       "timestamp": "2025-03-11T21:54:54.386Z",
       "slippage": "0.05"
+    },
+    {
+      "id": "t_12346",
+      "fromToken": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "fromChain": "svm",
+      "toToken": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+      "toChain": "evm",
+      "fromAmount": "2000.00",
+      "toAmount": "0.5",
+      "priceAtExecution": "4000.00",
+      "timestamp": "2025-03-11T22:12:34.386Z",
+      "slippage": "0.05"
     }
   ],
   "pagination": {
-    "total": 1,
+    "total": 2,
     "limit": 50,
     "offset": 0
   }
@@ -175,19 +213,30 @@ Returns the trade history for your team.
 
 #### Get Current Price
 
-Returns the current price for a specific token.
+Returns the current price for a specific token on either Solana or Ethereum blockchain.
 
 - **URL:** `/api/price`
 - **Method:** `GET`
-- **Query Parameters:** `token` (required, token address e.g., "So11111111111111111111111111111111111111112" for SOL)
+- **Query Parameters:** `token` (required, token address e.g., "So11111111111111111111111111111111111111112" for SOL or "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2" for WETH)
 - **Authentication:** Required
 
-**Response Example:**
+**Response Example for Solana Token:**
 ```json
 {
   "success": true,
   "price": 123.45,
-  "token": "So11111111111111111111111111111111111111112"
+  "token": "So11111111111111111111111111111111111111112",
+  "chain": "svm"
+}
+```
+
+**Response Example for Ethereum Token:**
+```json
+{
+  "success": true,
+  "price": 3500.75,
+  "token": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+  "chain": "evm"
 }
 ```
 
@@ -199,16 +248,29 @@ Returns the price for a specific token from a specific provider.
 - **Method:** `GET`
 - **Query Parameters:** 
   - `token` (required, token address)
-  - `provider` (required, one of: "jupiter", "raydium", "serum")
+  - `provider` (required, one of: "jupiter", "raydium", "serum", "noves")
+  - `chain` (optional, one of: "svm", "evm" - only needed when using the Noves provider and the chain cannot be auto-detected)
 - **Authentication:** Required
 
-**Response Example:**
+**Response Example for Solana Token:**
 ```json
 {
   "success": true,
   "price": 123.45,
   "token": "So11111111111111111111111111111111111111112",
-  "provider": "jupiter"
+  "provider": "jupiter",
+  "chain": "svm"
+}
+```
+
+**Response Example for Ethereum Token using Noves provider:**
+```json
+{
+  "success": true,
+  "price": 3500.75,
+  "token": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+  "provider": "noves",
+  "chain": "evm"
 }
 ```
 
@@ -219,10 +281,11 @@ Returns historical price data for a specific token.
 - **URL:** `/api/price/history`
 - **Method:** `GET`
 - **Query Parameters:** 
-  - `token` (required, e.g., "SOL")
+  - `token` (required, token address)
   - `startTime` (optional, ISO timestamp)
   - `endTime` (optional, ISO timestamp)
   - `interval` (optional, "1m", "5m", "15m", "1h", "4h", "1d")
+  - `chain` (optional, one of: "svm", "evm" - only needed when the chain cannot be auto-detected)
 - **Authentication:** Required
 
 **Response Example:**
@@ -231,24 +294,40 @@ Returns historical price data for a specific token.
   "success": true,
   "priceHistory": [
     {
-      "token": "SOL",
+      "token": "So11111111111111111111111111111111111111112",
       "usdPrice": 123.45,
-      "timestamp": "2025-03-11T21:00:00.000Z"
+      "timestamp": "2025-03-11T21:00:00.000Z",
+      "chain": "svm"
     },
     {
-      "token": "SOL",
+      "token": "So11111111111111111111111111111111111111112",
       "usdPrice": 124.50,
-      "timestamp": "2025-03-11T22:00:00.000Z"
+      "timestamp": "2025-03-11T22:00:00.000Z",
+      "chain": "svm"
     }
   ]
 }
 ```
 
+### Price Providers
+
+The Trading Simulator supports multiple price providers for different blockchains:
+
+#### Solana (SVM) Providers
+- **Jupiter**: Primary provider for Solana tokens, using Jupiter Aggregator
+- **Raydium**: Alternative provider using Raydium DEX
+- **Serum**: Alternative provider using Serum DEX
+
+#### Multi-Chain Provider
+- **Noves**: Supports both Solana (SVM) and Ethereum (EVM) tokens
+
+The system automatically selects the appropriate provider based on the token's blockchain. For Ethereum tokens, Noves is used as the primary provider. For Solana tokens, all providers are tried in sequence until a valid price is found.
+
 ### Trading
 
 #### Execute Trade
 
-Executes a trade between two tokens.
+Executes a trade between two tokens, supporting cross-chain trading.
 
 - **URL:** `/api/trade/execute`
 - **Method:** `POST`
@@ -257,9 +336,9 @@ Executes a trade between two tokens.
 ```json
 {
   "fromToken": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
-  "toToken": "So11111111111111111111111111111111111111112",
+  "toToken": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
   "amount": "1000.00",
-  "price": "125.45",
+  "price": "3500.75",
   "slippageTolerance": "0.5"
 }
 ```
@@ -272,10 +351,12 @@ Executes a trade between two tokens.
     "id": "21fd8603-8fc3-4ff2-9012-baa6b05838fc",
     "timestamp": "2025-03-11T21:54:54.386Z",
     "fromToken": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
-    "toToken": "So11111111111111111111111111111111111111112",
+    "fromChain": "svm",
+    "toToken": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+    "toChain": "evm",
     "fromAmount": "1000.00",
-    "toAmount": "7.97",
-    "price": "125.45",
+    "toAmount": "0.285",
+    "price": "3500.75",
     "success": true,
     "teamId": "2cbb016d-0002-4d01-ba32-8dd400e25756",
     "competitionId": "8b912dfa-22a5-4a4f-b660-e7715dde10f2"
@@ -287,7 +368,7 @@ Executes a trade between two tokens.
 
 #### Get Quote
 
-Returns a quote for a potential trade.
+Returns a quote for a potential trade, supporting cross-chain trading.
 
 - **URL:** `/api/trade/quote`
 - **Method:** `GET`
@@ -303,9 +384,11 @@ Returns a quote for a potential trade.
   "success": true,
   "quote": {
     "fromToken": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
-    "toToken": "So11111111111111111111111111111111111111112",
+    "fromChain": "svm",
+    "toToken": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+    "toChain": "evm",
     "fromAmount": "1000.00",
-    "estimatedToAmount": "4.975",
+    "estimatedToAmount": "0.285",
     "estimatedPriceImpact": "0.5",
     "timestamp": "2025-03-11T21:54:54.386Z"
   }
@@ -384,10 +467,12 @@ Returns the rules for the current competition.
   "success": true,
   "rules": {
     "tradingRules": [
-      "Initial balance is 10 SOL, 1000 USDC, 1000 USDT",
+      "Initial balance is 10 SOL, 1000 USDC, 1000 USDT, and 0.2 ETH",
       "Trading is allowed 24/7 during the competition period",
-      "Maximum single trade: 25% of team's total portfolio value"
+      "Maximum single trade: 25% of team's total portfolio value",
+      "Cross-chain trading is allowed between Solana and Ethereum tokens"
     ],
+    "supportedChains": ["svm", "evm"],
     "rateLimits": {
       "tradeRequestsPerMinute": 100,
       "priceRequestsPerMinute": 300,
@@ -426,6 +511,8 @@ The API returns standard HTTP status codes and a JSON response with error detail
 | `INSUFFICIENT_BALANCE` | Insufficient balance for the requested trade |
 | `RATE_LIMIT_EXCEEDED` | Rate limit exceeded |
 | `INVALID_PARAMETERS` | Invalid parameters in the request |
+| `INVALID_CHAIN` | Invalid blockchain specified or cannot determine chain from token address |
+| `UNSUPPORTED_TOKEN` | Token not supported on the specified blockchain |
 | `INTERNAL_ERROR` | Internal server error |
 
 ## Rate Limits

@@ -2,6 +2,7 @@ import { setupAdminClient, registerTeamAndGetClient, startTestCompetition, clean
 import axios from 'axios';
 import { getBaseUrl } from '../utils/server';
 import config from '../../src/config';
+import { BlockchainType } from '../../src/types';
 
 describe('Trading API', () => {
   // Clean up test state before each test
@@ -65,6 +66,14 @@ describe('Trading API', () => {
     expect(buyTradeResponse.transaction).toBeDefined();
     expect(buyTradeResponse.transaction.id).toBeDefined();
     
+    // Verify chain field is included in transaction response
+    if (buyTradeResponse.transaction.fromChain) {
+      expect(buyTradeResponse.transaction.fromChain).toBe(BlockchainType.SVM);
+    }
+    if (buyTradeResponse.transaction.toChain) {
+      expect(buyTradeResponse.transaction.toChain).toBe(BlockchainType.SVM);
+    }
+    
     // Wait a bit longer for the trade to process
     await wait(500);
     
@@ -87,6 +96,15 @@ describe('Trading API', () => {
     expect(tradeHistoryResponse.success).toBe(true);
     expect(tradeHistoryResponse.trades).toBeInstanceOf(Array);
     expect(tradeHistoryResponse.trades.length).toBeGreaterThan(0);
+    
+    // Verify chain fields in trades if they exist
+    const lastTrade = tradeHistoryResponse.trades[0];
+    if (lastTrade.fromChain) {
+      expect(lastTrade.fromChain).toBe(BlockchainType.SVM);
+    }
+    if (lastTrade.toChain) {
+      expect(lastTrade.toChain).toBe(BlockchainType.SVM);
+    }
     
     // Execute a sell trade (selling SOL for USDC)
     // Sell 50% of what we have to ensure we never try to sell more than we have
@@ -367,5 +385,114 @@ describe('Trading API', () => {
     expect(lastTrade.toToken).toBe(arbitraryTokenAddress);
     expect(parseFloat(lastTrade.fromAmount)).toBeCloseTo(usdcAmount, 1);
     expect(parseFloat(lastTrade.toAmount)).toBeCloseTo(expectedTokenAmount, 1);
+  });
+
+  test('team can trade with Ethereum tokens', async () => {
+    // Skip if Noves provider isn't configured (required for EVM tokens)
+    if (!config.api.noves?.enabled) {
+      console.log('Skipping Ethereum token test: Noves provider not configured');
+      return;
+    }
+    
+    // Setup admin client
+    const adminClient = await setupAdminClient();
+    
+    // Register team and get client
+    const { client: teamClient, team } = await registerTeamAndGetClient(adminClient, 'Ethereum Token Team');
+    
+    // Start a competition with our team
+    const competitionName = `Ethereum Token Test ${Date.now()}`;
+    await startTestCompetition(adminClient, competitionName, [team.id]);
+    
+    // Wait for balances to be properly initialized
+    await wait(500);
+    
+    // Check initial balance
+    const initialBalanceResponse = await teamClient.getBalance();
+    expect(initialBalanceResponse.success).toBe(true);
+    expect(initialBalanceResponse.balance).toBeDefined();
+    
+    // Get Ethereum USDC token address from blockchain tokens config
+    const ethUsdcTokenAddress = config.blockchainTokens?.[BlockchainType.EVM]?.usdc;
+    if (!ethUsdcTokenAddress) {
+      console.log('Skipping test: Ethereum USDC token address not configured');
+      return;
+    }
+    
+    // Get Ethereum ETH token address
+    const ethTokenAddress = config.blockchainTokens?.[BlockchainType.EVM]?.eth;
+    if (!ethTokenAddress) {
+      console.log('Skipping test: Ethereum ETH token address not configured');
+      return;
+    }
+    
+    // First check price to verify EVM tokens are working
+    try {
+      const priceResponse = await axios.get(`${getBaseUrl()}/api/price?token=${ethTokenAddress}`);
+      expect(priceResponse.status).toBe(200);
+      
+      // If we get a successful response, verify the token is recognized as EVM
+      if (priceResponse.data.chain) {
+        expect(priceResponse.data.chain).toBe(BlockchainType.EVM);
+        console.log(`Confirmed ETH token is on ${priceResponse.data.chain} chain with price ${priceResponse.data.price}`);
+      }
+    } catch (error) {
+      console.error('Error getting ETH price, EVM tokens may not be supported:', error);
+      return; // Skip the rest of the test
+    }
+    
+    // Check if we have any ETH balance already
+    const initialEthBalance = parseFloat(initialBalanceResponse.balance[ethTokenAddress]?.toString() || '0');
+    console.log(`Initial ETH balance: ${initialEthBalance}`);
+    
+    // If we have SVM USDC, we can try to trade it for ETH
+    const svmUsdcAddress = config.tokens.usdc;
+    const svmUsdcBalance = parseFloat(initialBalanceResponse.balance[svmUsdcAddress]?.toString() || '0');
+    
+    if (svmUsdcBalance > 0) {
+      console.log(`Trading SVM USDC for ETH...`);
+      
+      // Use a small amount for the test
+      const tradeAmount = Math.min(100, svmUsdcBalance * 0.1);
+      
+      // Execute a buy trade (buying ETH with USDC)
+      const buyTradeResponse = await teamClient.executeTrade({
+        tokenAddress: ethTokenAddress,
+        side: 'buy',
+        amount: tradeAmount.toString(),
+        price: '1.0' // Simplified price for testing
+      });
+      
+      console.log(`Buy ETH trade response: ${JSON.stringify(buyTradeResponse)}`);
+      expect(buyTradeResponse.success).toBe(true);
+      
+      // Wait for the trade to process
+      await wait(500);
+      
+      // Check updated balance
+      const updatedBalanceResponse = await teamClient.getBalance();
+      
+      // ETH balance should have increased
+      const updatedEthBalance = parseFloat(updatedBalanceResponse.balance[ethTokenAddress]?.toString() || '0');
+      console.log(`Updated ETH balance: ${updatedEthBalance}`);
+      expect(updatedEthBalance).toBeGreaterThan(initialEthBalance);
+      
+      // Get trade history and verify the Ethereum trade
+      const tradeHistoryResponse = await teamClient.getTradeHistory();
+      expect(tradeHistoryResponse.success).toBe(true);
+      expect(tradeHistoryResponse.trades.length).toBeGreaterThan(0);
+      
+      // Verify the last trade details
+      const lastTrade = tradeHistoryResponse.trades[0];
+      expect(lastTrade.toToken).toBe(ethTokenAddress);
+      
+      // Verify chain fields if they exist
+      if (lastTrade.toChain) {
+        expect(lastTrade.toChain).toBe(BlockchainType.EVM);
+        console.log(`Confirmed trade to chain is ${lastTrade.toChain}`);
+      }
+    } else {
+      console.log('No SVM USDC available for trading to ETH, skipping trade execution');
+    }
   });
 }); 

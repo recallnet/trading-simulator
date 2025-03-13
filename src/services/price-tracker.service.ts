@@ -1,7 +1,9 @@
-import { PriceSource } from '../types';
+import { PriceSource, BlockchainType, SpecificChain } from '../types';
 import { JupiterProvider } from './providers/jupiter.provider';
 import { RaydiumProvider } from './providers/raydium.provider';
 import { SerumProvider } from './providers/serum.provider';
+import { NovesProvider } from './providers/noves.provider';
+import { MultiChainProvider } from './providers/multi-chain.provider';
 // import { SolanaProvider } from './providers/solana.provider'; // No longer using Solana provider
 import { config } from '../config';
 import { repositories } from '../database';
@@ -12,6 +14,8 @@ interface PriceRecord {
   token: string;
   price: number;
   timestamp: Date;
+  chain?: BlockchainType; // General chain type (EVM, SVM)
+  specificChain?: SpecificChain; // Specific chain (eth, polygon, base, svm, etc.)
 }
 
 /**
@@ -20,23 +24,72 @@ interface PriceRecord {
  */
 export class PriceTracker {
   private providers: PriceSource[];
+  private novesProvider: NovesProvider | null = null;
+  private multiChainProvider: MultiChainProvider | null = null;
   private priceCache: Map<string, { price: number; timestamp: number }>;
   private readonly CACHE_DURATION = config.priceCacheDuration; // 30 seconds
 
   constructor() {
-    // Initialize providers in priority order
+    // Initialize Noves provider if API key is available
+    if (config.api.noves.enabled) {
+      this.novesProvider = new NovesProvider(config.api.noves.apiKey);
+      
+      // Also initialize the MultiChainProvider for EVM tokens across multiple chains
+      this.multiChainProvider = new MultiChainProvider(config.api.noves.apiKey);
+      
+      console.log('[PriceTracker] Initialized Noves provider for multi-chain support');
+    }
+    
+    // Initialize Solana-specific providers 
     const jupiterProvider = new JupiterProvider();
     const raydiumProvider = new RaydiumProvider();
     const serumProvider = new SerumProvider();
-    // const solanaProvider = new SolanaProvider(); // No longer using Solana provider
-
-    this.providers = [
-      jupiterProvider, // Jupiter for most tokens
-      raydiumProvider, // Raydium as another source
-      serumProvider,   // Serum as a third source
-      // solanaProvider,  // Removed as it doesn't provide real prices
-    ];
+    
+    // Set up providers in priority order
+    this.providers = [];
+    
+    // Add MultiChainProvider as the first provider for EVM tokens if available
+    if (this.multiChainProvider) {
+      this.providers.push(this.multiChainProvider);
+    }
+    
+    // Add Noves as the second provider if available
+    if (this.novesProvider) {
+      this.providers.push(this.novesProvider);
+    }
+    
+    // Add Solana-specific providers as fallbacks
+    this.providers.push(
+      jupiterProvider,
+      raydiumProvider,
+      serumProvider
+    );
+    
     this.priceCache = new Map();
+    
+    console.log(`[PriceTracker] Initialized with ${this.providers.length} providers`);
+    this.providers.forEach(p => console.log(`[PriceTracker] Loaded provider: ${p.getName()}`));
+  }
+
+  /**
+   * Determines which blockchain a token address belongs to based on address format
+   * @param tokenAddress The token address to check
+   * @returns The blockchain type (SVM or EVM)
+   */
+  determineChain(tokenAddress: string): BlockchainType {
+    // If we have Noves provider, use its chain detection
+    if (this.novesProvider) {
+      return this.novesProvider.determineChain(tokenAddress);
+    }
+    
+    // Fallback detection if Noves is not available
+    // Ethereum addresses are hexadecimal and start with 0x, typically 42 chars total (0x + 40 hex chars)
+    if (/^0x[a-fA-F0-9]{40}$/.test(tokenAddress)) {
+      return BlockchainType.EVM;
+    }
+    
+    // Solana addresses are base58 encoded and typically 32-44 characters long
+    return BlockchainType.SVM;
   }
 
   /**
@@ -57,10 +110,15 @@ export class PriceTracker {
   async getPrice(tokenAddress: string): Promise<number | null> {
     console.log(`[PriceTracker] Getting price for token: ${tokenAddress}`);
 
+    // Determine which chain this token belongs to
+    const tokenChain = this.determineChain(tokenAddress);
+    console.log(`[PriceTracker] Detected token ${tokenAddress} on chain: ${tokenChain}`);
+
     // Check cache first
-    const cached = this.priceCache.get(tokenAddress);
+    const cacheKey = `${tokenChain}:${tokenAddress}`;
+    const cached = this.priceCache.get(cacheKey);
     if (cached && Date.now() - cached.timestamp < this.CACHE_DURATION) {
-      console.log(`[PriceTracker] Using cached price for ${tokenAddress}: $${cached.price}`);
+      console.log(`[PriceTracker] Using cached price for ${tokenAddress} on ${tokenChain}: $${cached.price}`);
       return cached.price;
     }
 
@@ -68,19 +126,50 @@ export class PriceTracker {
     for (const provider of this.providers) {
       try {
         console.log(`[PriceTracker] Attempting to get price from ${provider.getName()}`);
-        const price = await provider.getPrice(tokenAddress);
+        
+        let price: number | null = null;
+        let specificChain: SpecificChain | undefined;
+        
+        // For MultiChainProvider, it can handle any EVM token
+        if (provider instanceof MultiChainProvider && tokenChain === BlockchainType.EVM) {
+          // Try to get detailed token info with specific chain
+          const tokenInfo = await provider.getTokenInfo(tokenAddress);
+          if (tokenInfo && tokenInfo.price !== null) {
+            price = tokenInfo.price;
+            specificChain = tokenInfo.specificChain || undefined;
+          } else {
+            // Fallback to just getting the price
+            price = await provider.getPrice(tokenAddress, tokenChain);
+          }
+        }
+        // For NovesProvider, we pass the chain type for specificity
+        else if (provider instanceof NovesProvider) {
+          price = await provider.getPrice(tokenAddress, tokenChain);
+          if (tokenChain === BlockchainType.SVM) {
+            specificChain = 'svm';
+          }
+        } 
+        // For Solana-specific providers, only use them for SVM tokens
+        else if (tokenChain === BlockchainType.SVM) {
+          price = await provider.getPrice(tokenAddress);
+          specificChain = 'svm';
+        } else {
+          // Skip non-compatible providers for this token type
+          console.log(`[PriceTracker] Skipping ${provider.getName()} for ${tokenChain} token`);
+          continue;
+        }
 
         if (price !== null) {
           console.log(`[PriceTracker] Got price $${price} from ${provider.getName()}`);
           
           // Store price in cache
-          this.priceCache.set(tokenAddress, {
+          this.priceCache.set(cacheKey, {
             price,
             timestamp: Date.now(),
           });
           
           // Store price in database for historical record (but never rely on this for trading)
-          await this.storePrice(tokenAddress, price);
+          await this.storePrice(tokenAddress, price, tokenChain, specificChain);
           
           return price;
         } else {
@@ -113,16 +202,75 @@ export class PriceTracker {
   }
 
   /**
+   * Get detailed token information including which chain it's on and its price
+   * This is useful for EVM tokens which need specific chain information
+   * @param tokenAddress The token address to get info for
+   * @returns Object containing token price and chain information or null
+   */
+  async getTokenInfo(tokenAddress: string): Promise<{ 
+    price: number | null; 
+    chain: BlockchainType; 
+    specificChain: SpecificChain | null 
+  } | null> {
+    console.log(`[PriceTracker] Getting detailed token info for: ${tokenAddress}`);
+    
+    const chainType = this.determineChain(tokenAddress);
+    
+    // For Solana tokens, return basic info
+    if (chainType === BlockchainType.SVM) {
+      const price = await this.getPrice(tokenAddress);
+      return {
+        price,
+        chain: BlockchainType.SVM,
+        specificChain: 'svm'
+      };
+    }
+    
+    // Use MultiChainProvider if available for EVM tokens
+    if (this.multiChainProvider && chainType === BlockchainType.EVM) {
+      const tokenInfo = await this.multiChainProvider.getTokenInfo(tokenAddress);
+      if (tokenInfo) {
+        return {
+          price: tokenInfo.price,
+          chain: tokenInfo.chain,
+          specificChain: tokenInfo.specificChain
+        };
+      }
+    }
+    
+    // Fallback to regular price fetch if MultiChainProvider is not available or failed
+    const price = await this.getPrice(tokenAddress);
+    
+    // For EVM tokens without specific chain info, we can only provide the general chain type
+    return {
+      price,
+      chain: chainType,
+      specificChain: null
+    };
+  }
+
+  /**
    * Store price data in the database
    * @param tokenAddress The token address
    * @param price The price in USD
+   * @param chain The blockchain type (optional)
+   * @param specificChain The specific chain (optional)
    */
-  private async storePrice(tokenAddress: string, price: number): Promise<void> {
+  private async storePrice(
+    tokenAddress: string, 
+    price: number, 
+    chain?: BlockchainType,
+    specificChain?: SpecificChain
+  ): Promise<void> {
     try {
+      const generalChain = chain || this.determineChain(tokenAddress);
+      
       await repositories.priceRepository.create({
         token: tokenAddress,
         price,
-        timestamp: new Date()
+        timestamp: new Date(),
+        chain: generalChain,
+        specificChain
       });
     } catch (error) {
       console.error(`[PriceTracker] Error storing price in database:`, error);
@@ -135,11 +283,23 @@ export class PriceTracker {
    * @returns True if at least one provider supports the token
    */
   async isTokenSupported(tokenAddress: string): Promise<boolean> {
+    const tokenChain = this.determineChain(tokenAddress);
+    
     for (const provider of this.providers) {
       try {
-        if (await provider.supports(tokenAddress)) {
-          console.log(`[PriceTracker] Token ${tokenAddress} is supported by ${provider.getName()}`);
-          return true;
+        // For Noves, we can check with the chain type
+        if (provider instanceof NovesProvider) {
+          if (await provider.supports(tokenAddress)) {
+            console.log(`[PriceTracker] Token ${tokenAddress} is supported by ${provider.getName()}`);
+            return true;
+          }
+        } 
+        // For other providers, only check for SVM tokens
+        else if (tokenChain === BlockchainType.SVM) {
+          if (await provider.supports(tokenAddress)) {
+            console.log(`[PriceTracker] Token ${tokenAddress} is supported by ${provider.getName()}`);
+            return true;
+          }
         }
       } catch (error) {
         continue;

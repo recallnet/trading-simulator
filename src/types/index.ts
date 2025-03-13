@@ -10,6 +10,58 @@ export interface TokenInfo {
 }
 
 /**
+ * Blockchain type enum
+ */
+export enum BlockchainType {
+  SVM = 'svm',
+  EVM = 'evm'
+}
+
+// New type for specific chains
+export type SpecificChain = 
+  | 'eth'      // Ethereum Mainnet
+  | 'polygon'  // Polygon
+  | 'bsc'      // Binance Smart Chain
+  | 'arbitrum' // Arbitrum
+  | 'optimism' // Optimism
+  | 'avalanche'// Avalanche
+  | 'base'     // Base
+  | 'linea'    // Linea
+  | 'zksync'   // zkSync Era
+  | 'scroll'   // Scroll
+  | 'mantle'   // Mantle
+  | 'svm';     // Solana (for consistency)
+
+// Mapping from SpecificChain to BlockchainType
+export const chainTypeMapping: Record<SpecificChain, BlockchainType> = {
+  eth: BlockchainType.EVM,
+  polygon: BlockchainType.EVM,
+  bsc: BlockchainType.EVM,
+  arbitrum: BlockchainType.EVM,
+  optimism: BlockchainType.EVM,
+  avalanche: BlockchainType.EVM,
+  base: BlockchainType.EVM,
+  linea: BlockchainType.EVM,
+  zksync: BlockchainType.EVM,
+  scroll: BlockchainType.EVM,
+  mantle: BlockchainType.EVM,
+  svm: BlockchainType.SVM
+};
+
+// Get general chain type from specific chain
+export function getBlockchainType(specificChain: SpecificChain): BlockchainType {
+  return chainTypeMapping[specificChain] || BlockchainType.EVM;
+}
+
+// Helper to determine if a chain is EVM compatible
+export function isEvmChain(chain: SpecificChain | BlockchainType): boolean {
+  if (typeof chain === 'string' && chain in chainTypeMapping) {
+    return chainTypeMapping[chain as SpecificChain] === BlockchainType.EVM;
+  }
+  return chain === BlockchainType.EVM;
+}
+
+/**
  * Balance interface
  */
 export interface Balance {
