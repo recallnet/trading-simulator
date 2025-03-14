@@ -1,13 +1,14 @@
 /**
  * Setup script for end-to-end tests
  * 
- * This file is automatically run by Jest before all tests
+ * This file is automatically run by Jest before all tests.
+ * It initializes the test environment, including the database and server.
  */
 
 import { config } from 'dotenv';
 import path from 'path';
 import { Server } from 'http';
-import { initializeDb, closeDb } from './utils/database';
+import { dbManager } from './utils/db-manager';
 import { startServer, stopServer, killExistingServers } from './utils/server';
 import { SchedulerService } from '../src/services/scheduler.service';
 import fs from 'fs';
@@ -45,9 +46,9 @@ export async function setup() {
     // Kill any existing server processes that might be hanging
     await killExistingServers();
     
-    // Initialize database
+    // Initialize database using our new DbManager
     log('📦 Initializing database...');
-    await initializeDb();
+    await dbManager.initialize();
     
     // Start server
     log('🌐 Starting server...');
@@ -78,9 +79,9 @@ export async function teardown() {
     // As a safety measure, kill any remaining server processes
     await killExistingServers();
     
-    // Close database connection
+    // Close database connection using our DbManager
     log('🔌 Closing database connection...');
-    await closeDb();
+    await dbManager.close();
     
     // Clean up the full suite flag if it exists
     if (fs.existsSync(fullSuiteFlag)) {
@@ -107,7 +108,6 @@ export default async function() {
   await setup();
   
   // Register the teardown to be handled by Jest itself
-  // Don't use globalThis.afterAll as it's not available in this context
   return async () => {
     await teardown();
   };

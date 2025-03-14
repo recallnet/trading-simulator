@@ -1,7 +1,7 @@
 import { NovesProvider } from '../../../src/services/providers/noves.provider';
 import { PriceTracker } from '../../../src/services/price-tracker.service';
 import { BlockchainType } from '../../../src/types';
-import { setupAdminClient, cleanupTestState, ADMIN_USERNAME, ADMIN_PASSWORD, ADMIN_EMAIL } from '../../utils/test-helpers';
+import { cleanupTestState, ADMIN_USERNAME, ADMIN_PASSWORD, ADMIN_EMAIL } from '../../utils/test-helpers';
 import axios from 'axios';
 import { getBaseUrl } from '../../utils/server';
 import dotenv from 'dotenv';

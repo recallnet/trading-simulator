@@ -1,5 +1,5 @@
 import { ApiClient } from './api-client';
-import { getPool, initializeDb } from './database';
+import { dbManager } from './db-manager';
 
 // Configured test token address
 export const TEST_TOKEN_ADDRESS = process.env.TEST_SOL_TOKEN_ADDRESS || '4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R';
@@ -26,7 +26,7 @@ export function createTestClient(baseUrl?: string): ApiClient {
  * Create and setup an admin API client
  */
 export async function setupAdminClient(): Promise<ApiClient> {
-  // Ensure database is initialized
+  // Ensure database is initialized using DbManager
   await ensureDatabaseInitialized();
   
   const client = createTestClient();
@@ -103,7 +103,7 @@ export async function startTestCompetition(
 async function ensureDatabaseInitialized(): Promise<void> {
   if (!isDatabaseInitialized) {
     console.log('Initializing database for tests...');
-    await initializeDb();
+    await dbManager.initialize();
     isDatabaseInitialized = true;
   }
 }
@@ -111,29 +111,11 @@ async function ensureDatabaseInitialized(): Promise<void> {
 /**
  * Clean up database state for a given test case
  * This can be used in beforeEach to ensure a clean state
+ * Now delegated to the DbManager for consistency
  */
 export async function cleanupTestState(): Promise<void> {
-  // Ensure database is initialized
   await ensureDatabaseInitialized();
-  
-  const pool = getPool();
-  
-  try {
-    // Disable foreign key constraints temporarily
-    await pool.query('SET session_replication_role = replica');
-    
-    // Truncate specific tables that might contain test data
-    await pool.query('TRUNCATE teams CASCADE');
-    await pool.query('TRUNCATE balances CASCADE');
-    await pool.query('TRUNCATE trades CASCADE');
-    await pool.query('TRUNCATE competitions CASCADE');
-    
-    // Re-enable foreign key constraints
-    await pool.query('SET session_replication_role = DEFAULT');
-  } catch (error) {
-    console.error('Error cleaning up test state:', error);
-    throw error;
-  }
+  return dbManager.cleanupTestState();
 }
 
 /**

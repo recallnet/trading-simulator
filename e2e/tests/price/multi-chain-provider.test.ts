@@ -2,12 +2,12 @@ import { NovesProvider } from '../../../src/services/providers/noves.provider';
 import { MultiChainProvider } from '../../../src/services/providers/multi-chain.provider';
 import { PriceTracker } from '../../../src/services/price-tracker.service';
 import { BlockchainType, SpecificChain, PriceSource } from '../../../src/types';
-import { setupAdminClient, cleanupTestState, ADMIN_USERNAME, ADMIN_PASSWORD, ADMIN_EMAIL } from '../../utils/test-helpers';
+import { ADMIN_USERNAME, ADMIN_PASSWORD, ADMIN_EMAIL } from '../../utils/test-helpers';
 import axios from 'axios';
 import { getBaseUrl } from '../../utils/server';
 import dotenv from 'dotenv';
 import config from '../../../src/config';
-import { getPool } from '../../utils/database';
+import { dbManager } from '../../utils/db-manager';
 
 // Load environment variables
 dotenv.config();
@@ -58,20 +58,25 @@ describe('Multi-Chain Provider Tests', () => {
   let multiChainProvider: MultiChainProvider;
   let priceTracker: PriceTracker;
   
-  // Check database schema first
+  // Initialize database before all tests
+  beforeAll(async () => {
+    // Initialize the database which includes migrations
+    if (runTests) {
+      await dbManager.initialize();
+    }
+  });
+  
+  // Check database schema as a test
   it('should have the correct schema with specific_chain column', async () => {
     if (!runTests) {
       console.log('Skipping test - NOVES_API_KEY not set');
       return;
     }
     
-    // Initialize test state and make sure the database is ready
-    await cleanupTestState();
+    // The specific_chain column should already be added by the dbManager.initialize()
+    // Let's just verify it exists
+    const pool = dbManager.getPool();
     
-    // Directly execute SQL to add the specific_chain column if it doesn't exist
-    const pool = getPool();
-    
-    // First check if the column exists
     const result = await pool.query(`
       SELECT EXISTS (
         SELECT 1
@@ -81,33 +86,8 @@ describe('Multi-Chain Provider Tests', () => {
       ) as column_exists;
     `);
     
-    // If the column doesn't exist, add it
-    if (!result.rows[0].column_exists) {
-      console.log('specific_chain column does not exist in prices table, adding it now...');
-      
-      await pool.query(`
-        ALTER TABLE prices ADD COLUMN specific_chain VARCHAR(20);
-        CREATE INDEX IF NOT EXISTS idx_prices_specific_chain ON prices(specific_chain);
-        CREATE INDEX IF NOT EXISTS idx_prices_token_specific_chain ON prices(token, specific_chain);
-      `);
-      
-      console.log('specific_chain column added to prices table');
-    } else {
-      console.log('specific_chain column already exists in prices table');
-    }
-    
-    // Check again to verify
-    const verifyResult = await pool.query(`
-      SELECT EXISTS (
-        SELECT 1
-        FROM information_schema.columns
-        WHERE table_name = 'prices'
-        AND column_name = 'specific_chain'
-      ) as column_exists;
-    `);
-    
-    console.log(`Does specific_chain column exist after setup? ${verifyResult.rows[0].column_exists}`);
-    expect(verifyResult.rows[0].column_exists).toBe(true);
+    console.log(`Does specific_chain column exist? ${result.rows[0].column_exists}`);
+    expect(result.rows[0].column_exists).toBe(true);
   });
   
   // Clean up test state before each test
@@ -116,34 +96,8 @@ describe('Multi-Chain Provider Tests', () => {
       return;
     }
     
-    // Clean up the test state using the standard utility
-    await cleanupTestState();
-    
-    // Directly execute SQL to add the specific_chain column if it doesn't exist
-    const pool = getPool();
-    
-    // First check if the column exists
-    const result = await pool.query(`
-      SELECT EXISTS (
-        SELECT 1
-        FROM information_schema.columns
-        WHERE table_name = 'prices'
-        AND column_name = 'specific_chain'
-      ) as column_exists;
-    `);
-    
-    // If the column doesn't exist, add it
-    if (!result.rows[0].column_exists) {
-      console.log('specific_chain column does not exist in prices table, adding it now...');
-      
-      await pool.query(`
-        ALTER TABLE prices ADD COLUMN specific_chain VARCHAR(20);
-        CREATE INDEX IF NOT EXISTS idx_prices_specific_chain ON prices(specific_chain);
-        CREATE INDEX IF NOT EXISTS idx_prices_token_specific_chain ON prices(token, specific_chain);
-      `);
-      
-      console.log('specific_chain column added to prices table');
-    }
+    // Clean up the test state using the DbManager
+    await dbManager.cleanupTestState();
     
     // Create admin account
     await axios.post(`${getBaseUrl()}/api/admin/setup`, {
@@ -715,10 +669,9 @@ describe('Multi-Chain Provider Tests', () => {
   // Add proper cleanup after all tests
   afterAll(async () => {
     try {
-      // Close the database connection pool to prevent hanging
-      const pool = getPool();
-      await pool.end();
-      console.log('[Test] Closed database connection pool');
+      // Close the database connection using DbManager
+      await dbManager.close();
+      console.log('[Test] Closed database connection');
     } catch (error) {
       console.error('[Test] Error during cleanup:', error);
     }

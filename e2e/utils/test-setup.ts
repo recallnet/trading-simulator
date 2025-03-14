@@ -4,7 +4,7 @@
  * This is used to set up global Jest configurations and hooks
  */
 
-import { cleanupTestState } from './test-helpers';
+import { dbManager } from './db-manager';
 import { services } from '../../src/services';
 import fs from 'fs';
 import path from 'path';
@@ -29,6 +29,9 @@ process.env.TEST_MODE = 'true';
 // Before all tests in every file
 beforeAll(async () => {
   log('[Global Setup] Initializing test environment...');
+  
+  // Ensure database is initialized
+  await dbManager.initialize();
   
   // Ensure scheduler is reset at the start of tests
   if (services.scheduler) {
@@ -62,7 +65,7 @@ afterAll(async () => {
     await new Promise(resolve => setTimeout(resolve, 500));
     
     // Clean up database state
-    await cleanupTestState();
+    await dbManager.cleanupTestState();
     
   } catch (error) {
     log('[Global Teardown] Error during cleanup: ' + (error instanceof Error ? error.message : String(error)));

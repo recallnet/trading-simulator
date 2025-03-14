@@ -1,6 +1,6 @@
 import { config } from 'dotenv';
 import { resolve } from 'path';
-import { cleanupDatabase, initializeDb } from './database';
+import { dbManager } from './db-manager';
 import { startServer, stopServer } from './server';
 import { Server } from 'http';
 
@@ -18,7 +18,7 @@ beforeAll(async () => {
   process.env.NODE_ENV = 'test';
   
   // Initialize the test database
-  await initializeDb();
+  await dbManager.initialize();
   
   // Start the server
   server = await startServer();
@@ -34,7 +34,8 @@ afterAll(async () => {
   
   // Optional: Clean up database after tests
   if (process.env.E2E_CLEANUP_DB === 'true') {
-    await cleanupDatabase();
+    await dbManager.cleanupTestState();
+    await dbManager.close();
   }
   
   console.log('✅ E2E tests completed');

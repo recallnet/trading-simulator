@@ -4,11 +4,11 @@
  * This file is automatically run by Jest after all tests
  */
 
-import { closeDb } from './utils/database';
 import { killExistingServers } from './utils/server';
 import { SchedulerService } from '../src/services/scheduler.service';
 import { services } from '../src/services';
 import { DatabaseConnection } from '../src/database/connection';
+import { dbManager } from './utils/db-manager';
 import fs from 'fs';
 import path from 'path';
 
@@ -44,12 +44,12 @@ export default async function() {
     try {
       log('🔌 Global Teardown - Closing database connection...');
       
-      // Try getting the instance first
+      // Close using the DbManager
+      await dbManager.close();
+      
+      // Also close using the app's DatabaseConnection for safety
       const dbConnection = DatabaseConnection.getInstance();
       await dbConnection.close();
-      
-      // Also close through the utility
-      await closeDb();
     } catch (dbError) {
       log('❌ Global Teardown - Database connection error: ' + String(dbError));
     }

@@ -3,7 +3,7 @@ import axios from 'axios';
 import { getBaseUrl } from '../utils/server';
 import config from '../../src/config';
 import { services } from '../../src/services';
-import { DatabaseConnection } from '../../src/database/connection';
+import { dbManager } from '../utils/db-manager';
 
 describe('Portfolio Snapshots', () => {
   // Reset database between tests
@@ -30,16 +30,13 @@ describe('Portfolio Snapshots', () => {
         services.scheduler.stopSnapshotScheduler();
       }
       
-      // Get the database connection instance
-      const dbConnection = DatabaseConnection.getInstance();
-      
       // Add a small delay to allow any pending operations to complete
       console.log('[Test] Waiting for pending operations to complete...');
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // Close the database connection pool
+      // Close the database connection using our dbManager
       console.log('[Test] Closing database connection pool...');
-      await dbConnection.close();
+      await dbManager.close();
       
       console.log('[Test] Cleaned up resources - scheduler stopped and database connections closed');
     } catch (error) {

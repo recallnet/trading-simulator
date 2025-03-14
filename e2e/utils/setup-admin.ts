@@ -2,6 +2,7 @@ import * as dotenv from 'dotenv';
 import * as path from 'path';
 import axios from 'axios';
 import { getBaseUrl } from './server';
+import { dbManager } from './db-manager';
 
 // Load test environment variables
 dotenv.config({ path: path.resolve(__dirname, '../../.env.test') });
@@ -15,20 +16,13 @@ async function setupAdminAccount() {
   console.log('Setting up admin account for testing...');
   
   try {
-    // First, clean up any existing admin accounts by truncating the teams table
-    // This ensures we can always create a fresh admin account
-    const { Pool } = require('pg');
-    const pool = new Pool({
-      host: process.env.DB_HOST || 'localhost',
-      port: parseInt(process.env.DB_PORT || '5432'),
-      database: process.env.DB_NAME || 'solana_trading_simulator_test',
-      user: process.env.DB_USER || 'postgres',
-      password: process.env.DB_PASSWORD || 'postgres',
-    });
+    // Initialize the database
+    await dbManager.initialize();
     
+    // Clean up existing teams/admin accounts
     console.log('Cleaning up existing teams/admin accounts...');
+    const pool = dbManager.getPool();
     await pool.query('TRUNCATE teams CASCADE');
-    await pool.end();
     
     // Use the admin setup endpoint to create a new admin account
     const baseUrl = getBaseUrl();
@@ -53,6 +47,9 @@ async function setupAdminAccount() {
   } catch (error) {
     console.error('Error setting up admin account:', error);
     process.exit(1);
+  } finally {
+    // Close the database connection
+    await dbManager.close();
   }
 }
 
