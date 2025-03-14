@@ -48,6 +48,12 @@ npx ts-node execute-trade-example.ts ethereum
 npx ts-node execute-trade-example.ts cross-chain
 ```
 
+To run the multi-chain examples, including the new chain override feature:
+
+```bash
+npx ts-node multi-chain-examples.ts
+```
+
 ## Multi-Chain Support
 
 The Trading Simulator now supports tokens on multiple blockchains:
@@ -64,6 +70,9 @@ The Trading Simulator now supports tokens on multiple blockchains:
 #### Ethereum (EVM)
 - WETH: `0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2`
 - USDC: `0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48`
+- LINK: `0x514910771af9ca656af840dff83e8264ecf986ca`
+- ARB: `0x912CE59144191C1204E64559FE8253a0e49E6548`
+- TOSHI: `0x532f27101965dd16442E59d40670FaF5eBB142E4`
 
 ### Chain Detection
 
@@ -72,6 +81,86 @@ The system automatically detects which blockchain a token belongs to based on it
 - Solana addresses are Base58 encoded strings (typically around 44 characters)
 
 All price-related API responses include a `chain` field indicating which blockchain the token is on (`svm` or `evm`).
+
+### Chain Override Feature
+
+For EVM tokens, the system needs to determine which specific chain the token exists on (Ethereum, Polygon, Base, etc.). By default, this requires checking multiple chains, which can take 1-3 seconds. 
+
+The new chain override feature allows you to specify the exact chain for a token, significantly improving API response times:
+
+- **Without chain override**: 1-3 seconds (checking multiple chains)
+- **With chain override**: 50-100ms (direct API call to specified chain)
+
+#### Supported Chains
+
+The following chains can be specified:
+- `eth` - Ethereum Mainnet
+- `polygon` - Polygon Network
+- `bsc` - Binance Smart Chain
+- `arbitrum` - Arbitrum One
+- `base` - Base
+- `optimism` - Optimism
+- `avalanche` - Avalanche C-Chain
+- `linea` - Linea
+- `svm` - Solana (for SVM tokens)
+
+#### Using Chain Override
+
+```typescript
+// Get price for Chainlink (LINK) token WITH chain override
+const linkPriceWithOverride = await client.getPrice(
+  COMMON_TOKENS.EVM.LINK,
+  BlockchainType.EVM,
+  SpecificChain.ETH  // Specifying exact chain (Ethereum)
+);
+console.log(`LINK Price with override: $${linkPriceWithOverride.price}`);
+console.log(`Response time: much faster (typically 50-100ms)`);
+
+// Get price for Arbitrum (ARB) token WITH chain override
+const arbPriceWithOverride = await client.getPrice(
+  COMMON_TOKENS.EVM.ARB,
+  BlockchainType.EVM,
+  SpecificChain.ARBITRUM  // Specifying exact chain (Arbitrum)
+);
+console.log(`ARB Price with override: $${arbPriceWithOverride.price}`);
+```
+
+#### Performance Comparison
+
+The `multi-chain-examples.ts` file includes examples that demonstrate the performance difference with and without chain override:
+
+```typescript
+// Example from multi-chain-examples.ts
+
+// WITHOUT chain override (slower)
+const startTime1 = Date.now();
+const priceNoOverride = await client.getPrice(token.address, BlockchainType.EVM);
+const duration1 = Date.now() - startTime1;
+console.log(`Time taken without override: ${duration1}ms`);
+
+// WITH chain override (faster)
+const startTime2 = Date.now();
+const priceWithOverride = await client.getPrice(
+  token.address, 
+  BlockchainType.EVM,
+  token.chain
+);
+const duration2 = Date.now() - startTime2;
+console.log(`Time taken with override: ${duration2}ms`);
+
+// Calculate improvement
+const improvement = ((duration1 - duration2) / duration1 * 100).toFixed(2);
+console.log(`Performance improvement: ${improvement}% faster`);
+```
+
+#### When to Use Chain Override
+
+Use chain override when:
+1. You already know which specific chain a token is on
+2. You need the fastest possible response times 
+3. You're making multiple requests for the same token
+
+For best results, maintain a mapping of tokens to their specific chains in your application, as demonstrated by the `TOKEN_CHAINS` map in the examples.
 
 ## Creating Your Own Integration
 
@@ -82,7 +171,7 @@ There are two approaches to integrating with the Trading Simulator API:
 The `api-client.ts` file contains a reusable `TradingSimulatorClient` class that handles all the authentication and request logic for you. This is recommended for most teams.
 
 ```typescript
-import { TradingSimulatorClient, BlockchainType, COMMON_TOKENS } from './api-client';
+import { TradingSimulatorClient, BlockchainType, SpecificChain, COMMON_TOKENS, TOKEN_CHAINS } from './api-client';
 
 // Create a client instance
 const client = new TradingSimulatorClient(
@@ -102,6 +191,14 @@ console.log('SOL Price:', solPrice);
 // Get price for ETH (Ethereum)
 const ethPrice = await client.getPrice(COMMON_TOKENS.EVM.ETH);
 console.log('ETH Price:', ethPrice);
+
+// Get price for LINK (Ethereum) with chain override for better performance
+const linkPrice = await client.getPrice(
+  COMMON_TOKENS.EVM.LINK,
+  BlockchainType.EVM,
+  SpecificChain.ETH
+);
+console.log('LINK Price (with chain override):', linkPrice);
 
 // Execute a trade to buy SOL on Solana
 const solTrade = await client.executeTrade({

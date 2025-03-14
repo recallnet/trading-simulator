@@ -13,6 +13,19 @@ export enum BlockchainType {
   EVM = 'evm'  // Ethereum Virtual Machine
 }
 
+// Define specific EVM chains
+export enum SpecificChain {
+  ETH = 'eth',
+  POLYGON = 'polygon',
+  BSC = 'bsc',
+  ARBITRUM = 'arbitrum',
+  BASE = 'base',
+  OPTIMISM = 'optimism', 
+  AVALANCHE = 'avalanche',
+  LINEA = 'linea',
+  SVM = 'svm'
+}
+
 // Common token addresses
 export const COMMON_TOKENS = {
   // Solana tokens
@@ -23,8 +36,25 @@ export const COMMON_TOKENS = {
   // Ethereum tokens
   EVM: {
     USDC: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
-    ETH: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2' // WETH
+    ETH: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2', // WETH
+    LINK: '0x514910771af9ca656af840dff83e8264ecf986ca', // Chainlink
+    ARB: '0x912CE59144191C1204E64559FE8253a0e49E6548', // Arbitrum
+    TOSHI: '0x532f27101965dd16442E59d40670FaF5eBB142E4' // Toshi token on Base
   }
+};
+
+// Map tokens to their known chains for quick lookups
+export const TOKEN_CHAINS: Record<string, SpecificChain> = {
+  // EVM tokens with their specific chains
+  [COMMON_TOKENS.EVM.ETH]: SpecificChain.ETH,
+  [COMMON_TOKENS.EVM.USDC]: SpecificChain.ETH,
+  [COMMON_TOKENS.EVM.LINK]: SpecificChain.ETH,
+  [COMMON_TOKENS.EVM.ARB]: SpecificChain.ARBITRUM,
+  [COMMON_TOKENS.EVM.TOSHI]: SpecificChain.BASE,
+  
+  // SVM tokens
+  [COMMON_TOKENS.SVM.SOL]: SpecificChain.SVM,
+  [COMMON_TOKENS.SVM.USDC]: SpecificChain.SVM
 };
 
 export class TradingSimulatorClient {
@@ -166,9 +196,14 @@ export class TradingSimulatorClient {
    * 
    * @param token The token address to get the price for
    * @param chain Optional blockchain type (auto-detected if not provided)
+   * @param specificChain Optional specific chain for EVM tokens (like eth, polygon, base, etc.)
    * @returns A promise that resolves to the price response
    */
-  async getPrice(token: string, chain?: BlockchainType): Promise<any> {
+  async getPrice(
+    token: string, 
+    chain?: BlockchainType,
+    specificChain?: SpecificChain
+  ): Promise<any> {
     let query = `?token=${encodeURIComponent(token)}`;
     
     // Add chain parameter if explicitly provided
@@ -176,23 +211,67 @@ export class TradingSimulatorClient {
       query += `&chain=${chain}`;
     }
     
+    // Add specificChain parameter if provided (for EVM tokens)
+    if (specificChain) {
+      query += `&specificChain=${specificChain}`;
+    }
+    
     return this.request<any>('GET', `/api/price${query}`);
+  }
+
+  /**
+   * Get detailed token information including specific chain
+   * 
+   * @param token The token address
+   * @param chain Optional blockchain type (auto-detected if not provided)
+   * @param specificChain Optional specific chain for EVM tokens
+   * @returns A promise that resolves to the token info response
+   */
+  async getTokenInfo(
+    token: string,
+    chain?: BlockchainType,
+    specificChain?: SpecificChain
+  ): Promise<any> {
+    let query = `?token=${encodeURIComponent(token)}`;
+    
+    // Add chain parameter if explicitly provided
+    if (chain) {
+      query += `&chain=${chain}`;
+    }
+    
+    // Add specificChain parameter if provided
+    if (specificChain) {
+      query += `&specificChain=${specificChain}`;
+    }
+    
+    return this.request<any>('GET', `/api/price/token-info${query}`);
   }
 
   /**
    * Get a price from a specific provider
    * 
    * @param token The token address to get the price for
-   * @param provider The provider name (e.g., "jupiter", "raydium", "serum", "noves")
+   * @param provider The provider name (e.g., "jupiter", "raydium", "serum", "noves", "multi-chain")
    * @param chain Optional blockchain type (auto-detected if not provided)
+   * @param specificChain Optional specific chain for EVM tokens (eth, polygon, base, etc.)
    * @returns A promise that resolves to the price response
    */
-  async getPriceFromProvider(token: string, provider: string, chain?: BlockchainType): Promise<any> {
+  async getPriceFromProvider(
+    token: string, 
+    provider: string, 
+    chain?: BlockchainType,
+    specificChain?: SpecificChain
+  ): Promise<any> {
     let query = `?token=${encodeURIComponent(token)}&provider=${encodeURIComponent(provider)}`;
     
     // Add chain parameter if explicitly provided
     if (chain) {
       query += `&chain=${chain}`;
+    }
+    
+    // Add specificChain parameter if provided
+    if (specificChain) {
+      query += `&specificChain=${specificChain}`;
     }
     
     return this.request<any>('GET', `/api/price/provider${query}`);

@@ -5,7 +5,7 @@
  * multiple blockchains (Solana and Ethereum).
  */
 
-import { TradingSimulatorClient, BlockchainType, COMMON_TOKENS } from './api-client';
+import { TradingSimulatorClient, BlockchainType, SpecificChain, COMMON_TOKENS, TOKEN_CHAINS } from './api-client';
 
 // Token addresses for different chains
 const TOKENS = {
@@ -15,7 +15,10 @@ const TOKENS = {
 
   // Ethereum Tokens
   ETH: COMMON_TOKENS.EVM.ETH,
-  USDC_ETH: COMMON_TOKENS.EVM.USDC
+  USDC_ETH: COMMON_TOKENS.EVM.USDC,
+  LINK: COMMON_TOKENS.EVM.LINK,
+  ARB: COMMON_TOKENS.EVM.ARB,
+  TOSHI: COMMON_TOKENS.EVM.TOSHI
 };
 
 // Replace with your team's credentials
@@ -190,6 +193,97 @@ async function getFilteredTradeHistory(client: TradingSimulatorClient) {
 }
 
 /**
+ * Example 6: Using chain override for faster price lookups
+ */
+async function getChainOverridePrices(client: TradingSimulatorClient) {
+  logSection('Example 6: Chain Override for Faster Price Lookups');
+
+  // Tokens we'll test with
+  const testTokens = [
+    { name: 'Chainlink (LINK)', address: TOKENS.LINK, chain: SpecificChain.ETH },
+    { name: 'Arbitrum (ARB)', address: TOKENS.ARB, chain: SpecificChain.ARBITRUM },
+    { name: 'TOSHI', address: TOKENS.TOSHI, chain: SpecificChain.BASE }
+  ];
+
+  for (const token of testTokens) {
+    console.log(`Testing ${token.name} (${token.address})...`);
+    
+    // First, get price without chain override (slower)
+    console.log('Getting price WITHOUT chain override...');
+    const startTime1 = Date.now();
+    const priceNoOverride = await client.getPrice(token.address, BlockchainType.EVM);
+    const duration1 = Date.now() - startTime1;
+    console.log(`Price: $${priceNoOverride.price}`);
+    console.log(`Time taken: ${duration1}ms`);
+    console.log(`Chain detected: ${priceNoOverride.chain}, Specific chain: ${priceNoOverride.specificChain || 'not detected'}`);
+    
+    // Short delay to prevent rate limiting
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    // Now, get price WITH chain override (faster)
+    console.log('\nGetting price WITH chain override...');
+    const startTime2 = Date.now();
+    const priceWithOverride = await client.getPrice(
+      token.address, 
+      BlockchainType.EVM,
+      token.chain
+    );
+    const duration2 = Date.now() - startTime2;
+    console.log(`Price: $${priceWithOverride.price}`);
+    console.log(`Time taken: ${duration2}ms`);
+    console.log(`Chain detected: ${priceWithOverride.chain}, Specific chain: ${priceWithOverride.specificChain || 'not detected'}`);
+    
+    // Calculate improvement
+    if (duration1 > 0 && duration2 > 0) {
+      const improvement = ((duration1 - duration2) / duration1 * 100).toFixed(2);
+      const speedup = (duration1 / duration2).toFixed(2);
+      console.log(`\nPerformance improvement: ${improvement}% faster (${speedup}x speedup)`);
+    }
+    
+    console.log('\n-----------------------------------------\n');
+  }
+}
+
+/**
+ * Example 7: Get detailed token info with chain override
+ */
+async function getTokenInfoWithChainOverride(client: TradingSimulatorClient) {
+  logSection('Example 7: Token Info with Chain Override');
+
+  // First get token info without chain override
+  console.log('Getting detailed token info for Chainlink (LINK) WITHOUT chain override...');
+  const startTime1 = Date.now();
+  const tokenInfoNoOverride = await client.getTokenInfo(TOKENS.LINK);
+  const duration1 = Date.now() - startTime1;
+  
+  console.log(`Token info: ${JSON.stringify(tokenInfoNoOverride, null, 2)}`);
+  console.log(`Time taken: ${duration1}ms`);
+  
+  // Short delay
+  await new Promise(resolve => setTimeout(resolve, 1000));
+  
+  // Now with chain override
+  console.log('\nGetting detailed token info for Chainlink (LINK) WITH chain override...');
+  const startTime2 = Date.now();
+  const tokenInfoWithOverride = await client.getTokenInfo(
+    TOKENS.LINK,
+    BlockchainType.EVM,
+    SpecificChain.ETH
+  );
+  const duration2 = Date.now() - startTime2;
+  
+  console.log(`Token info: ${JSON.stringify(tokenInfoWithOverride, null, 2)}`);
+  console.log(`Time taken: ${duration2}ms`);
+  
+  // Calculate improvement
+  if (duration1 > 0 && duration2 > 0) {
+    const improvement = ((duration1 - duration2) / duration1 * 100).toFixed(2);
+    const speedup = (duration1 / duration2).toFixed(2);
+    console.log(`\nPerformance improvement: ${improvement}% faster (${speedup}x speedup)`);
+  }
+}
+
+/**
  * Main function to run all examples
  */
 async function runAllExamples() {
@@ -204,6 +298,8 @@ async function runAllExamples() {
     await executeMultiChainTrades(client);
     await executeCrossChainTrades(client);
     await getFilteredTradeHistory(client);
+    await getChainOverridePrices(client);
+    await getTokenInfoWithChainOverride(client);
     
     console.log('\nAll examples completed successfully!');
   } catch (error) {
@@ -223,5 +319,7 @@ export {
   getMultiChainPortfolio,
   executeMultiChainTrades,
   executeCrossChainTrades,
-  getFilteredTradeHistory
+  getFilteredTradeHistory,
+  getChainOverridePrices,
+  getTokenInfoWithChainOverride
 }; 

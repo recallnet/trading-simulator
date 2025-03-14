@@ -32,6 +32,9 @@ This guide explains how to set up and use Postman to interact with the Trading S
 | solAddress | So11111111111111111111111111111111111111112 | SOL token address |
 | ethAddress | 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2 | ETH (WETH) token address |
 | usdcEthAddress | 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48 | USDC token address on Ethereum |
+| linkAddress | 0x514910771af9ca656af840dff83e8264ecf986ca | Chainlink (LINK) token address |
+| arbAddress | 0x912CE59144191C1204E64559FE8253a0e49E6548 | Arbitrum (ARB) token address |
+| toshiAddress | 0x532f27101965dd16442E59d40670FaF5eBB142E4 | TOSHI token address |
 
 5. Click "Save"
 6. Make sure to select this environment from the dropdown in the top right corner
@@ -126,7 +129,59 @@ console.log('Signature:', signature);
 6. Add a query parameter with key `token` and value `{{ethAddress}}`
 7. Click "Save"
 
-### 5. Get Price From Provider (Solana)
+### 5. Get Current Price with Chain Override (Chainlink on Ethereum)
+
+1. Right-click on the collection and select "Add Request"
+2. Name it "Get LINK Price with Chain Override"
+3. Set method to **GET**
+4. Set URL to `{{baseUrl}}/api/price`
+5. Go to the "Params" tab
+6. Add the following query parameters:
+   - Key: `token`, Value: `{{linkAddress}}`
+   - Key: `chain`, Value: `evm`
+   - Key: `specificChain`, Value: `eth`
+7. Click "Save"
+
+### 6. Get Current Price with Chain Override (Arbitrum Token)
+
+1. Right-click on the collection and select "Add Request"
+2. Name it "Get ARB Price with Chain Override"
+3. Set method to **GET**
+4. Set URL to `{{baseUrl}}/api/price`
+5. Go to the "Params" tab
+6. Add the following query parameters:
+   - Key: `token`, Value: `{{arbAddress}}`
+   - Key: `chain`, Value: `evm`
+   - Key: `specificChain`, Value: `arbitrum`
+7. Click "Save"
+
+### 7. Get Current Price with Chain Override (TOSHI on Base)
+
+1. Right-click on the collection and select "Add Request"
+2. Name it "Get TOSHI Price with Chain Override"
+3. Set method to **GET**
+4. Set URL to `{{baseUrl}}/api/price`
+5. Go to the "Params" tab
+6. Add the following query parameters:
+   - Key: `token`, Value: `{{toshiAddress}}`
+   - Key: `chain`, Value: `evm`
+   - Key: `specificChain`, Value: `base`
+7. Click "Save"
+
+### 8. Get Token Info with Chain Override (Chainlink)
+
+1. Right-click on the collection and select "Add Request"
+2. Name it "Get LINK Token Info with Chain Override"
+3. Set method to **GET**
+4. Set URL to `{{baseUrl}}/api/price/token-info`
+5. Go to the "Params" tab
+6. Add the following query parameters:
+   - Key: `token`, Value: `{{linkAddress}}`
+   - Key: `chain`, Value: `evm`
+   - Key: `specificChain`, Value: `eth`
+7. Click "Save"
+
+### 9. Get Price From Provider (Solana)
 
 1. Right-click on the collection and select "Add Request"
 2. Name it "Get SOL Price from Jupiter"
@@ -138,19 +193,21 @@ console.log('Signature:', signature);
    - Key: `provider`, Value: `jupiter`
 7. Click "Save"
 
-### 6. Get Price From Provider (Ethereum)
+### 10. Get Price From Provider with Chain Override (Ethereum)
 
 1. Right-click on the collection and select "Add Request"
-2. Name it "Get ETH Price from Noves"
+2. Name it "Get ETH Price from Multi-Chain Provider with Override"
 3. Set method to **GET**
 4. Set URL to `{{baseUrl}}/api/price/provider`
 5. Go to the "Params" tab
 6. Add the following query parameters:
    - Key: `token`, Value: `{{ethAddress}}`
-   - Key: `provider`, Value: `noves`
+   - Key: `provider`, Value: `multi-chain`
+   - Key: `chain`, Value: `evm`
+   - Key: `specificChain`, Value: `eth`
 7. Click "Save"
 
-### 7. Execute a Trade (Solana to Solana)
+### 11. Execute a Trade (Solana to Solana)
 
 1. Right-click on the collection and select "Add Request"
 2. Name it "Trade USDC to SOL"
@@ -170,7 +227,7 @@ console.log('Signature:', signature);
 ```
 8. Click "Save"
 
-### 8. Execute a Cross-Chain Trade (Solana to Ethereum)
+### 12. Execute a Cross-Chain Trade (Solana to Ethereum)
 
 1. Right-click on the collection and select "Add Request"
 2. Name it "Trade USDC (Solana) to ETH"
@@ -190,7 +247,7 @@ console.log('Signature:', signature);
 ```
 8. Click "Save"
 
-### 9. Get Competition Status
+### 13. Get Competition Status
 
 1. Right-click on the collection and select "Add Request"
 2. Name it "Competition Status"
@@ -198,7 +255,7 @@ console.log('Signature:', signature);
 4. Set URL to `{{baseUrl}}/api/competition/status`
 5. Click "Save"
 
-### 10. Get Leaderboard
+### 14. Get Leaderboard
 
 1. Right-click on the collection and select "Add Request"
 2. Name it "Competition Leaderboard"
@@ -235,6 +292,24 @@ The pre-request script will automatically:
 3. Use "Get USDC (Ethereum) Price" request (create this by duplicating "Get ETH Price" and changing the token parameter)
 4. Verify the `chain` field is correctly set to `evm`
 
+### Testing Chain Override Feature
+
+1. Use "Get LINK Price with Chain Override" request to get the price of Chainlink (LINK) on Ethereum
+2. Compare the response time with a request without the `specificChain` parameter
+3. Check the response for both the `chain` field (which should be `evm`) and the `specificChain` field (which should be `eth`)
+4. Repeat with the other chain override examples (ARB on Arbitrum, TOSHI on Base)
+
+#### Performance Testing in Postman
+
+To compare the performance difference with and without chain override:
+
+1. Create a new folder in your collection called "Performance Tests"
+2. Create two duplicate requests for the same token (e.g., Chainlink):
+   - One without chain override parameters
+   - One with chain override parameters (`chain: evm, specificChain: eth`)
+3. Use Postman's console to observe the time difference between the two requests
+4. You should see that requests with chain override parameters are significantly faster (often 10-20x faster)
+
 ### Testing Cross-Chain Trading
 
 1. Use "Trade USDC (Solana) to ETH" request to execute a cross-chain trade
@@ -262,6 +337,9 @@ If you encounter issues related to chain detection:
 2. For the Noves provider, you can explicitly specify the chain by adding a `chain` parameter:
    - Add a query param with key `chain` and value `svm` for Solana tokens
    - Add a query param with key `chain` and value `evm` for Ethereum tokens
+3. For improved performance with EVM tokens, use the chain override feature:
+   - Add a query param with key `specificChain` and value matching the specific chain (e.g., `eth`, `arbitrum`, `base`)
+   - This can improve response times by 10-20x by skipping the chain detection process
 
 ## Advanced: Testing with Variables
 
@@ -309,3 +387,29 @@ if (response.success && response.price) {
 ```
 
 3. Run the requests in sequence to execute a trade with the current market price 
+
+### Advanced Chain Override Workflow Example
+
+Create a workflow to test the performance improvement with chain override:
+
+1. Add this test script to a request without chain override:
+```javascript
+const startTime = pm.info.eventObject.timestamp;
+const endTime = new Date().getTime();
+const responseTime = endTime - startTime;
+pm.environment.set("responseTimeWithoutOverride", responseTime);
+console.log(`Response time without chain override: ${responseTime}ms`);
+```
+
+2. Add this test script to a request with chain override:
+```javascript
+const startTime = pm.info.eventObject.timestamp;
+const endTime = new Date().getTime();
+const responseTime = endTime - startTime;
+const responseTimeWithoutOverride = pm.environment.get("responseTimeWithoutOverride");
+const improvement = ((responseTimeWithoutOverride - responseTime) / responseTimeWithoutOverride * 100).toFixed(2);
+console.log(`Response time with chain override: ${responseTime}ms`);
+console.log(`Improvement: ${improvement}% faster`);
+```
+
+3. Run these requests in sequence to measure and compare the performance 
