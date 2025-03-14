@@ -97,10 +97,15 @@ export class MultiChainProvider implements PriceSource {
   /**
    * Fetches token price from Noves API across multiple EVM chains
    * @param tokenAddress Token address
-   * @param explicitChain Optional specific chain to check (if known)
+   * @param blockchainType Optional blockchain type (EVM or SVM)
+   * @param specificChain Optional specific chain to check directly (bypasses chain detection)
    * @returns Token price in USD or null if not found
    */
-  async getPrice(tokenAddress: string, blockchainType?: BlockchainType): Promise<number | null> {
+  async getPrice(
+    tokenAddress: string, 
+    blockchainType?: BlockchainType,
+    specificChain?: SpecificChain
+  ): Promise<number | null> {
     try {
       // Normalize token address to lowercase
       const normalizedAddress = tokenAddress.toLowerCase();
@@ -123,6 +128,34 @@ export class MultiChainProvider implements PriceSource {
       
       console.log(`[MultiChainProvider] Getting price for EVM token ${normalizedAddress}`);
       
+      // If a specific chain was provided, use it directly instead of trying multiple chains
+      if (specificChain) {
+        console.log(`[MultiChainProvider] Using provided specific chain: ${specificChain}`);
+        
+        try {
+          console.log(`[MultiChainProvider] Attempting to fetch price for ${normalizedAddress} on ${specificChain} chain directly`);
+          
+          // Use NovesProvider's implementation to get price for a specific chain
+          const price = await this.novesProvider.getPriceForSpecificEVMChain(normalizedAddress, specificChain);
+          
+          if (price !== null) {
+            // Cache the result with the specific chain
+            this.setCachedPrice(normalizedAddress, specificChain, price);
+            
+            console.log(`[MultiChainProvider] Successfully found price for ${normalizedAddress} on ${specificChain} chain: $${price}`);
+            return price;
+          }
+          
+          console.log(`[MultiChainProvider] No price found for ${normalizedAddress} on specified chain ${specificChain}`);
+          return null; // If the specific chain didn't work, we don't try others as the user explicitly requested this chain
+        } catch (error) {
+          console.log(`[MultiChainProvider] Error fetching price for ${normalizedAddress} on specified chain ${specificChain}:`, 
+            error instanceof Error ? error.message : 'Unknown error');
+          return null;
+        }
+      }
+      
+      // No specific chain provided, try each chain in order until we get a price
       // Check if we have a cached chain for this token
       let chainsToTry = [...this.defaultChains];
       const cachedChain = this.getCachedChain(normalizedAddress);
@@ -196,9 +229,15 @@ export class MultiChainProvider implements PriceSource {
   /**
    * Get detailed information about a token including which chain it's on
    * @param tokenAddress Token address
+   * @param blockchainType Optional blockchain type (EVM or SVM)
+   * @param specificChain Optional specific chain to check directly (bypasses chain detection)
    * @returns Object containing price and chain information or null if not found
    */
-  async getTokenInfo(tokenAddress: string): Promise<{ 
+  async getTokenInfo(
+    tokenAddress: string,
+    blockchainType?: BlockchainType,
+    specificChain?: SpecificChain
+  ): Promise<{ 
     price: number | null; 
     chain: BlockchainType; 
     specificChain: SpecificChain | null;
@@ -207,8 +246,8 @@ export class MultiChainProvider implements PriceSource {
       // Normalize token address
       const normalizedAddress = tokenAddress.toLowerCase();
       
-      // Determine blockchain type
-      const generalChain = this.determineChain(normalizedAddress);
+      // Determine blockchain type if not provided
+      const generalChain = blockchainType || this.determineChain(normalizedAddress);
       
       // For Solana tokens, we return just the blockchain type
       if (generalChain === BlockchainType.SVM) {
@@ -225,16 +264,60 @@ export class MultiChainProvider implements PriceSource {
         return cachedPrice;
       }
       
-      // Try to get price, which will also update cache with chain info
-      const price = await this.getPrice(normalizedAddress);
+      // If a specific chain was provided, use it directly
+      if (specificChain) {
+        console.log(`[MultiChainProvider] Using provided specific chain for getTokenInfo: ${specificChain}`);
+        
+        try {
+          console.log(`[MultiChainProvider] Attempting to fetch token info for ${normalizedAddress} on ${specificChain} chain directly`);
+          
+          // Use NovesProvider's implementation to get price for a specific chain
+          const price = await this.novesProvider.getPriceForSpecificEVMChain(normalizedAddress, specificChain);
+          
+          if (price !== null) {
+            // Cache the result with the specific chain
+            this.setCachedPrice(normalizedAddress, specificChain, price);
+            
+            console.log(`[MultiChainProvider] Successfully found token info for ${normalizedAddress} on ${specificChain} chain: $${price}`);
+            
+            return {
+              price,
+              chain: generalChain,
+              specificChain
+            };
+          }
+          
+          console.log(`[MultiChainProvider] No price found for ${normalizedAddress} on specified chain ${specificChain}`);
+          
+          // Return with the specific chain but null price
+          return {
+            price: null,
+            chain: generalChain,
+            specificChain
+          };
+        } catch (error) {
+          console.log(`[MultiChainProvider] Error fetching token info for ${normalizedAddress} on specified chain ${specificChain}:`, 
+            error instanceof Error ? error.message : 'Unknown error');
+            
+          // Return with the specific chain but null price
+          return {
+            price: null,
+            chain: generalChain,
+            specificChain
+          };
+        }
+      }
+      
+      // No specific chain was provided, try to get price, which will also update cache with chain info
+      const price = await this.getPrice(normalizedAddress, generalChain);
       
       // Get the specific chain from cache (should have been set by getPrice if successful)
-      const specificChain = this.getCachedChain(normalizedAddress);
+      const chainFromCache = this.getCachedChain(normalizedAddress);
       
       return {
         price,
         chain: generalChain,
-        specificChain
+        specificChain: chainFromCache
       };
     } catch (error) {
       console.error(`[MultiChainProvider] Error getting token info for ${tokenAddress}:`, 

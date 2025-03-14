@@ -88,6 +88,37 @@ The system automatically detects which blockchain a token belongs to based on it
 | Ethereum | WETH | `0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2` |
 | Ethereum | USDC | `0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48` |
 
+### Chain Override Feature
+
+For EVM tokens, the API needs to determine which specific chain a token exists on (Ethereum, Polygon, Base, etc.). By default, this involves checking multiple chains in sequence which can take several seconds. 
+
+To significantly improve API response times, you can use the optional `specificChain` parameter when you already know which chain the token is on:
+
+- **With Chain Detection**: 1-3 seconds response time (checking multiple chains)
+- **With Chain Override**: 50-100ms response time (direct API call to the specified chain)
+
+#### Supported Specific Chains
+
+| specificChain | Description |
+|---------------|-------------|
+| eth | Ethereum Mainnet |
+| polygon | Polygon Network |
+| bsc | Binance Smart Chain |
+| arbitrum | Arbitrum One |
+| base | Base |
+| optimism | Optimism |
+| avalanche | Avalanche C-Chain |
+| linea | Linea |
+| svm | Solana (for SVM tokens) |
+
+#### Example Usage
+
+```
+GET /api/price?token=0x514910771af9ca656af840dff83e8264ecf986ca&specificChain=eth
+```
+
+This request will directly fetch the price for Chainlink (LINK) token on Ethereum Mainnet, bypassing the chain detection process.
+
 ## API Endpoints
 
 ### Account
@@ -217,7 +248,10 @@ Returns the current price for a specific token on either Solana or Ethereum bloc
 
 - **URL:** `/api/price`
 - **Method:** `GET`
-- **Query Parameters:** `token` (required, token address e.g., "So11111111111111111111111111111111111111112" for SOL or "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2" for WETH)
+- **Query Parameters:** 
+  - `token` (required, token address e.g., "So11111111111111111111111111111111111111112" for SOL or "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2" for WETH)
+  - `chain` (optional, one of: "svm", "evm" - overrides automatic chain detection)
+  - `specificChain` (optional, one of: "eth", "polygon", "bsc", "arbitrum", "base", "optimism", "avalanche", "linea", "svm" - specifies the exact chain for EVM tokens, significantly improving response time)
 - **Authentication:** Required
 
 **Response Example for Solana Token:**
@@ -236,7 +270,64 @@ Returns the current price for a specific token on either Solana or Ethereum bloc
   "success": true,
   "price": 3500.75,
   "token": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
-  "chain": "evm"
+  "chain": "evm",
+  "specificChain": "eth"
+}
+```
+
+**Response Example for Base Chain Token with Chain Override:**
+```json
+{
+  "success": true,
+  "price": 0.78,
+  "token": "0x532f27101965dd16442E59d40670FaF5eBB142E4",
+  "chain": "evm",
+  "specificChain": "base"
+}
+```
+
+#### Get Token Info
+
+Returns detailed information about a token, including its chain type and specific chain (for EVM tokens).
+
+- **URL:** `/api/price/token-info`
+- **Method:** `GET`
+- **Query Parameters:** 
+  - `token` (required, token address)
+  - `chain` (optional, one of: "svm", "evm" - overrides automatic chain detection)
+  - `specificChain` (optional, one of: "eth", "polygon", "bsc", "arbitrum", "base", "optimism", "avalanche", "linea", "svm" - specifies the exact chain for EVM tokens, significantly improving response time)
+- **Authentication:** Required
+
+**Response Example for Solana Token:**
+```json
+{
+  "success": true,
+  "price": 123.45,
+  "token": "So11111111111111111111111111111111111111112",
+  "chain": "svm",
+  "specificChain": "svm"
+}
+```
+
+**Response Example for Ethereum Token:**
+```json
+{
+  "success": true,
+  "price": 3500.75,
+  "token": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+  "chain": "evm",
+  "specificChain": "eth"
+}
+```
+
+**Response Example for Base Chain Token:**
+```json
+{
+  "success": true,
+  "price": 0.78,
+  "token": "0x532f27101965dd16442E59d40670FaF5eBB142E4",
+  "chain": "evm",
+  "specificChain": "base"
 }
 ```
 
@@ -248,8 +339,9 @@ Returns the price for a specific token from a specific provider.
 - **Method:** `GET`
 - **Query Parameters:** 
   - `token` (required, token address)
-  - `provider` (required, one of: "jupiter", "raydium", "serum", "noves")
-  - `chain` (optional, one of: "svm", "evm" - only needed when using the Noves provider and the chain cannot be auto-detected)
+  - `provider` (required, one of: "jupiter", "raydium", "serum", "noves", "multi-chain")
+  - `chain` (optional, one of: "svm", "evm" - overrides automatic chain detection)
+  - `specificChain` (optional, one of: "eth", "polygon", "bsc", "arbitrum", "base", "optimism", "avalanche", "linea", "svm" - specifies the exact chain for EVM tokens when using the "noves" or "multi-chain" provider)
 - **Authentication:** Required
 
 **Response Example for Solana Token:**
@@ -270,7 +362,20 @@ Returns the price for a specific token from a specific provider.
   "price": 3500.75,
   "token": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
   "provider": "noves",
-  "chain": "evm"
+  "chain": "evm",
+  "specificChain": "eth"
+}
+```
+
+**Response Example for Chainlink Token using Multi-chain provider with specific chain override:**
+```json
+{
+  "success": true,
+  "price": 14.48,
+  "token": "0x514910771af9ca656af840dff83e8264ecf986ca",
+  "provider": "multi-chain",
+  "chain": "evm",
+  "specificChain": "eth"
 }
 ```
 
@@ -285,7 +390,8 @@ Returns historical price data for a specific token.
   - `startTime` (optional, ISO timestamp)
   - `endTime` (optional, ISO timestamp)
   - `interval` (optional, "1m", "5m", "15m", "1h", "4h", "1d")
-  - `chain` (optional, one of: "svm", "evm" - only needed when the chain cannot be auto-detected)
+  - `chain` (optional, one of: "svm", "evm" - overrides automatic chain detection)
+  - `specificChain` (optional, one of: "eth", "polygon", "bsc", "arbitrum", "base", "optimism", "avalanche", "linea", "svm" - specifies the exact chain for EVM tokens, improving response time)
 - **Authentication:** Required
 
 **Response Example:**

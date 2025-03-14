@@ -105,21 +105,55 @@ export class PriceTracker {
    * Get current price for a token
    * Tries each provider in sequence until a price is found
    * @param tokenAddress The token address to get price for
+   * @param blockchainType Optional blockchain type override (EVM or SVM)
+   * @param specificChain Optional specific chain override (eth, polygon, etc.)
    * @returns The token price in USD or null if not available
    */
-  async getPrice(tokenAddress: string): Promise<number | null> {
+  async getPrice(
+    tokenAddress: string, 
+    blockchainType?: BlockchainType,
+    specificChain?: SpecificChain
+  ): Promise<number | null> {
     console.log(`[PriceTracker] Getting price for token: ${tokenAddress}`);
 
-    // Determine which chain this token belongs to
-    const tokenChain = this.determineChain(tokenAddress);
-    console.log(`[PriceTracker] Detected token ${tokenAddress} on chain: ${tokenChain}`);
+    // Determine which chain this token belongs to if not provided
+    const tokenChain = blockchainType || this.determineChain(tokenAddress);
+    console.log(`[PriceTracker] ${blockchainType ? 'Using provided' : 'Detected'} token ${tokenAddress} on chain: ${tokenChain}`);
 
-    // Check cache first
+    // Check cache first - even with specificChain, we want to check the cache first
     const cacheKey = `${tokenChain}:${tokenAddress}`;
     const cached = this.priceCache.get(cacheKey);
     if (cached && Date.now() - cached.timestamp < this.CACHE_DURATION) {
       console.log(`[PriceTracker] Using cached price for ${tokenAddress} on ${tokenChain}: $${cached.price}`);
       return cached.price;
+    }
+
+    // For EVM tokens with MultiChainProvider, we can try to optimize if specificChain is provided
+    if (tokenChain === BlockchainType.EVM && this.multiChainProvider && specificChain) {
+      try {
+        console.log(`[PriceTracker] Using MultiChainProvider with specified chain: ${specificChain}`);
+        const price = await this.multiChainProvider.getPrice(tokenAddress, tokenChain, specificChain);
+        
+        if (price !== null) {
+          console.log(`[PriceTracker] Got price $${price} for ${tokenAddress} on ${specificChain} using MultiChainProvider with specific chain`);
+          
+          // Store price in cache
+          this.priceCache.set(cacheKey, {
+            price,
+            timestamp: Date.now(),
+          });
+          
+          // Store price in database for historical record
+          await this.storePrice(tokenAddress, price, tokenChain, specificChain);
+          
+          return price;
+        }
+      } catch (error) {
+        console.error(
+          `[PriceTracker] Error fetching price from MultiChainProvider with specific chain:`,
+          error instanceof Error ? error.message : 'Unknown error'
+        );
+      }
     }
 
     // Try each provider in sequence until we get a price
@@ -128,31 +162,60 @@ export class PriceTracker {
         console.log(`[PriceTracker] Attempting to get price from ${provider.getName()}`);
         
         let price: number | null = null;
-        let specificChain: SpecificChain | undefined;
+        let detectedSpecificChain: SpecificChain | undefined;
         
         // For MultiChainProvider, it can handle any EVM token
         if (provider instanceof MultiChainProvider && tokenChain === BlockchainType.EVM) {
-          // Try to get detailed token info with specific chain
-          const tokenInfo = await provider.getTokenInfo(tokenAddress);
-          if (tokenInfo && tokenInfo.price !== null) {
-            price = tokenInfo.price;
-            specificChain = tokenInfo.specificChain || undefined;
-          } else {
-            // Fallback to just getting the price
-            price = await provider.getPrice(tokenAddress, tokenChain);
+          try {
+            // Try to get detailed token info with specific chain
+            const tokenInfo = await provider.getTokenInfo(
+              tokenAddress, 
+              tokenChain, 
+              specificChain
+            );
+            
+            if (tokenInfo && tokenInfo.price !== null) {
+              price = tokenInfo.price;
+              detectedSpecificChain = tokenInfo.specificChain || undefined;
+            } else {
+              // Fallback to just getting the price (with specificChain if provided)
+              price = await provider.getPrice(tokenAddress, tokenChain, specificChain);
+            }
+          } catch (error) {
+            console.error(
+              `[PriceTracker] Error fetching price from ${provider.getName()}:`,
+              error instanceof Error ? error.message : 'Unknown error'
+            );
+            continue;
           }
         }
         // For NovesProvider, we pass the chain type for specificity
         else if (provider instanceof NovesProvider) {
-          price = await provider.getPrice(tokenAddress, tokenChain);
-          if (tokenChain === BlockchainType.SVM) {
-            specificChain = 'svm';
+          try {
+            price = await provider.getPrice(tokenAddress, tokenChain);
+            if (tokenChain === BlockchainType.SVM) {
+              detectedSpecificChain = 'svm';
+            }
+          } catch (error) {
+            console.error(
+              `[PriceTracker] Error fetching price from ${provider.getName()}:`,
+              error instanceof Error ? error.message : 'Unknown error'
+            );
+            continue;
           }
         } 
         // For Solana-specific providers, only use them for SVM tokens
         else if (tokenChain === BlockchainType.SVM) {
-          price = await provider.getPrice(tokenAddress);
-          specificChain = 'svm';
+          try {
+            price = await provider.getPrice(tokenAddress);
+            detectedSpecificChain = 'svm';
+          } catch (error) {
+            console.error(
+              `[PriceTracker] Error fetching price from ${provider.getName()}:`,
+              error instanceof Error ? error.message : 'Unknown error'
+            );
+            continue;
+          }
         } else {
           // Skip non-compatible providers for this token type
           console.log(`[PriceTracker] Skipping ${provider.getName()} for ${tokenChain} token`);
@@ -169,7 +232,7 @@ export class PriceTracker {
           });
           
           // Store price in database for historical record (but never rely on this for trading)
-          await this.storePrice(tokenAddress, price, tokenChain, specificChain);
+          await this.storePrice(tokenAddress, price, tokenChain, detectedSpecificChain);
           
           return price;
         } else {
@@ -205,20 +268,27 @@ export class PriceTracker {
    * Get detailed token information including which chain it's on and its price
    * This is useful for EVM tokens which need specific chain information
    * @param tokenAddress The token address to get info for
+   * @param blockchainType Optional blockchain type override (EVM or SVM)
+   * @param specificChain Optional specific chain override (eth, polygon, etc.)
    * @returns Object containing token price and chain information or null
    */
-  async getTokenInfo(tokenAddress: string): Promise<{ 
+  async getTokenInfo(
+    tokenAddress: string,
+    blockchainType?: BlockchainType,
+    specificChain?: SpecificChain
+  ): Promise<{ 
     price: number | null; 
     chain: BlockchainType; 
     specificChain: SpecificChain | null 
   } | null> {
     console.log(`[PriceTracker] Getting detailed token info for: ${tokenAddress}`);
     
-    const chainType = this.determineChain(tokenAddress);
+    // Use provided chain type or detect it
+    const chainType = blockchainType || this.determineChain(tokenAddress);
     
     // For Solana tokens, return basic info
     if (chainType === BlockchainType.SVM) {
-      const price = await this.getPrice(tokenAddress);
+      const price = await this.getPrice(tokenAddress, chainType, specificChain);
       return {
         price,
         chain: BlockchainType.SVM,
@@ -229,7 +299,13 @@ export class PriceTracker {
     // Use MultiChainProvider if available for EVM tokens
     if (this.multiChainProvider && chainType === BlockchainType.EVM) {
       try {
-        const tokenInfo = await this.multiChainProvider.getTokenInfo(tokenAddress);
+        // Pass specificChain to getTokenInfo if provided
+        const tokenInfo = await this.multiChainProvider.getTokenInfo(
+          tokenAddress, 
+          chainType, 
+          specificChain
+        );
+        
         if (tokenInfo && tokenInfo.price !== null) {
           return {
             price: tokenInfo.price,
@@ -244,19 +320,19 @@ export class PriceTracker {
     
     // If MultiChainProvider failed or returned null price, try to get price from other providers
     console.log(`[PriceTracker] Falling back to standard providers for token info: ${tokenAddress}`);
-    const price = await this.getPrice(tokenAddress);
+    const price = await this.getPrice(tokenAddress, chainType, specificChain);
     
-    // Determine specificChain based on chainType
-    let specificChain: SpecificChain | null = null;
+    // Determine specificChain based on chainType, using provided specificChain if available
+    let detectedSpecificChain: SpecificChain | null = specificChain || null;
     if (chainType.toString() === 'svm') {
-      specificChain = 'svm';
+      detectedSpecificChain = 'svm';
     }
     
     // Return combined token info
     return {
       price,
       chain: chainType,
-      specificChain
+      specificChain: detectedSpecificChain
     };
   }
 

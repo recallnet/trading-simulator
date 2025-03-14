@@ -634,6 +634,82 @@ describe('Multi-Chain Provider Tests', () => {
         console.log(`Error with invalid token (this may be expected): ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
     });
+    
+    it('should successfully fetch prices faster when providing the exact chain parameter', async () => {
+      if (!runTests) {
+        console.log('Skipping test - NOVES_API_KEY not set');
+        return;
+      }
+      
+      // Use Chainlink token for testing since it's generally reliable
+      const linkToken = '0x514910771af9ca656af840dff83e8264ecf986ca';
+      const expectedChain = 'eth';
+      
+      console.log(`Testing chain override API performance for Chainlink token (${linkToken})`);
+      
+      // 1. First test without chain parameter
+      const startTimeWithout = Date.now();
+      const responseWithout = await axios.get(`${getBaseUrl()}/api/price`, {
+        params: {
+          token: linkToken
+        }
+      });
+      const endTimeWithout = Date.now();
+      const timeWithout = endTimeWithout - startTimeWithout;
+      
+      console.log(`API response time without chain parameter: ${timeWithout}ms`);
+      console.log(`API response:`, responseWithout.data);
+      
+      // Verify response format
+      expect(responseWithout.status).toBe(200);
+      expect(responseWithout.data.token).toBe(linkToken);
+      expect(responseWithout.data.chain).toBe('evm');
+      
+      // Short delay to avoid rate limiting
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // 2. Now test with chain parameter
+      const startTimeWith = Date.now();
+      const responseWith = await axios.get(`${getBaseUrl()}/api/price`, {
+        params: {
+          token: linkToken,
+          chain: 'evm',
+          specificChain: expectedChain
+        }
+      });
+      const endTimeWith = Date.now();
+      const timeWith = endTimeWith - startTimeWith;
+      
+      console.log(`API response time with chain parameter: ${timeWith}ms`);
+      console.log(`API response:`, responseWith.data);
+      
+      // Verify response format
+      expect(responseWith.status).toBe(200);
+      expect(responseWith.data.token).toBe(linkToken);
+      expect(responseWith.data.chain).toBe('evm');
+      expect(responseWith.data.specificChain).toBe(expectedChain);
+      
+      // Log the performance difference
+      console.log(`API call difference: ${timeWithout - timeWith}ms (${((timeWithout - timeWith) / timeWithout * 100).toFixed(2)}% faster)`);
+      
+      // Also test the token-info endpoint which should return more detailed information
+      console.log(`Testing token-info API with chain parameter for Chainlink token (${linkToken})`);
+      const tokenInfoResponse = await axios.get(`${getBaseUrl()}/api/price/token-info`, {
+        params: {
+          token: linkToken,
+          chain: 'evm',
+          specificChain: expectedChain
+        }
+      });
+      
+      console.log(`Token info API response:`, tokenInfoResponse.data);
+      
+      // Verify token info response format
+      expect(tokenInfoResponse.status).toBe(200);
+      expect(tokenInfoResponse.data.token).toBe(linkToken);
+      expect(tokenInfoResponse.data.chain).toBe('evm');
+      expect(tokenInfoResponse.data.specificChain).toBe(expectedChain);
+    }, 120000); // 2 minute timeout for API tests
   });
 
   // Add proper cleanup after all tests
