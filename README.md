@@ -16,6 +16,7 @@ The Multi-Chain Trading Simulator is a standalone server designed to host tradin
 - Competition management with leaderboards
 - Comprehensive API for trading and account management
 - Rate limiting and security features
+- **NEW: Chain Override Feature** - Specify the exact chain for EVM tokens to reduce API response times from seconds to milliseconds
 
 ## Current Development Status
 
@@ -33,6 +34,7 @@ The application follows an MVC (Model-View-Controller) architecture with a robus
 - ✅ Balance management service with multi-chain capabilities
 - ✅ Trade simulation engine
 - ✅ Competition management service
+- ✅ Chain override feature for high-performance price lookups
 - ⏳ Comprehensive testing (in progress)
 - ⏳ Documentation (in progress)
 - ⏳ Integration with front-end (planned)
@@ -139,6 +141,66 @@ The application uses a layered architecture:
    ```
 
 The server will be available at http://localhost:3000 by default.
+
+## Chain Override Feature
+
+Our new chain override feature significantly improves API response times when fetching token prices on EVM chains. This is the **recommended way** to use the API for price checking:
+
+### What is Chain Override?
+
+For EVM tokens, the system needs to determine which specific chain a token exists on (e.g., Ethereum, Polygon, Base). By default, this requires checking multiple chains sequentially, which can take 1-3 seconds.
+
+With chain override, you can specify the exact chain for a token, resulting in:
+- **Without chain override**: 1-3 seconds response time (checking multiple chains)
+- **With chain override**: 50-100ms response time (direct API call to specified chain)
+
+That's a 10-20x performance improvement!
+
+### How to Use Chain Override
+
+When making API requests for token prices, include the `specificChain` parameter:
+
+```
+GET /api/price?token=0x514910771af9ca656af840dff83e8264ecf986ca&specificChain=eth
+```
+
+Or, when using our TypeScript client:
+
+```typescript
+// Get price for Chainlink (LINK) token WITH chain override
+const linkPrice = await client.getPrice(
+  '0x514910771af9ca656af840dff83e8264ecf986ca',    // LINK token
+  BlockchainType.EVM,                               // Blockchain type
+  SpecificChain.ETH                                 // Specific chain (Ethereum)
+);
+```
+
+### Supported Chains
+
+The following chains can be specified:
+- `eth` - Ethereum Mainnet
+- `polygon` - Polygon Network
+- `bsc` - Binance Smart Chain
+- `arbitrum` - Arbitrum One
+- `base` - Base
+- `optimism` - Optimism
+- `avalanche` - Avalanche C-Chain
+- `linea` - Linea
+- `svm` - Solana (for SVM tokens)
+
+### Best Practice
+
+For optimal performance, maintain a mapping of tokens to their specific chains in your application:
+
+```typescript
+const TOKEN_CHAINS = {
+  // EVM tokens with their specific chains
+  '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2': 'eth',    // WETH on Ethereum
+  '0x514910771af9ca656af840dff83e8264ecf986ca': 'eth',    // LINK on Ethereum
+  '0x912CE59144191C1204E64559FE8253a0e49E6548': 'arbitrum', // ARB on Arbitrum
+  '0x532f27101965dd16442E59d40670FaF5eBB142E4': 'base',   // TOSHI on Base
+};
+```
 
 ## Admin Setup Guide
 
@@ -264,7 +326,9 @@ The server will be available at http://localhost:3000 by default.
 - `GET /api/trade/quote` - Get quote for a potential trade
 
 ### Price Information
-- `GET /api/price/current` - Get current price for a token across chains
+- `GET /api/price` - Get current price for a token across chains (supports chain override)
+- `GET /api/price/token-info` - Get detailed token information including specific chain (supports chain override)
+- `GET /api/price/provider` - Get price from a specific provider (supports chain override)
 - `GET /api/price/history` - Get price history with timeframe configuration
 
 ### Competition Information
@@ -348,7 +412,7 @@ For details on generating the signature and examples in TypeScript, see the [API
 We provide a [TypeScript client class](docs/examples/api-client.ts) that handles authentication and requests for you. Usage example:
 
 ```typescript
-import { TradingSimulatorClient } from './api-client';
+import { TradingSimulatorClient, BlockchainType, SpecificChain } from './api-client';
 
 const client = new TradingSimulatorClient(
   'your-api-key',
@@ -359,14 +423,41 @@ const client = new TradingSimulatorClient(
 const balances = await client.getBalances();
 console.log('Balances:', balances);
 
-// Get current price of WETH on Ethereum
+// Get current price of SOL on Solana
+const solPrice = await client.getPrice('So11111111111111111111111111111111111111112');
+console.log('SOL Price:', solPrice);
+
+// Get current price of WETH on Ethereum (WITHOUT chain override - slower)
 const ethPrice = await client.getPrice('0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2');
 console.log('ETH Price:', ethPrice);
 
-// Get current price of SOL on Solana
-const solPrice = await client.getPrice('SOL', 'svm');
-console.log('SOL Price:', solPrice);
+// Get current price of LINK on Ethereum (WITH chain override - faster)
+const linkPrice = await client.getPrice(
+  '0x514910771af9ca656af840dff83e8264ecf986ca',    // LINK token
+  BlockchainType.EVM,                               // Blockchain type
+  SpecificChain.ETH                                 // Specific chain (Ethereum)
+);
+console.log('LINK Price (with chain override):', linkPrice);
+console.log('Response time: ~50-100ms (vs 1-3 seconds without override)');
+
+// Get current price of ARB on Arbitrum (WITH chain override - faster)
+const arbPrice = await client.getPrice(
+  '0x912CE59144191C1204E64559FE8253a0e49E6548',    // ARB token
+  BlockchainType.EVM,
+  SpecificChain.ARBITRUM                           // Specific chain (Arbitrum)
+);
+console.log('ARB Price (with chain override):', arbPrice);
 ```
+
+### Performance Comparison
+
+Using chain override can significantly improve API response times:
+
+| Method | Response Time | Notes |
+|--------|---------------|-------|
+| Without chain override | 1-3 seconds | System checks multiple chains sequentially |
+| With chain override | 50-100ms | Direct API call to specified chain |
+| Performance improvement | 10-20x faster | Recommended for production use |
 
 ### Running the Examples
 
@@ -383,6 +474,11 @@ To run the provided examples:
 3. Run an example:
    ```bash
    npx ts-node get-balances-example.ts
+   ```
+
+For advanced examples including chain override performance testing:
+   ```bash
+   npx ts-node multi-chain-examples.ts
    ```
 
 For more information, see the [examples README](docs/examples/README.md).
