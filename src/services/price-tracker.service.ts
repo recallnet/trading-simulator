@@ -324,9 +324,14 @@ export class PriceTracker {
    * Get historical price data for a token
    * @param tokenAddress The token address
    * @param timeframe The timeframe to get history for (e.g. '24h', '7d', '30d')
+   * @param allowMockData Whether to generate mock data if real data is not available (defaults to config setting)
    * @returns An array of price points or null if not available
    */
-  async getPriceHistory(tokenAddress: string, timeframe: string): Promise<{ timestamp: string; price: number }[] | null> {
+  async getPriceHistory(
+    tokenAddress: string, 
+    timeframe: string,
+    allowMockData: boolean = config.allowMockPriceHistory
+  ): Promise<{ timestamp: string; price: number }[] | null> {
     console.log(`[PriceTracker] Getting price history for ${tokenAddress} (${timeframe})`);
     
     try {
@@ -353,23 +358,52 @@ export class PriceTracker {
     }
     
     // If we don't have enough historical data in the database or an error occurred,
-    // generate mock data based on current price
-    console.log(`[PriceTracker] Generating mock price history data`);
+    // generate mock data based on current price, but only if allowed
+    if (!allowMockData) {
+      console.log(`[PriceTracker] No historical data available and mock data generation is disabled`);
+      return null;
+    }
+    
+    console.log(`[PriceTracker] WARNING: Generating SIMULATED price history data (not real market data)`);
     const currentPrice = await this.getPrice(tokenAddress);
     if (!currentPrice) return null;
+    
+    // Convert timeframe to number of data points
+    let dataPoints = 24; // Default for 24h
+    let intervalMs = 3600 * 1000; // 1 hour in milliseconds
+    
+    if (timeframe === '7d') {
+      dataPoints = 7 * 24;
+      intervalMs = 3600 * 1000; // 1 hour
+    } else if (timeframe === '30d') {
+      dataPoints = 30;
+      intervalMs = 24 * 3600 * 1000; // 1 day
+    } else if (timeframe === '1h') {
+      dataPoints = 12;
+      intervalMs = 5 * 60 * 1000; // 5 minutes
+    } else if (timeframe === '6h') {
+      dataPoints = 12;
+      intervalMs = 30 * 60 * 1000; // 30 minutes
+    }
+    
+    // Cap data points to a reasonable number
+    dataPoints = Math.min(dataPoints, 180);
     
     // Generate some mock historical data based on current price
     const now = Date.now();
     const history = [];
-    for (let i = 0; i < 24; i++) {
-      const time = now - (i * 3600 * 1000); // hourly points
-      const randomVariation = 0.98 + (Math.random() * 0.04); // ±2%
+    for (let i = 0; i < dataPoints; i++) {
+      const time = now - (i * intervalMs);
+      // Create somewhat realistic price movements (±2%)
+      const randomVariation = 0.98 + (Math.random() * 0.04); 
       history.push({
         timestamp: new Date(time).toISOString(),
-        price: currentPrice * randomVariation
+        price: currentPrice * randomVariation,
+        simulated: true // Add a flag to indicate this is simulated data
       });
     }
     
+    console.log(`[PriceTracker] Generated ${dataPoints} simulated data points for ${timeframe} timeframe`);
     return history.reverse(); // Return in chronological order
   }
 

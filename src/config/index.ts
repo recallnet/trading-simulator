@@ -165,6 +165,11 @@ export const config = {
     // Default snapshot interval: 2 minutes (120000ms), configurable via env
     snapshotIntervalMs: parseInt(process.env.PORTFOLIO_SNAPSHOT_INTERVAL_MS || '120000', 10),
   },
+  // Whether to allow generation of mock price history data when real data is not available
+  // Defaults to true in development/test, false in production
+  allowMockPriceHistory: process.env.ALLOW_MOCK_PRICE_HISTORY 
+    ? process.env.ALLOW_MOCK_PRICE_HISTORY === 'true'
+    : process.env.NODE_ENV !== 'production',
 };
 
 export default config; 

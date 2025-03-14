@@ -192,8 +192,9 @@ export class NovesProvider implements PriceSource {
   
   /**
    * Get price for an EVM token on a specific chain
+   * Public so that it can be used by MultiChainProvider
    */
-  private async getPriceForSpecificEVMChain(tokenAddress: string, chain: SpecificChain): Promise<number | null> {
+  public async getPriceForSpecificEVMChain(tokenAddress: string, chain: SpecificChain): Promise<number | null> {
     const url = `${this.API_BASE}/evm/${chain}/price/${tokenAddress}`;
     
     try {

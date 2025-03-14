@@ -2,6 +2,7 @@ import { PriceSource } from '../../types';
 import { BlockchainType, SpecificChain, getBlockchainType } from '../../types';
 import axios from 'axios';
 import config from '../../config';
+import { NovesProvider } from './noves.provider';
 
 // Export the supported EVM chains list for use in tests
 export const supportedEvmChains: SpecificChain[] = config.evmChains;
@@ -12,7 +13,6 @@ export const supportedEvmChains: SpecificChain[] = config.evmChains;
  * until a valid price is found.
  */
 export class MultiChainProvider implements PriceSource {
-  private readonly API_BASE = 'https://pricing.noves.fi';
   private readonly chainToTokenCache: Map<string, SpecificChain> = new Map();
   private readonly CACHE_DURATION = 3600000; // 1 hour in milliseconds
   private readonly tokenPriceCache: Map<string, { 
@@ -21,10 +21,9 @@ export class MultiChainProvider implements PriceSource {
     chain: BlockchainType; 
     specificChain: SpecificChain;
   }> = new Map();
-  private lastRequestTime: number = 0;
-  private readonly MIN_REQUEST_INTERVAL = 100; // ms
-  private readonly MAX_RETRIES = 2;
-  private readonly RETRY_DELAY = 500; // ms
+  
+  // Use NovesProvider for common functionality
+  private novesProvider: NovesProvider;
 
   constructor(
     private apiKey: string, 
@@ -34,6 +33,9 @@ export class MultiChainProvider implements PriceSource {
       throw new Error('Noves API key is required for MultiChainProvider');
     }
     
+    // Initialize the NovesProvider for delegation
+    this.novesProvider = new NovesProvider(apiKey);
+    
     console.log(`[MultiChainProvider] Initialized with chains: ${this.defaultChains.join(', ')}`);
   }
 
@@ -41,33 +43,12 @@ export class MultiChainProvider implements PriceSource {
     return 'Noves MultiChain';
   }
 
-  private async delay(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
-  }
-
-  private async enforceRateLimit(): Promise<void> {
-    const now = Date.now();
-    const timeSinceLastRequest = now - this.lastRequestTime;
-    if (timeSinceLastRequest < this.MIN_REQUEST_INTERVAL) {
-      await this.delay(this.MIN_REQUEST_INTERVAL - timeSinceLastRequest);
-    }
-    this.lastRequestTime = Date.now();
-  }
-
   /**
    * Determines which blockchain a token address belongs to based on address format
-   * @param tokenAddress The token address to check
-   * @returns The blockchain type (SVM or EVM)
+   * Using NovesProvider's implementation
    */
   determineChain(tokenAddress: string): BlockchainType {
-    // Ethereum addresses are hexadecimal and start with 0x, typically 42 chars total (0x + 40 hex chars)
-    if (/^0x[a-fA-F0-9]{40}$/.test(tokenAddress)) {
-      return BlockchainType.EVM;
-    }
-    
-    // Solana addresses are base58 encoded and typically 32-44 characters long
-    // Most don't start with 0x and contain alphanumeric characters
-    return BlockchainType.SVM;
+    return this.novesProvider.determineChain(tokenAddress);
   }
 
   /**
@@ -154,48 +135,25 @@ export class MultiChainProvider implements PriceSource {
       
       // Try each chain until we get a price
       for (const chain of chainsToTry) {
-        for (let attempt = 1; attempt <= this.MAX_RETRIES; attempt++) {
-          try {
-            await this.enforceRateLimit();
+        try {
+          console.log(`[MultiChainProvider] Attempting to fetch price for ${normalizedAddress} on ${chain} chain`);
+          
+          // Use NovesProvider's implementation to get price for a specific chain
+          const price = await this.novesProvider.getPriceForSpecificEVMChain(normalizedAddress, chain);
+          
+          if (price !== null) {
+            // Cache the result with the specific chain
+            this.setCachedPrice(normalizedAddress, chain, price);
             
-            console.log(`[MultiChainProvider] Attempting to fetch price for ${normalizedAddress} on ${chain} chain (Attempt ${attempt}/${this.MAX_RETRIES})`);
-            
-            const url = `${this.API_BASE}/evm/${chain}/price/${normalizedAddress}`;
-            
-            const response = await axios.get(url, {
-              headers: {
-                'apiKey': this.apiKey,
-                'Accept': 'application/json',
-                'Content-Type': 'application/json'
-              },
-              timeout: 5000
-            });
-            
-            if (response.status === 200 && response.data && response.data.price) {
-              const price = parseFloat(response.data.price);
-              
-              // Cache the result with the specific chain
-              this.setCachedPrice(normalizedAddress, chain as SpecificChain, price);
-              
-              console.log(`[MultiChainProvider] Successfully found price for ${normalizedAddress} on ${chain} chain: $${price}`);
-              return price;
-            } else {
-              console.log(`[MultiChainProvider] No price data in response for ${normalizedAddress} on ${chain} chain`);
-            }
-          } catch (error) {
-            // If we get a 4xx error, the token might not exist on this chain
-            if (axios.isAxiosError(error) && error.response && error.response.status >= 400 && error.response.status < 500) {
-              console.log(`[MultiChainProvider] Token ${normalizedAddress} not found on ${chain} chain (${error.response.status})`);
-              break; // Move to next chain, no need to retry
-            }
-            
-            console.log(`[MultiChainProvider] Error fetching price for ${normalizedAddress} on ${chain} chain:`, 
-              error instanceof Error ? error.message : 'Unknown error');
-            
-            if (attempt < this.MAX_RETRIES) {
-              await this.delay(this.RETRY_DELAY);
-            }
+            console.log(`[MultiChainProvider] Successfully found price for ${normalizedAddress} on ${chain} chain: $${price}`);
+            return price;
           }
+        } catch (error) {
+          console.log(`[MultiChainProvider] Error fetching price for ${normalizedAddress} on ${chain} chain:`, 
+            error instanceof Error ? error.message : 'Unknown error');
+          
+          // Continue to next chain
+          continue;
         }
       }
       
