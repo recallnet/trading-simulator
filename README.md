@@ -1,17 +1,18 @@
-# Solana Trading Simulator
+# Multi-Chain Trading Simulator
 
-A robust server application for hosting simulated Solana blockchain trading competitions where teams can practice trading without risking real assets.
+A robust server application for hosting simulated blockchain trading competitions where teams can practice trading across multiple chains without risking real assets.
 
 ## Project Overview
 
-The Solana Trading Simulator is a standalone server designed to host trading competitions on the Solana blockchain using simulated balances. Teams can connect via unique API keys, execute trades, track their portfolio performance, and compete against other teams.
+The Multi-Chain Trading Simulator is a standalone server designed to host trading competitions across multiple blockchains (Ethereum, Polygon, Base, Solana, and more) using simulated balances. Teams can connect via unique API keys, execute trades, track their portfolio performance, and compete against other teams.
 
 ### Key Features
 
+- Multi-chain support for both EVM chains (Ethereum, Polygon, Base, etc.) and SVM chains (Solana)
 - Team registration with secure API key authentication
-- Real-time token price tracking from multiple sources (Jupiter, Raydium, Solana)
+- Real-time token price tracking from multiple sources (Noves for multi-chain, Jupiter/Raydium for Solana)
 - Simulated trading with realistic slippage and market conditions
-- Balance and portfolio management
+- Balance and portfolio management across multiple chains
 - Competition management with leaderboards
 - Comprehensive API for trading and account management
 - Rate limiting and security features
@@ -28,8 +29,8 @@ The application follows an MVC (Model-View-Controller) architecture with a robus
 - ✅ Authentication middleware with API key validation
 - ✅ Rate limiting middleware
 - ✅ Route definitions for all API endpoints
-- ✅ Price tracking service with multiple providers
-- ✅ Balance management service
+- ✅ Price tracking service with multiple providers and chain support
+- ✅ Balance management service with multi-chain capabilities
 - ✅ Trade simulation engine
 - ✅ Competition management service
 - ⏳ Comprehensive testing (in progress)
@@ -64,9 +65,10 @@ The application uses a layered architecture:
 ### Key Components
 
 - **Services**: Core business logic implementation
-  - `PriceTracker`: Multi-source price data fetching
-  - `BalanceManager`: Team balance tracking
-  - `TradeSimulator`: Trade execution and processing
+  - `PriceTracker`: Multi-source price data fetching with chain detection
+  - `MultiChainProvider` & `NovesProvider`: Price data for EVM and SVM chains
+  - `BalanceManager`: Team balance tracking across multiple chains
+  - `TradeSimulator`: Trade execution and processing with chain-specific logic
   - `CompetitionManager`: Competition lifecycle management
   - `TeamManager`: Team registration and authentication
 
@@ -83,7 +85,7 @@ The application uses a layered architecture:
   - `BalanceRepository`: Balance record management
   - `TradeRepository`: Trade history management
   - `CompetitionRepository`: Competition data management
-  - `PriceRepository`: Price history storage
+  - `PriceRepository`: Price history storage with chain information
 
 ## Technology Stack
 
@@ -92,6 +94,7 @@ The application uses a layered architecture:
 - **Caching**: In-memory caching with future Redis integration planned
 - **API Security**: HMAC authentication for API requests
 - **Rate Limiting**: Tiered rate limits based on endpoint sensitivity
+- **Price Data**: Integration with Noves API for multi-chain price data
 
 ## Getting Started
 
@@ -105,8 +108,8 @@ The application uses a layered architecture:
 
 1. Clone the repository:
    ```
-   git clone https://github.com/recallnet/trading-sim
-   cd trading-sim
+   git clone https://github.com/recallnet/trade-sim
+   cd trade-sim
    ```
 
 2. Install dependencies:
@@ -167,6 +170,11 @@ If you prefer to set up each component separately, you can follow these steps:
 #### 1. Environment Configuration
 
 The application uses environment variables for configuration. Create a `.env` file in the root directory based on `.env.example`.
+
+Key configuration options include:
+- `NOVES_API_KEY`: Required for multi-chain price data from Noves API
+- `EVM_CHAINS`: Comma-separated list of supported EVM chains (defaults to eth,polygon,bsc,arbitrum,base,optimism,avalanche,linea)
+- `ALLOW_MOCK_PRICE_HISTORY`: Whether to allow mock price history data generation (defaults to true in development, false in production)
 
 #### 2. Security Secret Generation
 
@@ -247,17 +255,17 @@ The server will be available at http://localhost:3000 by default.
 - `POST /api/auth/validate` - Validate API credentials
 
 ### Account Management
-- `GET /api/account/balances` - Get current balances
+- `GET /api/account/balances` - Get current balances across all chains
 - `GET /api/account/portfolio` - Get portfolio value and composition
 - `GET /api/account/trades` - Get trade history
 
 ### Trading Operations
-- `POST /api/trade/execute` - Execute a trade
+- `POST /api/trade/execute` - Execute a trade with chain specification
 - `GET /api/trade/quote` - Get quote for a potential trade
 
 ### Price Information
-- `GET /api/price/current` - Get current price for a token
-- `GET /api/price/history` - Get price history
+- `GET /api/price/current` - Get current price for a token across chains
+- `GET /api/price/history` - Get price history with timeframe configuration
 
 ### Competition Information
 - `GET /api/competition/leaderboard` - Get competition leaderboard
@@ -350,6 +358,14 @@ const client = new TradingSimulatorClient(
 // Get account balances
 const balances = await client.getBalances();
 console.log('Balances:', balances);
+
+// Get current price of WETH on Ethereum
+const ethPrice = await client.getPrice('0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2');
+console.log('ETH Price:', ethPrice);
+
+// Get current price of SOL on Solana
+const solPrice = await client.getPrice('SOL', 'svm');
+console.log('SOL Price:', solPrice);
 ```
 
 ### Running the Examples
@@ -375,13 +391,14 @@ For more information, see the [examples README](docs/examples/README.md).
 
 The following features are planned for upcoming development:
 
-1. Complete comprehensive test suite
-2. Enhance error handling and logging
-3. Implement scheduled tasks for portfolio snapshots
-4. Add more advanced analytics for team performance
-5. Integrate with a front-end application for visualization
-6. Add user notifications for significant events
-7. Implement Redis for improved caching and performance
+1. Add support for more EVM chains (zkSync, Scroll, Mantle, etc.)
+2. Complete comprehensive test suite
+3. Enhance error handling and logging
+4. Implement scheduled tasks for portfolio snapshots
+5. Add more advanced analytics for team performance
+6. Integrate with a front-end application for visualization
+7. Add user notifications for significant events
+8. Implement Redis for improved caching and performance
 
 ## Contributing
 
