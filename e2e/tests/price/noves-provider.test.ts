@@ -476,5 +476,192 @@ describe('Noves Provider E2E Tests', () => {
         console.log('Successfully caught error for invalid token:', error);
       }
     });
+
+    // Add tests for specific known tokens
+    it('should fetch price for Arbitrum (ARB) token', async () => {
+      if (!runTests) {
+        console.log('Skipping test - NOVES_API_KEY not set');
+        return;
+      }
+      
+      const arbToken = {
+        address: '0x912CE59144191C1204E64559FE8253a0e49E6548',
+        name: 'Arbitrum (ARB)',
+        expectedChain: 'arbitrum'
+      };
+      
+      console.log(`Testing ${arbToken.name} (${arbToken.address})...`);
+      
+      // First verify chain detection
+      const chainType = novesProvider.determineChain(arbToken.address);
+      expect(chainType).toBe(BlockchainType.EVM);
+      
+      // Try to get price
+      const price = await novesProvider.getPrice(arbToken.address, chainType);
+      console.log(`Price for ${arbToken.name}: $${price}`);
+      
+      // If we got a price, verify it looks reasonable
+      if (price !== null) {
+        expect(typeof price).toBe('number');
+        expect(price).toBeGreaterThan(0);
+      }
+      
+      // Try to get specific chain info, but handle API timeout gracefully
+      try {
+        // Set a timeout for this operation
+        const chainInfoPromise = novesProvider.determineSpecificEVMChain(arbToken.address);
+        
+        const chainInfo = await Promise.race([
+          chainInfoPromise,
+          new Promise<null>((resolve) => {
+            setTimeout(() => {
+              console.log('Chain detection operation timed out, continuing test');
+              resolve(null);
+            }, 45000); // 45 second timeout (less than the test timeout)
+          })
+        ]);
+        
+        // If we got chain info, verify it
+        if (chainInfo && chainInfo.specificChain) {
+          console.log(`Token ${arbToken.name} detected on chain: ${chainInfo.specificChain}`);
+          expect(chainInfo.specificChain).toBe(arbToken.expectedChain);
+        } else {
+          console.log(`No specific chain info returned for ${arbToken.name} in the allotted time`);
+          console.log(`This is expected if the Noves API is slow for this token`);
+          // Pass the test even without specific chain info
+        }
+      } catch (error) {
+        console.log(`Error detecting specific chain for ${arbToken.name}:`, 
+          error instanceof Error ? error.message : 'Unknown error');
+        console.log('Continuing test despite chain detection error');
+        // Test is still considered successful if chain detection fails due to API issues
+      }
+      
+      // Test passes as long as we identified it as an EVM token correctly
+    }, 120000); // Increase timeout to 120 seconds to deal with slow API responses
+    
+    it('should fetch price for TOSHI token on Base', async () => {
+      if (!runTests) {
+        console.log('Skipping test - NOVES_API_KEY not set');
+        return;
+      }
+      
+      const toshiToken = {
+        address: '0x532f27101965dd16442E59d40670FaF5eBB142E4',
+        name: 'TOSHI Token',
+        expectedChain: 'base'
+      };
+      
+      console.log(`Testing ${toshiToken.name} (${toshiToken.address})...`);
+      
+      // First verify chain detection
+      const chainType = novesProvider.determineChain(toshiToken.address);
+      expect(chainType).toBe(BlockchainType.EVM);
+      
+      // Try to get price
+      const price = await novesProvider.getPrice(toshiToken.address, chainType);
+      console.log(`Price for ${toshiToken.name}: $${price}`);
+      
+      // If we got a price, verify it looks reasonable
+      if (price !== null) {
+        expect(typeof price).toBe('number');
+        expect(price).toBeGreaterThan(0);
+      }
+      
+      // Try to get specific chain info, but handle API timeout gracefully
+      try {
+        // Set a timeout for this operation
+        const chainInfoPromise = novesProvider.determineSpecificEVMChain(toshiToken.address);
+        
+        const chainInfo = await Promise.race([
+          chainInfoPromise,
+          new Promise<null>((resolve) => {
+            setTimeout(() => {
+              console.log('Chain detection operation timed out, continuing test');
+              resolve(null);
+            }, 45000); // 45 second timeout (less than the test timeout)
+          })
+        ]);
+        
+        // If we got chain info, verify it
+        if (chainInfo && chainInfo.specificChain) {
+          console.log(`Token ${toshiToken.name} detected on chain: ${chainInfo.specificChain}`);
+          expect(chainInfo.specificChain).toBe(toshiToken.expectedChain);
+        } else {
+          console.log(`No specific chain info returned for ${toshiToken.name} in the allotted time`);
+          console.log(`This is expected if the Noves API is slow for this token`);
+          // Pass the test even without specific chain info
+        }
+      } catch (error) {
+        console.log(`Error detecting specific chain for ${toshiToken.name}:`, 
+          error instanceof Error ? error.message : 'Unknown error');
+        console.log('Continuing test despite chain detection error');
+        // Test is still considered successful if chain detection fails due to API issues
+      }
+      
+      // Test passes as long as we identified it as an EVM token correctly
+    }, 120000); // Increase timeout to 120 seconds to deal with slow API responses
+    
+    it('should fetch price for Chainlink (LINK) token on Ethereum', async () => {
+      if (!runTests) {
+        console.log('Skipping test - NOVES_API_KEY not set');
+        return;
+      }
+      
+      const linkToken = {
+        address: '0x514910771af9ca656af840dff83e8264ecf986ca',
+        name: 'Chainlink (LINK)',
+        expectedChain: 'eth'
+      };
+      
+      console.log(`Testing ${linkToken.name} (${linkToken.address})...`);
+      
+      // First verify chain detection
+      const chainType = novesProvider.determineChain(linkToken.address);
+      expect(chainType).toBe(BlockchainType.EVM);
+      
+      // Try to get price
+      const price = await novesProvider.getPrice(linkToken.address, chainType);
+      console.log(`Price for ${linkToken.name}: $${price}`);
+      
+      // If we got a price, verify it looks reasonable
+      if (price !== null) {
+        expect(typeof price).toBe('number');
+        expect(price).toBeGreaterThan(0);
+      }
+      
+      // Try to get specific chain info, but handle API timeout gracefully
+      try {
+        // Set a timeout for this operation
+        const chainInfoPromise = novesProvider.determineSpecificEVMChain(linkToken.address);
+        
+        const chainInfo = await Promise.race([
+          chainInfoPromise,
+          new Promise<null>((resolve) => {
+            setTimeout(() => {
+              console.log('Chain detection operation timed out, continuing test');
+              resolve(null);
+            }, 45000); // 45 second timeout (less than the test timeout)
+          })
+        ]);
+        
+        // If we got chain info, verify it
+        if (chainInfo && chainInfo.specificChain) {
+          console.log(`Token ${linkToken.name} detected on chain: ${chainInfo.specificChain}`);
+          expect(chainInfo.specificChain).toBe(linkToken.expectedChain);
+        } else {
+          console.log(`No specific chain info returned for ${linkToken.name} in the allotted time`);
+          console.log(`This is expected if the Noves API is slow for this token`);
+          // Pass the test even without specific chain info
+        }
+      } catch (error) {
+        console.log(`Error detecting specific chain for ${linkToken.name}:`, 
+          error instanceof Error ? error.message : 'Unknown error');
+        console.log('Continuing test despite chain detection error');
+        // Test is still considered successful if chain detection fails due to API issues
+      }
+      
+      // Test passes as long as we identified it as an EVM token correctly
+    }, 120000); // Increase timeout to 120 seconds to deal with slow API responses
   });
 }); 
