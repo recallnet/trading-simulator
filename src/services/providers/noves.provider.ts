@@ -1,19 +1,21 @@
 import { PriceSource } from '../../types';
-import { BlockchainType } from '../../types';
+import { BlockchainType, SpecificChain } from '../../types';
 import axios from 'axios';
+import config from '../../config';
 
 /**
  * Noves price provider implementation
  * Uses Noves API to get token prices across multiple chains
  */
 export class NovesProvider implements PriceSource {
-  private readonly API_BASE = 'https://api.noves.fi/pricing';
-  private cache: Map<string, { price: number; timestamp: number; chain: string }>;
+  private readonly API_BASE = 'https://pricing.noves.fi';
+  private cache: Map<string, { price: number; timestamp: number; chain: string; specificChain?: SpecificChain }>;
   private readonly CACHE_DURATION = 30000; // 30 seconds
   private lastRequestTime: number = 0;
   private readonly MIN_REQUEST_INTERVAL = 100;
   private readonly MAX_RETRIES = 3;
   private readonly RETRY_DELAY = 1000; // 1 second
+  private readonly supportedChains: SpecificChain[] = config.evmChains;
 
   constructor(private apiKey: string) {
     this.cache = new Map();
@@ -36,20 +38,21 @@ export class NovesProvider implements PriceSource {
     this.lastRequestTime = Date.now();
   }
 
-  private getCachedPrice(tokenAddress: string, chain: BlockchainType): { price: number } | null {
+  private getCachedPrice(tokenAddress: string, chain: BlockchainType): { price: number; specificChain?: SpecificChain } | null {
     const cacheKey = `${chain}:${tokenAddress}`;
     const cached = this.cache.get(cacheKey);
     if (cached && Date.now() - cached.timestamp < this.CACHE_DURATION) {
-      return { price: cached.price };
+      return { price: cached.price, specificChain: cached.specificChain as SpecificChain };
     }
     return null;
   }
 
-  private setCachedPrice(tokenAddress: string, chain: BlockchainType, price: number): void {
+  private setCachedPrice(tokenAddress: string, chain: BlockchainType, price: number, specificChain?: SpecificChain): void {
     const cacheKey = `${chain}:${tokenAddress}`;
     this.cache.set(cacheKey, {
       price,
       chain,
+      specificChain,
       timestamp: Date.now(),
     });
   }
@@ -71,115 +74,258 @@ export class NovesProvider implements PriceSource {
   }
 
   /**
+   * Determines which specific EVM chain a token exists on
+   * @param tokenAddress Token address
+   * @returns The specific chain the token exists on, or null if not found
+   */
+  async determineSpecificEVMChain(tokenAddress: string): Promise<{ specificChain: SpecificChain; price: number } | null> {
+    console.log(`[NovesProvider] Determining specific chain for EVM token: ${tokenAddress}`);
+    
+    // Try each supported chain until we find one that returns a price
+    for (const chain of this.supportedChains) {
+      try {
+        await this.enforceRateLimit();
+        
+        const url = `${this.API_BASE}/evm/${chain}/price/${tokenAddress}`;
+        console.log(`[NovesProvider] Trying to find token on chain: ${chain}, URL: ${url}`);
+        
+        const response = await axios.get(url, {
+          headers: {
+            'apiKey': this.apiKey,
+            'accept': 'application/json'
+          },
+          timeout: 10000
+        });
+        
+        console.log(`[NovesProvider] Response for ${chain}: ${JSON.stringify(response.data)}`);
+        
+        // Check if the response has a valid structure
+        if (response.status === 200 && response.data) {
+          // Check if the price is completed (not in progress)
+          if (response.data.priceStatus !== 'inProgress' && 
+              response.data.price && 
+              response.data.price.amount) {
+            
+            const price = parseFloat(response.data.price.amount);
+            if (!isNaN(price)) {
+              console.log(`[NovesProvider] Found token on chain ${chain} with price: $${price}`);
+              return { specificChain: chain, price };
+            } else {
+              console.log(`[NovesProvider] Invalid price amount for token on chain ${chain}: ${response.data.price.amount}`);
+            }
+          } else if (response.data.priceStatus === 'inProgress') {
+            console.log(`[NovesProvider] Price calculation in progress for ${chain}`);
+          } else {
+            console.log(`[NovesProvider] Invalid or missing price data for ${chain}: ${JSON.stringify(response.data.price)}`);
+          }
+        } else {
+          console.log(`[NovesProvider] Unexpected response format for ${chain}`);
+        }
+      } catch (error) {
+        // 401/404 errors are expected when the token is not on this chain
+        if (axios.isAxiosError(error) && error.response && (error.response.status === 401 || error.response.status === 404)) {
+          console.log(`[NovesProvider] Token not found on ${chain} chain (${error.response.status})`);
+        } else {
+          console.error(`[NovesProvider] Error checking chain ${chain}:`, 
+            error instanceof Error ? error.message : 'Unknown error');
+        }
+      }
+    }
+    
+    console.log(`[NovesProvider] Could not find token ${tokenAddress} on any supported EVM chain`);
+    return null;
+  }
+
+  /**
    * Fetches token price from Noves API
    * @param tokenAddress Token address
    * @param chain Optional blockchain type, will be auto-detected if not provided
+   * @param specificChain Optional specific chain to try first, if known
    * @returns Token price in USD or null if not found
    */
-  async getPrice(tokenAddress: string, chain?: BlockchainType): Promise<number | null> {
+  async getPrice(tokenAddress: string, chain?: BlockchainType, specificChain?: SpecificChain): Promise<number | null> {
     try {
+      // Normalize the token address to lowercase
+      const normalizedAddress = tokenAddress.toLowerCase();
+      
       // Determine chain if not provided
-      const tokenChain = chain || this.determineChain(tokenAddress);
+      const tokenChain = chain || this.determineChain(normalizedAddress);
       
       // Check cache first
-      const cachedPrice = this.getCachedPrice(tokenAddress, tokenChain);
-      if (cachedPrice !== null) {
-        console.log(`[NovesProvider] Using cached price for ${tokenAddress} on ${tokenChain}: $${cachedPrice.price}`);
-        return cachedPrice.price;
+      const cachedResult = this.getCachedPrice(normalizedAddress, tokenChain);
+      if (cachedResult !== null) {
+        console.log(`[NovesProvider] Using cached price for ${normalizedAddress} on ${tokenChain} (${cachedResult.specificChain || 'unknown'}): $${cachedResult.price}`);
+        return cachedResult.price;
       }
 
-      console.log(`[NovesProvider] Getting price for ${tokenAddress} on ${tokenChain}`);
+      console.log(`[NovesProvider] Getting price for ${normalizedAddress} on ${tokenChain}`);
       
-      for (let attempt = 1; attempt <= this.MAX_RETRIES; attempt++) {
-        try {
-          await this.enforceRateLimit();
-
-          // For this initial implementation, we'll mock different endpoints 
-          // based on available documentation. These should be updated once
-          // we have the exact endpoint information.
-          const chainEndpoint = tokenChain === BlockchainType.SVM ? 'svm' : 'evm';
-          const url = `${this.API_BASE}/${chainEndpoint}/price`;
-          
-          console.log(`[NovesProvider] Debug: Requesting from ${url}`);
-          console.log(`[NovesProvider] Attempt ${attempt}/${this.MAX_RETRIES} to fetch price for ${tokenAddress} on ${tokenChain}`);
-
-          // For initial implementation, we'll use a simulated API response
-          // This should be replaced with the actual API call once we have confirmed endpoints
-          let price: number | null = null;
-          
-          // TEMPORARY IMPLEMENTATION - Replace with actual API call
-          // This is for testing purposes only until we have confirmed exact API endpoints
-          if (tokenChain === BlockchainType.SVM) {
-            const testTokens: Record<string, number> = {
-              'So11111111111111111111111111111111111111112': 100.5, // SOL
-              'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v': 1.0, // USDC
-              'DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263': 0.000025 // BONK
-            };
-            price = testTokens[tokenAddress] || null;
-          } else {
-            const testTokens: Record<string, number> = {
-              '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2': 3500.75, // WETH
-              '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48': 1.0, // USDC
-              '0x95aD61b0a150d79219dCF64E1E6Cc01f0B64C4cE': 0.00002 // SHIB
-            };
-            price = testTokens[tokenAddress] || null;
-          }
-          
-          // Actual implementation should be similar to this:
-          /*
-          const response = await axios.get(url, {
-            params: {
-              token: tokenAddress
-            },
-            headers: {
-              'Authorization': `Bearer ${this.apiKey}`,
-              'Accept': 'application/json',
-              'Content-Type': 'application/json'
-            },
-            timeout: 5000
-          });
-          
-          if (response.status !== 200 || !response.data) {
-            console.log(`[NovesProvider] Non-200 response from API: ${response.status}`);
-            continue;
-          }
-          
-          // Parse response based on API format
-          const price = response.data.price;
-          */
-
-          if (price === null) {
-            console.log(`[NovesProvider] No price data found for token: ${tokenAddress}`);
-            if (attempt === this.MAX_RETRIES) return null;
-            await this.delay(this.RETRY_DELAY * attempt);
-            continue;
-          }
-
-          // Cache the result
-          this.setCachedPrice(tokenAddress, tokenChain, price);
-          console.log(`[NovesProvider] Successfully fetched price for ${tokenAddress} on ${tokenChain}: $${price}`);
-          return price;
-        } catch (error) {
-          if (attempt === this.MAX_RETRIES) {
-            throw error;
-          }
-          console.log(`[NovesProvider] Attempt ${attempt} failed, retrying after delay...`);
-          if (axios.isAxiosError(error)) {
-            console.error(`[NovesProvider] Axios error details:`, {
-              message: error.message,
-              code: error.code,
-              status: error.response?.status,
-              data: error.response?.data,
-            });
-          }
-          await this.delay(this.RETRY_DELAY * attempt);
+      // For Solana tokens
+      if (tokenChain === BlockchainType.SVM) {
+        return await this.getPriceSolana(normalizedAddress);
+      }
+      
+      // For EVM tokens
+      // If specificChain is provided, try that first
+      if (specificChain) {
+        const result = await this.getPriceForSpecificEVMChain(normalizedAddress, specificChain);
+        if (result !== null) {
+          this.setCachedPrice(normalizedAddress, tokenChain, result, specificChain);
+          return result;
         }
       }
+      
+      // Otherwise, we need to determine which specific chain the token is on
+      const chainResult = await this.determineSpecificEVMChain(normalizedAddress);
+      if (chainResult !== null) {
+        this.setCachedPrice(normalizedAddress, tokenChain, chainResult.price, chainResult.specificChain);
+        return chainResult.price;
+      }
+      
+      // If we couldn't find the token on any chain, return null
       return null;
     } catch (error) {
       console.error(`[NovesProvider] Error fetching price for ${tokenAddress}:`, error instanceof Error ? error.message : 'Unknown error');
       return null;
     }
+  }
+  
+  /**
+   * Get price for an EVM token on a specific chain
+   */
+  private async getPriceForSpecificEVMChain(tokenAddress: string, chain: SpecificChain): Promise<number | null> {
+    const url = `${this.API_BASE}/evm/${chain}/price/${tokenAddress}`;
+    
+    try {
+      await this.enforceRateLimit();
+      
+      console.log(`[NovesProvider] Trying specific chain endpoint: ${url}`);
+      
+      const response = await axios.get(url, {
+        headers: {
+          'apiKey': this.apiKey,
+          'accept': 'application/json'
+        },
+        timeout: 10000
+      });
+      
+      console.log(`[NovesProvider] Specific chain response for ${chain}: ${JSON.stringify(response.data)}`);
+      
+      // Check if the response has a valid structure
+      if (response.status === 200 && response.data) {
+        // Check if the price is completed (not in progress)
+        if (response.data.priceStatus !== 'inProgress' && 
+            response.data.price && 
+            response.data.price.amount) {
+          
+          const price = parseFloat(response.data.price.amount);
+          if (!isNaN(price)) {
+            console.log(`[NovesProvider] Found price on specific chain ${chain}: $${price}`);
+            return price;
+          } else {
+            console.log(`[NovesProvider] Invalid price amount on specific chain ${chain}: ${response.data.price.amount}`);
+            return null;
+          }
+        } else if (response.data.priceStatus === 'inProgress') {
+          console.log(`[NovesProvider] Price calculation in progress for specific chain ${chain}`);
+          return null;
+        } else {
+          console.log(`[NovesProvider] Invalid or missing price data for specific chain ${chain}: ${JSON.stringify(response.data.price)}`);
+          return null;
+        }
+      } else {
+        console.log(`[NovesProvider] Unexpected response format for specific chain ${chain}`);
+        return null;
+      }
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response && error.response.status >= 400) {
+        console.log(`[NovesProvider] Token ${tokenAddress} not found on ${chain} chain: ${error.response.status}`);
+        return null;
+      }
+      console.log(`[NovesProvider] Error querying ${chain}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+    
+    return null;
+  }
+  
+  /**
+   * Get price for a Solana token
+   */
+  private async getPriceSolana(tokenAddress: string): Promise<number | null> {
+    const url = `${this.API_BASE}/svm/solana/price/${tokenAddress}`;
+    
+    for (let attempt = 1; attempt <= this.MAX_RETRIES; attempt++) {
+      try {
+        await this.enforceRateLimit();
+        
+        console.log(`[NovesProvider] Debug: Requesting from ${url}`);
+        console.log(`[NovesProvider] Attempt ${attempt}/${this.MAX_RETRIES} to fetch Solana token price`);
+        
+        const response = await axios.get(url, {
+          headers: {
+            'apiKey': this.apiKey,
+            'accept': 'application/json'
+          },
+          timeout: 10000 // Increase timeout to 10 seconds
+        });
+        
+        console.log(`[NovesProvider] Solana response: ${JSON.stringify(response.data)}`);
+        
+        // Check if the response has a valid structure
+        if (response.status === 200 && response.data) {
+          // Check if the price is completed (not in progress)
+          if (response.data.priceStatus !== 'inProgress' && 
+              response.data.price && 
+              response.data.price.amount) {
+            
+            const price = parseFloat(response.data.price.amount);
+            if (!isNaN(price)) {
+              console.log(`[NovesProvider] Successfully fetched price for Solana token ${tokenAddress}: $${price}`);
+              return price;
+            } else {
+              console.log(`[NovesProvider] Invalid price amount for Solana token ${tokenAddress}: ${response.data.price.amount}`);
+              if (attempt === this.MAX_RETRIES) return null;
+              await this.delay(this.RETRY_DELAY * attempt);
+              continue;
+            }
+          } else if (response.data.priceStatus === 'inProgress') {
+            console.log(`[NovesProvider] Price calculation in progress for Solana token ${tokenAddress}`);
+            if (attempt === this.MAX_RETRIES) return null;
+            await this.delay(this.RETRY_DELAY * attempt);
+            continue;
+          } else {
+            console.log(`[NovesProvider] Invalid or missing price data for Solana token ${tokenAddress}: ${JSON.stringify(response.data.price)}`);
+            if (attempt === this.MAX_RETRIES) return null;
+            await this.delay(this.RETRY_DELAY * attempt);
+            continue;
+          }
+        } else {
+          console.log(`[NovesProvider] Unexpected response format for Solana token ${tokenAddress}`);
+          if (attempt === this.MAX_RETRIES) return null;
+          await this.delay(this.RETRY_DELAY * attempt);
+          continue;
+        }
+      } catch (error) {
+        if (attempt === this.MAX_RETRIES) {
+          if (axios.isAxiosError(error) && error.response && error.response.status >= 400) {
+            console.log(`[NovesProvider] API error for Solana token ${tokenAddress}: ${error.response.status}`);
+            return null;
+          }
+          throw error;
+        }
+        console.log(`[NovesProvider] Attempt ${attempt} failed, retrying after delay...`);
+        if (axios.isAxiosError(error)) {
+          console.error(`[NovesProvider] Axios error details:`, {
+            message: error.message,
+            code: error.code,
+            status: error.response?.status,
+            data: error.response?.data,
+          });
+        }
+        await this.delay(this.RETRY_DELAY * attempt);
+      }
+    }
+    return null;
   }
 
   /**

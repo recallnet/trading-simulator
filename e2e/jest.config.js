@@ -18,4 +18,5 @@ module.exports = {
       tsconfig: 'tsconfig.json',
     },
   },
+  reporters: ['default', '<rootDir>/utils/log-reporter.js'], // Add custom reporter
 }; 

@@ -10,9 +10,20 @@ import { Server } from 'http';
 import { initializeDb, closeDb } from './utils/database';
 import { startServer, stopServer, killExistingServers } from './utils/server';
 import { SchedulerService } from '../src/services/scheduler.service';
+import fs from 'fs';
 
 // Store global server reference
 let server: Server;
+
+// Path to log file
+const logFile = path.resolve(__dirname, 'e2e-server.log');
+const fullSuiteFlag = path.resolve(__dirname, '.full-suite-running');
+
+// Function to log to both console and file
+const log = (message: string) => {
+  console.log(message);
+  fs.appendFileSync(logFile, message + '\n');
+};
 
 // Setup function to run before all tests
 export async function setup() {
@@ -22,39 +33,45 @@ export async function setup() {
   // Ensure TEST_MODE is set
   process.env.TEST_MODE = 'true';
   
-  console.log('🚀 Setting up E2E test environment...');
+  // Check if this is an individual test run (not part of the full suite)
+  // If so, clear the log file first
+  if (!fs.existsSync(fullSuiteFlag)) {
+    fs.writeFileSync(logFile, '');
+  }
+  
+  log('🚀 Setting up E2E test environment...');
   
   try {
     // Kill any existing server processes that might be hanging
     await killExistingServers();
     
     // Initialize database
-    console.log('📦 Initializing database...');
+    log('📦 Initializing database...');
     await initializeDb();
     
     // Start server
-    console.log('🌐 Starting server...');
+    log('🌐 Starting server...');
     server = await startServer();
     
-    console.log('✅ Test environment ready');
+    log('✅ Test environment ready');
   } catch (error) {
-    console.error('❌ Failed to set up test environment:', error);
+    log('❌ Failed to set up test environment: ' + (error instanceof Error ? error.message : String(error)));
     throw error;
   }
 }
 
 // Teardown function to run after all tests
 export async function teardown() {
-  console.log('🧹 Cleaning up test environment...');
+  log('🧹 Cleaning up test environment...');
   
   try {
     // Clear all scheduler timers first
-    console.log('🕒 Clearing all scheduler timers...');
+    log('🕒 Clearing all scheduler timers...');
     SchedulerService.clearAllTimers();
     
     // Stop server
     if (server) {
-      console.log('🛑 Stopping server...');
+      log('🛑 Stopping server...');
       await stopServer(server);
     }
     
@@ -62,18 +79,23 @@ export async function teardown() {
     await killExistingServers();
     
     // Close database connection
-    console.log('🔌 Closing database connection...');
+    log('🔌 Closing database connection...');
     await closeDb();
     
-    console.log('✅ Test environment cleaned up');
+    // Clean up the full suite flag if it exists
+    if (fs.existsSync(fullSuiteFlag)) {
+      fs.unlinkSync(fullSuiteFlag);
+    }
+    
+    log('✅ Test environment cleaned up');
   } catch (error) {
-    console.error('❌ Failed to clean up test environment:', error);
+    log('❌ Failed to clean up test environment: ' + (error instanceof Error ? error.message : String(error)));
     
     // As a last resort, try to kill any server processes
     try {
       await killExistingServers();
     } catch (secondError) {
-      console.error('Failed to kill server processes as a last resort:', secondError);
+      log('Failed to kill server processes as a last resort: ' + String(secondError));
     }
     
     throw error;

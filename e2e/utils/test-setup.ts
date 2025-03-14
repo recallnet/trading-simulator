@@ -6,6 +6,17 @@
 
 import { cleanupTestState } from './test-helpers';
 import { services } from '../../src/services';
+import fs from 'fs';
+import path from 'path';
+
+// Path to log file
+const logFile = path.resolve(__dirname, '../e2e-server.log');
+
+// Function to log to both console and file
+const log = (message: string) => {
+  console.log(message);
+  fs.appendFileSync(logFile, message + '\n');
+};
 
 // Extend the timeout for all tests
 jest.setTimeout(30000);
@@ -17,11 +28,11 @@ process.env.TEST_MODE = 'true';
 
 // Before all tests in every file
 beforeAll(async () => {
-  console.log('[Global Setup] Initializing test environment...');
+  log('[Global Setup] Initializing test environment...');
   
   // Ensure scheduler is reset at the start of tests
   if (services.scheduler) {
-    console.log('[Global Setup] Resetting scheduler service...');
+    log('[Global Setup] Resetting scheduler service...');
     services.scheduler.reset();
   }
 });
@@ -30,21 +41,21 @@ beforeAll(async () => {
 beforeEach(async () => {
   // Reset scheduler to ensure a clean state for each test
   if (services.scheduler) {
-    console.log('[Global Setup] Resetting scheduler service for new test...');
+    log('[Global Setup] Resetting scheduler service for new test...');
     services.scheduler.reset();
   }
 });
 
 // After all tests in every file
 afterAll(async () => {
-  console.log('[Global Teardown] Cleaning up test environment...');
+  log('[Global Teardown] Cleaning up test environment...');
   
   try {
     // Stop the scheduler to prevent ongoing database connections
     if (services.scheduler) {
-      console.log('[Global Teardown] Stopping scheduler service...');
+      log('[Global Teardown] Stopping scheduler service...');
       services.scheduler.stopSnapshotScheduler();
-      console.log('[Global Teardown] Scheduler service stopped');
+      log('[Global Teardown] Scheduler service stopped');
     }
     
     // Add a small delay to allow any pending operations to complete
@@ -54,16 +65,16 @@ afterAll(async () => {
     await cleanupTestState();
     
   } catch (error) {
-    console.error('[Global Teardown] Error during cleanup:', error);
+    log('[Global Teardown] Error during cleanup: ' + (error instanceof Error ? error.message : String(error)));
   }
 });
 
 // Log test lifecycle events for debugging
 beforeEach(() => {
-  console.log(`[Test] Starting test: ${expect.getState().currentTestName}`);
+  log(`[Test] Starting test: ${expect.getState().currentTestName}`);
 });
 
 afterEach(() => {
-  console.log(`[Test] Completed test: ${expect.getState().currentTestName}`);
+  log(`[Test] Completed test: ${expect.getState().currentTestName}`);
   jest.resetAllMocks();
 }); 

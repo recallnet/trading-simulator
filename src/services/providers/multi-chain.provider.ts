@@ -164,7 +164,7 @@ export class MultiChainProvider implements PriceSource {
             
             const response = await axios.get(url, {
               headers: {
-                'Authorization': `Bearer ${this.apiKey}`,
+                'apiKey': this.apiKey,
                 'Accept': 'application/json',
                 'Content-Type': 'application/json'
               },
@@ -172,7 +172,7 @@ export class MultiChainProvider implements PriceSource {
             });
             
             if (response.status === 200 && response.data && response.data.price) {
-              const price = response.data.price;
+              const price = parseFloat(response.data.price);
               
               // Cache the result with the specific chain
               this.setCachedPrice(normalizedAddress, chain as SpecificChain, price);
