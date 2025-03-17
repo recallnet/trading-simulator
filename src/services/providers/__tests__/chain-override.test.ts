@@ -1,4 +1,3 @@
-import { NovesProvider } from '../noves.provider';
 import { MultiChainProvider } from '../multi-chain.provider';
 import { BlockchainType, SpecificChain } from '../../../types';
 import dotenv from 'dotenv';
@@ -35,13 +34,11 @@ const testTokens = [
  * to improve API response times.
  */
 describe('Chain Override Tests', () => {
-  let novesProvider: NovesProvider;
   let multiChainProvider: MultiChainProvider;
 
   beforeEach(() => {
     if (runTests) {
-      novesProvider = new NovesProvider(apiKey!);
-      multiChainProvider = new MultiChainProvider(apiKey!);
+      multiChainProvider = new MultiChainProvider();
     }
   });
 

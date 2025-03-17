@@ -1,10 +1,10 @@
 import { PriceSource, BlockchainType, SpecificChain } from '../types';
-import { JupiterProvider } from './providers/jupiter.provider';
-import { RaydiumProvider } from './providers/raydium.provider';
-import { SerumProvider } from './providers/serum.provider';
-import { NovesProvider } from './providers/noves.provider';
+// Comment out other providers that we're not using anymore
+// import { JupiterProvider } from './providers/jupiter.provider';
+// import { RaydiumProvider } from './providers/raydium.provider';
+// import { SerumProvider } from './providers/serum.provider';
+// import { NovesProvider } from './providers/noves.provider';
 import { MultiChainProvider } from './providers/multi-chain.provider';
-// import { SolanaProvider } from './providers/solana.provider'; // No longer using Solana provider
 import { config } from '../config';
 import { repositories } from '../database';
 
@@ -24,46 +24,23 @@ interface PriceRecord {
  */
 export class PriceTracker {
   private providers: PriceSource[];
-  private novesProvider: NovesProvider | null = null;
+  // private novesProvider: NovesProvider | null = null;
   private multiChainProvider: MultiChainProvider | null = null;
   private priceCache: Map<string, { price: number; timestamp: number }>;
   private readonly CACHE_DURATION = config.priceCacheDuration; // 30 seconds
 
   constructor() {
-    // Initialize Noves provider if API key is available
-    if (config.api.noves.enabled) {
-      this.novesProvider = new NovesProvider(config.api.noves.apiKey);
-      
-      // Also initialize the MultiChainProvider for EVM tokens across multiple chains
-      this.multiChainProvider = new MultiChainProvider(config.api.noves.apiKey);
-      
-      console.log('[PriceTracker] Initialized Noves provider for multi-chain support');
-    }
+    // Initialize only the MultiChainProvider
+    this.multiChainProvider = new MultiChainProvider();
+    console.log('[PriceTracker] Initialized MultiChainProvider for all token price fetching');
     
-    // Initialize Solana-specific providers 
-    const jupiterProvider = new JupiterProvider();
-    const raydiumProvider = new RaydiumProvider();
-    const serumProvider = new SerumProvider();
-    
-    // Set up providers in priority order
+    // Set up providers (now just MultiChainProvider)
     this.providers = [];
     
-    // Add MultiChainProvider as the first provider for EVM tokens if available
+    // Add MultiChainProvider as the only provider
     if (this.multiChainProvider) {
       this.providers.push(this.multiChainProvider);
     }
-    
-    // Add Noves as the second provider if available
-    if (this.novesProvider) {
-      this.providers.push(this.novesProvider);
-    }
-    
-    // Add Solana-specific providers as fallbacks
-    this.providers.push(
-      jupiterProvider,
-      raydiumProvider,
-      serumProvider
-    );
     
     this.priceCache = new Map();
     
@@ -77,12 +54,12 @@ export class PriceTracker {
    * @returns The blockchain type (SVM or EVM)
    */
   determineChain(tokenAddress: string): BlockchainType {
-    // If we have Noves provider, use its chain detection
-    if (this.novesProvider) {
-      return this.novesProvider.determineChain(tokenAddress);
+    // Use MultiChainProvider for chain detection
+    if (this.multiChainProvider) {
+      return this.multiChainProvider.determineChain(tokenAddress);
     }
     
-    // Fallback detection if Noves is not available
+    // Fallback detection if MultiChainProvider is not available
     // Ethereum addresses are hexadecimal and start with 0x, typically 42 chars total (0x + 40 hex chars)
     if (/^0x[a-fA-F0-9]{40}$/.test(tokenAddress)) {
       return BlockchainType.EVM;
@@ -103,7 +80,6 @@ export class PriceTracker {
 
   /**
    * Get current price for a token
-   * Tries each provider in sequence until a price is found
    * @param tokenAddress The token address to get price for
    * @param blockchainType Optional blockchain type override (EVM or SVM)
    * @param specificChain Optional specific chain override (eth, polygon, etc.)
@@ -120,7 +96,7 @@ export class PriceTracker {
     const tokenChain = blockchainType || this.determineChain(tokenAddress);
     console.log(`[PriceTracker] ${blockchainType ? 'Using provided' : 'Detected'} token ${tokenAddress} on chain: ${tokenChain}`);
 
-    // Check cache first - even with specificChain, we want to check the cache first
+    // Check cache first
     const cacheKey = `${tokenChain}:${tokenAddress}`;
     const cached = this.priceCache.get(cacheKey);
     if (cached && Date.now() - cached.timestamp < this.CACHE_DURATION) {
@@ -128,14 +104,16 @@ export class PriceTracker {
       return cached.price;
     }
 
-    // For EVM tokens with MultiChainProvider, we can try to optimize if specificChain is provided
-    if (tokenChain === BlockchainType.EVM && this.multiChainProvider && specificChain) {
+    // If no cache hit, use MultiChainProvider
+    if (this.multiChainProvider) {
       try {
-        console.log(`[PriceTracker] Using MultiChainProvider with specified chain: ${specificChain}`);
+        console.log(`[PriceTracker] Using MultiChainProvider for token ${tokenAddress}`);
+        
+        // Get price from MultiChainProvider
         const price = await this.multiChainProvider.getPrice(tokenAddress, tokenChain, specificChain);
         
         if (price !== null) {
-          console.log(`[PriceTracker] Got price $${price} for ${tokenAddress} on ${specificChain} using MultiChainProvider with specific chain`);
+          console.log(`[PriceTracker] Got price $${price} from MultiChainProvider`);
           
           // Store price in cache
           this.priceCache.set(cacheKey, {
@@ -147,110 +125,20 @@ export class PriceTracker {
           await this.storePrice(tokenAddress, price, tokenChain, specificChain);
           
           return price;
+        } else {
+          console.log(`[PriceTracker] No price available from MultiChainProvider for ${tokenAddress}`);
         }
       } catch (error) {
         console.error(
-          `[PriceTracker] Error fetching price from MultiChainProvider with specific chain:`,
+          `[PriceTracker] Error fetching price from MultiChainProvider:`,
           error instanceof Error ? error.message : 'Unknown error'
         );
       }
     }
 
-    // Try each provider in sequence until we get a price
-    for (const provider of this.providers) {
-      try {
-        console.log(`[PriceTracker] Attempting to get price from ${provider.getName()}`);
-        
-        let price: number | null = null;
-        let detectedSpecificChain: SpecificChain | undefined;
-        
-        // For MultiChainProvider, it can handle any EVM token
-        if (provider instanceof MultiChainProvider && tokenChain === BlockchainType.EVM) {
-          try {
-            // Try to get detailed token info with specific chain
-            const tokenInfo = await provider.getTokenInfo(
-              tokenAddress, 
-              tokenChain, 
-              specificChain
-            );
-            
-            if (tokenInfo && tokenInfo.price !== null) {
-              price = tokenInfo.price;
-              detectedSpecificChain = tokenInfo.specificChain || undefined;
-            } else {
-              // Fallback to just getting the price (with specificChain if provided)
-              price = await provider.getPrice(tokenAddress, tokenChain, specificChain);
-            }
-          } catch (error) {
-            console.error(
-              `[PriceTracker] Error fetching price from ${provider.getName()}:`,
-              error instanceof Error ? error.message : 'Unknown error'
-            );
-            continue;
-          }
-        }
-        // For NovesProvider, we pass the chain type for specificity
-        else if (provider instanceof NovesProvider) {
-          try {
-            price = await provider.getPrice(tokenAddress, tokenChain);
-            if (tokenChain === BlockchainType.SVM) {
-              detectedSpecificChain = 'svm';
-            }
-          } catch (error) {
-            console.error(
-              `[PriceTracker] Error fetching price from ${provider.getName()}:`,
-              error instanceof Error ? error.message : 'Unknown error'
-            );
-            continue;
-          }
-        } 
-        // For Solana-specific providers, only use them for SVM tokens
-        else if (tokenChain === BlockchainType.SVM) {
-          try {
-            price = await provider.getPrice(tokenAddress);
-            detectedSpecificChain = 'svm';
-          } catch (error) {
-            console.error(
-              `[PriceTracker] Error fetching price from ${provider.getName()}:`,
-              error instanceof Error ? error.message : 'Unknown error'
-            );
-            continue;
-          }
-        } else {
-          // Skip non-compatible providers for this token type
-          console.log(`[PriceTracker] Skipping ${provider.getName()} for ${tokenChain} token`);
-          continue;
-        }
-
-        if (price !== null) {
-          console.log(`[PriceTracker] Got price $${price} from ${provider.getName()}`);
-          
-          // Store price in cache
-          this.priceCache.set(cacheKey, {
-            price,
-            timestamp: Date.now(),
-          });
-          
-          // Store price in database for historical record (but never rely on this for trading)
-          await this.storePrice(tokenAddress, price, tokenChain, detectedSpecificChain);
-          
-          return price;
-        } else {
-          console.log(`[PriceTracker] No price available from ${provider.getName()}`);
-        }
-      } catch (error) {
-        console.error(
-          `[PriceTracker] Error fetching price from ${provider.getName()}:`,
-          error instanceof Error ? error.message : 'Unknown error'
-        );
-        continue;
-      }
-    }
-
-    console.log(`[PriceTracker] No price available for ${tokenAddress} from any provider`);
+    console.log(`[PriceTracker] No price available for ${tokenAddress}`);
     
     // As a last resort, try to get the most recent price from the database
-    // This should rarely happen if providers are working correctly
     try {
       const lastPrice = await repositories.priceRepository.getLatestPrice(tokenAddress);
       if (lastPrice) {
@@ -266,7 +154,6 @@ export class PriceTracker {
 
   /**
    * Get detailed token information including which chain it's on and its price
-   * This is useful for EVM tokens which need specific chain information
    * @param tokenAddress The token address to get info for
    * @param blockchainType Optional blockchain type override (EVM or SVM)
    * @param specificChain Optional specific chain override (eth, polygon, etc.)
@@ -296,7 +183,7 @@ export class PriceTracker {
       };
     }
     
-    // Use MultiChainProvider if available for EVM tokens
+    // Use MultiChainProvider for EVM tokens
     if (this.multiChainProvider && chainType === BlockchainType.EVM) {
       try {
         // Pass specificChain to getTokenInfo if provided
@@ -306,7 +193,7 @@ export class PriceTracker {
           specificChain
         );
         
-        if (tokenInfo && tokenInfo.price !== null) {
+        if (tokenInfo) {
           return {
             price: tokenInfo.price,
             chain: tokenInfo.chain,
@@ -318,8 +205,8 @@ export class PriceTracker {
       }
     }
     
-    // If MultiChainProvider failed or returned null price, try to get price from other providers
-    console.log(`[PriceTracker] Falling back to standard providers for token info: ${tokenAddress}`);
+    // If MultiChainProvider failed or returned null, try to get just the price
+    console.log(`[PriceTracker] Falling back to just getting price for token info: ${tokenAddress}`);
     const price = await this.getPrice(tokenAddress, chainType, specificChain);
     
     // Determine specificChain based on chainType, using provided specificChain if available
@@ -365,35 +252,22 @@ export class PriceTracker {
   }
 
   /**
-   * Check if a token is supported by any provider
+   * Check if a token is supported by the provider
    * @param tokenAddress The token address to check
-   * @returns True if at least one provider supports the token
+   * @returns True if the provider supports the token
    */
   async isTokenSupported(tokenAddress: string): Promise<boolean> {
-    const tokenChain = this.determineChain(tokenAddress);
-    
-    for (const provider of this.providers) {
-      try {
-        // For Noves, we can check with the chain type
-        if (provider instanceof NovesProvider) {
-          if (await provider.supports(tokenAddress)) {
-            console.log(`[PriceTracker] Token ${tokenAddress} is supported by ${provider.getName()}`);
-            return true;
-          }
-        } 
-        // For other providers, only check for SVM tokens
-        else if (tokenChain === BlockchainType.SVM) {
-          if (await provider.supports(tokenAddress)) {
-            console.log(`[PriceTracker] Token ${tokenAddress} is supported by ${provider.getName()}`);
-            return true;
-          }
-        }
-      } catch (error) {
-        continue;
-      }
+    if (!this.multiChainProvider) {
+      return false;
     }
-    console.log(`[PriceTracker] No providers support token ${tokenAddress}`);
-    return false;
+    
+    try {
+      return await this.multiChainProvider.supports(tokenAddress);
+    } catch (error) {
+      console.log(`[PriceTracker] Error checking support for ${tokenAddress}:`, 
+        error instanceof Error ? error.message : 'Unknown error');
+      return false;
+    }
   }
   
   /**
@@ -500,16 +374,15 @@ export class PriceTracker {
       // Check if database is accessible
       await repositories.priceRepository.count();
       
-      // Check if at least one provider is responsive
-      for (const provider of this.providers) {
+      // Check if provider is responsive
+      if (this.multiChainProvider) {
         try {
-          // Try to get SOL price as a simple test
-          const price = await provider.getPrice('So11111111111111111111111111111111111111112');
-          if (price !== null) {
-            return true;
-          }
+          // Try to get a price as a simple test - use ETH since it's widely available
+          const price = await this.multiChainProvider.getPrice('0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2');
+          return price !== null;
         } catch (error) {
-          continue;
+          console.error('[PriceTracker] Health check failed on price fetch:', error);
+          return false;
         }
       }
       

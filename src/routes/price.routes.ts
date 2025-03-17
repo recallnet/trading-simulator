@@ -9,7 +9,4 @@ priceRoutes.get('/', PriceController.getPrice);
 // GET /api/price/token-info - Get detailed token information including specific chain
 priceRoutes.get('/token-info', PriceController.getTokenInfo);
 
-// GET /api/price/provider - Get price from a specific provider
-priceRoutes.get('/provider', PriceController.getPriceFromProvider);
-
 export default priceRoutes; 

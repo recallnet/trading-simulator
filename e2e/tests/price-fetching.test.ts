@@ -9,6 +9,12 @@ const ETHEREUM_TOKENS = {
   USDC: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'
 };
 
+// Define Base chain token addresses for testing
+const BASE_TOKENS = {
+  ETH: '0x4200000000000000000000000000000000000006', // WETH on Base
+  USDC: '0xd9aAEc86B65D86f6A7B5B1b0c42FFA531710b6CA' // USDbC on Base
+};
+
 describe('Price Fetching', () => {
   // Clean up test state before each test
   beforeEach(async () => {
@@ -77,9 +83,6 @@ describe('Price Fetching', () => {
     // We expect a valid HTTP response, regardless of whether a price is available
     expect(response.status).toBe(200);
     
-    // Test provider-specific behavior to diagnose which providers are working
-    await testIndividualProviders(baseUrl, arbitraryTokenAddress);
-    
     // If a price is available, validate it
     if (response.data.success && response.data.price !== null) {
       expect(response.data.price).toBeDefined();
@@ -94,164 +97,58 @@ describe('Price Fetching', () => {
       console.log(`This is expected if the token doesn't have active liquidity pools or API errors occurred.`);
     }
   });
-  
-  test('should fetch SOL price from all providers', async () => {
-    const tokenAddress = config.tokens.sol; // SOL token address
-    // Confirm we're using the correct SOL address
-    console.log(`Using SOL token address: ${tokenAddress}`);
-    expect(tokenAddress).toBe('So11111111111111111111111111111111111111112');
-    
+
+  test('should fetch prices for tokens across different chains', async () => {
     const baseUrl = getBaseUrl();
     
-    // Verify the combined endpoint works for SOL
-    const combinedResponse = await axios.get(`${baseUrl}/api/price?token=${tokenAddress}`);
-    expect(combinedResponse.status).toBe(200);
-    expect(combinedResponse.data.success).toBeTruthy();
-    expect(combinedResponse.data.price).toBeGreaterThan(0);
-    expect(combinedResponse.data.chain).toBe('svm');
-    console.log(`Combined SOL price response: $${combinedResponse.data.price}`);
+    // Test SOL price (Solana chain)
+    const solToken = config.tokens.sol;
+    const solResponse = await axios.get(`${baseUrl}/api/price?token=${solToken}`);
+    expect(solResponse.status).toBe(200);
+    expect(solResponse.data.success).toBeTruthy();
+    expect(solResponse.data.price).toBeGreaterThan(0);
+    expect(solResponse.data.chain).toBe('svm');
+    console.log(`SOL price: $${solResponse.data.price}`);
     
-    // Test each provider individually for SOL without requiring all to succeed immediately
-    // This gives us information about which providers are working
-    const results = await testIndividualProviders(baseUrl, tokenAddress);
-    console.log('Provider support results:', results);
+    // Test ETH price (Ethereum chain)
+    const ethToken = ETHEREUM_TOKENS.ETH;
+    const ethResponse = await axios.get(`${baseUrl}/api/price?token=${ethToken}`);
+    expect(ethResponse.status).toBe(200);
     
-    // Test each provider individually with retries to increase chances of success
-    let jupiterSuccess = false;
-    let raydiumSuccess = false;
-    let serumSuccess = false;
-    let novesSuccess = false;
-    
-    // Jupiter provider - should definitely work
-    for (let i = 0; i < 3; i++) {
-      try {
-        const response = await axios.get(`${baseUrl}/api/price/provider?token=${tokenAddress}&provider=jupiter`);
-        if (response.data.success && response.data.price > 0) {
-          jupiterSuccess = true;
-          console.log(`Jupiter SOL price: $${response.data.price}`);
-          break;
-        }
-        await new Promise(r => setTimeout(r, 1000)); // Wait before retry
-      } catch (err) {
-        console.log(`Jupiter attempt ${i+1} failed`);
-      }
-    }
-    
-    // Raydium provider
-    for (let i = 0; i < 3; i++) {
-      try {
-        const response = await axios.get(`${baseUrl}/api/price/provider?token=${tokenAddress}&provider=raydium`);
-        if (response.data.success && response.data.price > 0) {
-          raydiumSuccess = true;
-          console.log(`Raydium SOL price: $${response.data.price}`);
-          break;
-        }
-        await new Promise(r => setTimeout(r, 1000)); // Wait before retry
-      } catch (err) {
-        console.log(`Raydium attempt ${i+1} failed`);
-      }
-    }
-    
-    // Serum provider 
-    for (let i = 0; i < 3; i++) {
-      try {
-        const response = await axios.get(`${baseUrl}/api/price/provider?token=${tokenAddress}&provider=serum`);
-        if (response.data.success && response.data.price > 0) {
-          serumSuccess = true;
-          console.log(`Serum SOL price: $${response.data.price}`);
-          break;
-        }
-        await new Promise(r => setTimeout(r, 1000)); // Wait before retry
-      } catch (err) {
-        console.log(`Serum attempt ${i+1} failed`);
-      }
-    }
-    
-    // Noves provider
-    for (let i = 0; i < 3; i++) {
-      try {
-        const response = await axios.get(`${baseUrl}/api/price/provider?token=${tokenAddress}&provider=noves`);
-        if (response.data.success && response.data.price > 0) {
-          novesSuccess = true;
-          console.log(`Noves SOL price: $${response.data.price}`);
-          break;
-        }
-        await new Promise(r => setTimeout(r, 1000)); // Wait before retry
-      } catch (err) {
-        console.log(`Noves attempt ${i+1} failed`);
-      }
-    }
-    
-    // All providers should work for SOL with retries
-    expect(jupiterSuccess).toBeTruthy();
-    expect(serumSuccess).toBeTruthy();
-    expect(novesSuccess).toBeTruthy(); // Noves should support SOL
-    // Skip Raydium assertion for now as it may be temporarily unavailable
-    // but log the status for debugging
-    console.log(`Raydium provider success status: ${raydiumSuccess}`);
-    
-    // At least three providers should have SOL prices
-    const workingProviderCount = [jupiterSuccess, raydiumSuccess, serumSuccess, novesSuccess].filter(Boolean).length;
-    expect(workingProviderCount).toBeGreaterThanOrEqual(3);
-    console.log(`${workingProviderCount} providers support SOL pricing`);
-  });
-  
-  test('should fetch ETH price from Noves provider', async () => {
-    const tokenAddress = ETHEREUM_TOKENS.ETH; // ETH/WETH token address
-    console.log(`Using ETH token address: ${tokenAddress}`);
-    
-    const baseUrl = getBaseUrl();
-    
-    // Verify the combined endpoint works for ETH - handle potential API failures
-    try {
-      const combinedResponse = await axios.get(`${baseUrl}/api/price?token=${tokenAddress}`);
-      expect(combinedResponse.status).toBe(200);
+    // If we get a successful response with price data
+    if (ethResponse.data.success && ethResponse.data.price) {
+      expect(ethResponse.data.price).toBeGreaterThan(0);
+      expect(ethResponse.data.chain).toBe('evm');
+      console.log(`ETH price: $${ethResponse.data.price}`);
       
-      // If the API returns a successful response with price data
-      if (combinedResponse.data.success && combinedResponse.data.price) {
-        expect(combinedResponse.data.price).toBeGreaterThan(0);
-        expect(combinedResponse.data.chain).toBe('evm');
-        console.log(`Combined ETH price response: $${combinedResponse.data.price}`);
-      } else {
-        // Log the issue but don't fail the test
-        console.log(`Note: Combined endpoint didn't return ETH price. This could be due to API rate limits or temporary provider issues.`);
-        console.log(`Response: ${JSON.stringify(combinedResponse.data)}`);
+      // Check if we got specific chain information
+      if (ethResponse.data.specificChain) {
+        expect(ethResponse.data.specificChain).toBe('eth');
+      }
+    } else {
+      console.log(`Note: Could not get ETH price. This could be due to API issues.`);
+      console.log(`Response: ${JSON.stringify(ethResponse.data)}`);
+    }
+    
+    // Test Base Chain ETH with specific chain parameter
+    try {
+      const baseEthResponse = await axios.get(`${baseUrl}/api/price`, {
+        params: {
+          token: BASE_TOKENS.ETH,
+          chain: 'evm',
+          specificChain: 'base'
+        }
+      });
+      
+      expect(baseEthResponse.status).toBe(200);
+      if (baseEthResponse.data.success && baseEthResponse.data.price) {
+        expect(baseEthResponse.data.price).toBeGreaterThan(0);
+        expect(baseEthResponse.data.chain).toBe('evm');
+        expect(baseEthResponse.data.specificChain).toBe('base');
+        console.log(`Base chain ETH price: $${baseEthResponse.data.price}`);
       }
     } catch (error) {
-      console.log(`Error fetching combined ETH price: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
-    
-    // Test Noves provider specifically for ETH with more resilience
-    let novesSuccess = false;
-    
-    for (let i = 0; i < 3; i++) {
-      try {
-        const response = await axios.get(`${baseUrl}/api/price/provider?token=${tokenAddress}&provider=noves`);
-        console.log(`Noves ETH provider response:`, response.data);
-        
-        if (response.data.success && response.data.price > 0) {
-          novesSuccess = true;
-          expect(response.data.chain).toBe('evm');
-          console.log(`Noves ETH price: $${response.data.price}`);
-          break;
-        }
-        await new Promise(r => setTimeout(r, 1000)); // Wait before retry
-      } catch (err) {
-        console.log(`Noves ETH attempt ${i+1} failed`);
-      }
-    }
-    
-    // If we can't get a price, log it but don't fail the test since API issues can be temporary
-    if (!novesSuccess) {
-      console.log('Could not get ETH price from Noves provider. This could be due to rate limits or API issues.');
-    }
-    
-    // Other providers should NOT work for ETH (they're Solana-only)
-    try {
-      const jupiterResponse = await axios.get(`${baseUrl}/api/price/provider?token=${tokenAddress}&provider=jupiter`);
-      expect(jupiterResponse.data.success).toBeFalsy();
-    } catch (err) {
-      // Expected to fail, Jupiter doesn't support Ethereum tokens
+      console.log(`Error fetching Base chain ETH price: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   });
   
@@ -292,107 +189,87 @@ describe('Price Fetching', () => {
         expect(ethereumResponse.data.chain).toBe('evm');
         console.log(`Ethereum USDC price: $${ethereumResponse.data.price}`);
         
-        // Test Noves provider with Ethereum USDC if main request succeeded
-        try {
-          const novesEthResponse = await axios.get(`${baseUrl}/api/price/provider?token=${ethereumUsdcAddress}&provider=noves`);
-          if (novesEthResponse.data.success) {
-            expect(novesEthResponse.data.chain).toBe('evm');
-          }
-        } catch (error) {
-          console.log(`Error with Noves ETH USDC: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        // Check if we got specific chain information
+        if (ethereumResponse.data.specificChain) {
+          expect(ethereumResponse.data.specificChain).toBe('eth');
+          console.log(`Ethereum USDC detected on chain: ${ethereumResponse.data.specificChain}`);
         }
       } else {
         console.log(`Note: Couldn't get Ethereum USDC price. Response: ${JSON.stringify(ethereumResponse.data)}`);
-        console.log('This could be due to Ethereum API rate limits or temporary issues.');
       }
     } catch (error) {
       console.log(`Error fetching Ethereum USDC price: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
     
-    // Test Solana USDC through Noves if we're still verifying provider functionality
+    // Test Base chain USDC with specific chain parameter
     try {
-      const novesSolResponse = await axios.get(`${baseUrl}/api/price/provider?token=${solanaUsdcAddress}&provider=noves`);
-      if (novesSolResponse.data.success) {
-        expect(novesSolResponse.data.chain).toBe('svm');
-        console.log(`Noves Solana USDC price: $${novesSolResponse.data.price}`);
+      const baseUsdcResponse = await axios.get(`${baseUrl}/api/price`, {
+        params: {
+          token: BASE_TOKENS.USDC,
+          chain: 'evm',
+          specificChain: 'base'
+        }
+      });
+      
+      if (baseUsdcResponse.data.success) {
+        // Allow for stablecoin price variations (0.8 to 1.2 range)
+        expect(baseUsdcResponse.data.price).toBeGreaterThan(0.8);
+        expect(baseUsdcResponse.data.price).toBeLessThan(1.2);
+        expect(baseUsdcResponse.data.chain).toBe('evm');
+        expect(baseUsdcResponse.data.specificChain).toBe('base');
+        console.log(`Base chain USDC price: $${baseUsdcResponse.data.price}`);
       }
     } catch (error) {
-      console.log(`Error with Noves Solana USDC: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.log(`Error fetching Base USDC price: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   });
   
-  test('should verify price provider infrastructure', async () => {
-    // Check that the providers are properly registered and the endpoints work
+  test('should use detailed token info endpoint correctly', async () => {
     const baseUrl = getBaseUrl();
-    const tokenAddress = config.tokens.sol; // Use SOL as a reliable test token
     
-    // First, verify that the combined endpoint works for a known token
-    const combinedResponse = await axios.get(`${baseUrl}/api/price?token=${tokenAddress}`);
-    expect(combinedResponse.status).toBe(200);
-    expect(combinedResponse.data.success).toBeTruthy();
-    expect(combinedResponse.data.price).toBeGreaterThan(0);
-    
-    // Now test each provider individually
-    let atLeastOneProviderWorking = false;
-    
-    // Test Jupiter provider
+    // Test token-info endpoint for Ethereum token
     try {
-      const jupiterResponse = await axios.get(`${baseUrl}/api/price/provider?token=${tokenAddress}&provider=jupiter`);
-      console.log(`Jupiter provider response:`, jupiterResponse.data);
-      if (jupiterResponse.data.success) {
-        expect(jupiterResponse.data.price).toBeDefined();
-        expect(typeof jupiterResponse.data.price).toBe('number');
-        expect(jupiterResponse.data.price).toBeGreaterThan(0);
-        atLeastOneProviderWorking = true;
+      const ethToken = ETHEREUM_TOKENS.ETH;
+      const tokenInfoResponse = await axios.get(`${baseUrl}/api/price/token-info?token=${ethToken}`);
+      
+      expect(tokenInfoResponse.status).toBe(200);
+      expect(tokenInfoResponse.data.chain).toBe('evm');
+      
+      if (tokenInfoResponse.data.success) {
+        expect(tokenInfoResponse.data.price).toBeGreaterThan(0);
+        if (tokenInfoResponse.data.specificChain) {
+          console.log(`ETH detected on chain: ${tokenInfoResponse.data.specificChain}`);
+        }
       }
-    } catch (error: any) {
-      console.error('Error testing Jupiter provider:', error.message);
-    }
-
-    // Test Raydium provider
-    try {
-      const raydiumResponse = await axios.get(`${baseUrl}/api/price/provider?token=${tokenAddress}&provider=raydium`);
-      console.log(`Raydium provider response:`, raydiumResponse.data);
-      if (raydiumResponse.data.success) {
-        expect(raydiumResponse.data.price).toBeDefined();
-        expect(typeof raydiumResponse.data.price).toBe('number');
-        expect(raydiumResponse.data.price).toBeGreaterThan(0);
-        atLeastOneProviderWorking = true;
-      }
-    } catch (error: any) {
-      console.error('Error testing Raydium provider:', error.message);
-    }
-
-    // Test Serum provider
-    try {
-      const serumResponse = await axios.get(`${baseUrl}/api/price/provider?token=${tokenAddress}&provider=serum`);
-      console.log(`Serum provider response:`, serumResponse.data);
-      if (serumResponse.data.success) {
-        expect(serumResponse.data.price).toBeDefined();
-        expect(typeof serumResponse.data.price).toBe('number');
-        expect(serumResponse.data.price).toBeGreaterThan(0);
-        atLeastOneProviderWorking = true;
-      }
-    } catch (error: any) {
-      console.error('Error testing Serum provider:', error.message);
+      
+      console.log(`Token info for ETH:`, tokenInfoResponse.data);
+    } catch (error) {
+      console.log(`Error fetching token info for ETH: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
     
-    // Test Noves provider
+    // Test token-info with specific chain parameter
     try {
-      const novesResponse = await axios.get(`${baseUrl}/api/price/provider?token=${tokenAddress}&provider=noves`);
-      console.log(`Noves provider response:`, novesResponse.data);
-      if (novesResponse.data.success) {
-        expect(novesResponse.data.price).toBeDefined();
-        expect(typeof novesResponse.data.price).toBe('number');
-        expect(novesResponse.data.price).toBeGreaterThan(0);
-        atLeastOneProviderWorking = true;
+      const baseToken = BASE_TOKENS.ETH;
+      const tokenInfoResponse = await axios.get(`${baseUrl}/api/price/token-info`, {
+        params: {
+          token: baseToken,
+          chain: 'evm',
+          specificChain: 'base'
+        }
+      });
+      
+      expect(tokenInfoResponse.status).toBe(200);
+      expect(tokenInfoResponse.data.chain).toBe('evm');
+      expect(tokenInfoResponse.data.specificChain).toBe('base');
+      
+      if (tokenInfoResponse.data.success) {
+        expect(tokenInfoResponse.data.price).toBeGreaterThan(0);
       }
-    } catch (error: any) {
-      console.error('Error testing Noves provider:', error.message);
+      
+      console.log(`Token info for Base ETH:`, tokenInfoResponse.data);
+    } catch (error) {
+      console.log(`Error fetching token info for Base ETH: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
-    
-    // At least one provider should be working
-    expect(atLeastOneProviderWorking).toBeTruthy();
   });
   
   test('should detect chain from token format', async () => {
@@ -407,109 +284,12 @@ describe('Price Fetching', () => {
     const ethAddress = ETHEREUM_TOKENS.ETH;
     const ethResponse = await axios.get(`${baseUrl}/api/price?token=${ethAddress}`);
     expect(ethResponse.data.chain).toBe('evm');
+    
+    // Test Base token detection
+    const baseAddress = BASE_TOKENS.ETH;
+    const baseResponse = await axios.get(`${baseUrl}/api/price?token=${baseAddress}`);
+    expect(baseResponse.data.chain).toBe('evm');
+    
+    console.log(`✅ All tokens correctly identified by chain type`);
   });
-});
-
-// Helper function to test each provider individually
-async function testIndividualProviders(baseUrl: string, tokenAddress: string, requireSuccess: boolean = false) {
-  let results = {
-    jupiter: false,
-    raydium: false,
-    serum: false,
-    noves: false
-  };
-  
-  // Test Jupiter provider
-  try {
-    const jupiterResponse = await axios.get(`${baseUrl}/api/price/provider?token=${tokenAddress}&provider=jupiter`);
-    console.log(`Jupiter provider response:`, jupiterResponse.data);
-    if (jupiterResponse.data.success) {
-      expect(jupiterResponse.data.price).toBeDefined();
-      expect(typeof jupiterResponse.data.price).toBe('number');
-      expect(jupiterResponse.data.price).toBeGreaterThan(0);
-      results.jupiter = true;
-    } else {
-      console.log(`Jupiter provider couldn't fetch price for ${tokenAddress}`);
-      if (requireSuccess) {
-        expect(jupiterResponse.data.success).toBeTruthy();
-      }
-    }
-  } catch (error: any) {
-    console.error('Error testing Jupiter provider:', error.message);
-    if (requireSuccess) {
-      throw new Error(`Jupiter provider request failed: ${error.message}`);
-    }
-  }
-
-  // Test Raydium provider 
-  try {
-    const raydiumResponse = await axios.get(`${baseUrl}/api/price/provider?token=${tokenAddress}&provider=raydium`);
-    console.log(`Raydium provider response:`, raydiumResponse.data);
-    if (raydiumResponse.data.success) {
-      expect(raydiumResponse.data.price).toBeDefined();
-      expect(typeof raydiumResponse.data.price).toBe('number');
-      expect(raydiumResponse.data.price).toBeGreaterThan(0);
-      console.log(`Raydium successful price for ${tokenAddress}: $${raydiumResponse.data.price}`);
-      results.raydium = true;
-    } else {
-      console.log(`Raydium provider couldn't fetch price for ${tokenAddress}`);
-      if (requireSuccess) {
-        expect(raydiumResponse.data.success).toBeTruthy();
-      }
-    }
-  } catch (error: any) {
-    console.error('Error testing Raydium provider:', error.message);
-    if (requireSuccess) {
-      throw new Error(`Raydium provider request failed: ${error.message}`);
-    }
-  }
-
-  // Test Serum provider 
-  try {
-    const serumResponse = await axios.get(`${baseUrl}/api/price/provider?token=${tokenAddress}&provider=serum`);
-    console.log(`Serum provider response:`, serumResponse.data);
-    if (serumResponse.data.success) {
-      expect(serumResponse.data.price).toBeDefined();
-      expect(typeof serumResponse.data.price).toBe('number');
-      expect(serumResponse.data.price).toBeGreaterThan(0);
-      console.log(`Serum successful price for ${tokenAddress}: $${serumResponse.data.price}`);
-      results.serum = true;
-    } else {
-      console.log(`Serum provider couldn't fetch price for ${tokenAddress}`);
-      if (requireSuccess) {
-        expect(serumResponse.data.success).toBeTruthy();
-      }
-    }
-  } catch (error: any) {
-    console.error('Error testing Serum provider:', error.message);
-    if (requireSuccess) {
-      throw new Error(`Serum provider request failed: ${error.message}`);
-    }
-  }
-  
-  // Test Noves provider
-  try {
-    const novesResponse = await axios.get(`${baseUrl}/api/price/provider?token=${tokenAddress}&provider=noves`);
-    console.log(`Noves provider response:`, novesResponse.data);
-    if (novesResponse.data.success) {
-      expect(novesResponse.data.price).toBeDefined();
-      expect(typeof novesResponse.data.price).toBe('number');
-      expect(novesResponse.data.price).toBeGreaterThan(0);
-      console.log(`Noves successful price for ${tokenAddress}: $${novesResponse.data.price}`);
-      results.noves = true;
-    } else {
-      console.log(`Noves provider couldn't fetch price for ${tokenAddress}`);
-      if (requireSuccess) {
-        expect(novesResponse.data.success).toBeTruthy();
-      }
-    }
-  } catch (error: any) {
-    console.error('Error testing Noves provider:', error.message);
-    if (requireSuccess) {
-      throw new Error(`Noves provider request failed: ${error.message}`);
-    }
-  }
-  
-  console.log(`Price provider results for ${tokenAddress}:`, results);
-  return results;
-} 
+}); 

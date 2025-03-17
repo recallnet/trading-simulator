@@ -2,15 +2,16 @@ import { PriceSource } from '../../types';
 import { BlockchainType, SpecificChain, getBlockchainType } from '../../types';
 import axios from 'axios';
 import config from '../../config';
-import { NovesProvider } from './noves.provider';
+import { DexScreenerProvider } from './dexscreener.provider';
 
 // Export the supported EVM chains list for use in tests
 export const supportedEvmChains: SpecificChain[] = config.evmChains;
 
 /**
  * MultiChainProvider implementation
- * Uses Noves API to get token prices across multiple EVM chains by trying each chain
- * until a valid price is found.
+ * Uses DexScreener API to get token prices across multiple chains
+ * For EVM chains, it will try each chain until a valid price is found.
+ * For Solana, it will delegate directly to the DexScreenerProvider.
  */
 export class MultiChainProvider implements PriceSource {
   private readonly chainToTokenCache: Map<string, SpecificChain> = new Map();
@@ -22,33 +23,28 @@ export class MultiChainProvider implements PriceSource {
     specificChain: SpecificChain;
   }> = new Map();
   
-  // Use NovesProvider for common functionality
-  private novesProvider: NovesProvider;
+  // Use DexScreenerProvider for common functionality
+  private dexScreenerProvider: DexScreenerProvider;
 
   constructor(
-    private apiKey: string, 
     private defaultChains: SpecificChain[] = config.evmChains
   ) {
-    if (!apiKey) {
-      throw new Error('Noves API key is required for MultiChainProvider');
-    }
-    
-    // Initialize the NovesProvider for delegation
-    this.novesProvider = new NovesProvider(apiKey);
+    // Initialize the DexScreenerProvider for delegation
+    this.dexScreenerProvider = new DexScreenerProvider();
     
     console.log(`[MultiChainProvider] Initialized with chains: ${this.defaultChains.join(', ')}`);
   }
 
   getName(): string {
-    return 'Noves MultiChain';
+    return 'DexScreener MultiChain';
   }
 
   /**
    * Determines which blockchain a token address belongs to based on address format
-   * Using NovesProvider's implementation
+   * Using DexScreenerProvider's implementation
    */
   determineChain(tokenAddress: string): BlockchainType {
-    return this.novesProvider.determineChain(tokenAddress);
+    return this.dexScreenerProvider.determineChain(tokenAddress);
   }
 
   /**
@@ -73,18 +69,18 @@ export class MultiChainProvider implements PriceSource {
   /**
    * Cache token price and its chain
    */
-  private setCachedPrice(tokenAddress: string, specificChain: SpecificChain, price: number): void {
-    const generalChain = getBlockchainType(specificChain);
-    
+  private setCachedPrice(tokenAddress: string, chain: BlockchainType, specificChain: SpecificChain, price: number): void {
     this.tokenPriceCache.set(tokenAddress.toLowerCase(), {
       price,
-      chain: generalChain,
+      chain,
       specificChain,
       timestamp: Date.now(),
     });
     
     // Also cache the token-to-chain mapping for future lookups
-    this.chainToTokenCache.set(tokenAddress.toLowerCase(), specificChain);
+    if (chain === BlockchainType.EVM) {
+      this.chainToTokenCache.set(tokenAddress.toLowerCase(), specificChain);
+    }
   }
 
   /**
@@ -95,7 +91,27 @@ export class MultiChainProvider implements PriceSource {
   }
 
   /**
-   * Fetches token price from Noves API across multiple EVM chains
+   * Get price for a specific EVM chain using DexScreener
+   */
+  async getPriceForSpecificEVMChain(
+    tokenAddress: string,
+    specificChain: SpecificChain
+  ): Promise<number | null> {
+    try {
+      return await this.dexScreenerProvider.getPrice(
+        tokenAddress, 
+        BlockchainType.EVM, 
+        specificChain
+      );
+    } catch (error) {
+      console.log(`[MultiChainProvider] Error fetching price for ${tokenAddress} on ${specificChain}:`, 
+        error instanceof Error ? error.message : 'Unknown error');
+      return null;
+    }
+  }
+
+  /**
+   * Fetches token price from DexScreener API across multiple chains
    * @param tokenAddress Token address
    * @param blockchainType Optional blockchain type (EVM or SVM)
    * @param specificChain Optional specific chain to check directly (bypasses chain detection)
@@ -113,12 +129,6 @@ export class MultiChainProvider implements PriceSource {
       // Determine blockchain type if not provided
       const detectedChainType = blockchainType || this.determineChain(normalizedAddress);
       
-      // For Solana tokens, we can't use this provider
-      if (detectedChainType === BlockchainType.SVM) {
-        console.log(`[MultiChainProvider] Token ${normalizedAddress} is on Solana chain, cannot use multi-chain lookup`);
-        return null;
-      }
-      
       // Check price cache first
       const cachedPrice = this.getCachedPrice(normalizedAddress);
       if (cachedPrice !== null) {
@@ -126,6 +136,29 @@ export class MultiChainProvider implements PriceSource {
         return cachedPrice.price;
       }
       
+      // For Solana tokens, delegate directly to DexScreenerProvider
+      if (detectedChainType === BlockchainType.SVM) {
+        console.log(`[MultiChainProvider] Getting price for Solana token ${normalizedAddress}`);
+        try {
+          const price = await this.dexScreenerProvider.getPrice(normalizedAddress, BlockchainType.SVM);
+          if (price !== null) {
+            // Cache the result
+            this.setCachedPrice(normalizedAddress, BlockchainType.SVM, 'svm', price);
+            
+            console.log(`[MultiChainProvider] Successfully found price for Solana token ${normalizedAddress}: $${price}`);
+            return price;
+          }
+          
+          console.log(`[MultiChainProvider] No price found for Solana token ${normalizedAddress}`);
+          return null;
+        } catch (error) {
+          console.log(`[MultiChainProvider] Error fetching price for Solana token ${normalizedAddress}:`, 
+            error instanceof Error ? error.message : 'Unknown error');
+          return null;
+        }
+      }
+      
+      // For EVM tokens, continue with the existing logic
       console.log(`[MultiChainProvider] Getting price for EVM token ${normalizedAddress}`);
       
       // If a specific chain was provided, use it directly instead of trying multiple chains
@@ -135,12 +168,12 @@ export class MultiChainProvider implements PriceSource {
         try {
           console.log(`[MultiChainProvider] Attempting to fetch price for ${normalizedAddress} on ${specificChain} chain directly`);
           
-          // Use NovesProvider's implementation to get price for a specific chain
-          const price = await this.novesProvider.getPriceForSpecificEVMChain(normalizedAddress, specificChain);
+          // Use DexScreenerProvider to get price for a specific chain
+          const price = await this.getPriceForSpecificEVMChain(normalizedAddress, specificChain);
           
           if (price !== null) {
             // Cache the result with the specific chain
-            this.setCachedPrice(normalizedAddress, specificChain, price);
+            this.setCachedPrice(normalizedAddress, BlockchainType.EVM, specificChain, price);
             
             console.log(`[MultiChainProvider] Successfully found price for ${normalizedAddress} on ${specificChain} chain: $${price}`);
             return price;
@@ -171,12 +204,12 @@ export class MultiChainProvider implements PriceSource {
         try {
           console.log(`[MultiChainProvider] Attempting to fetch price for ${normalizedAddress} on ${chain} chain`);
           
-          // Use NovesProvider's implementation to get price for a specific chain
-          const price = await this.novesProvider.getPriceForSpecificEVMChain(normalizedAddress, chain);
+          // Get price for a specific chain using DexScreener
+          const price = await this.getPriceForSpecificEVMChain(normalizedAddress, chain);
           
           if (price !== null) {
             // Cache the result with the specific chain
-            this.setCachedPrice(normalizedAddress, chain, price);
+            this.setCachedPrice(normalizedAddress, BlockchainType.EVM, chain, price);
             
             console.log(`[MultiChainProvider] Successfully found price for ${normalizedAddress} on ${chain} chain: $${price}`);
             return price;
@@ -206,17 +239,20 @@ export class MultiChainProvider implements PriceSource {
    */
   async supports(tokenAddress: string): Promise<boolean> {
     try {
-      // For non-EVM tokens, we don't support them
-      if (this.determineChain(tokenAddress) !== BlockchainType.EVM) {
-        return false;
-      }
+      // Check the blockchain type
+      const chainType = this.determineChain(tokenAddress);
       
       // Check if we already have a cached price
       if (this.getCachedPrice(tokenAddress) !== null) {
         return true;
       }
       
-      // Try to get the price - if we get a value back, it's supported
+      // For Solana tokens, delegate to DexScreenerProvider
+      if (chainType === BlockchainType.SVM) {
+        return this.dexScreenerProvider.supports(tokenAddress);
+      }
+      
+      // For EVM tokens, try to get the price - if we get a value back, it's supported
       const price = await this.getPrice(tokenAddress);
       return price !== null;
     } catch (error) {
@@ -249,19 +285,39 @@ export class MultiChainProvider implements PriceSource {
       // Determine blockchain type if not provided
       const generalChain = blockchainType || this.determineChain(normalizedAddress);
       
-      // For Solana tokens, we return just the blockchain type
-      if (generalChain === BlockchainType.SVM) {
-        return {
-          price: null, // We don't have a price yet
-          chain: BlockchainType.SVM,
-          specificChain: 'svm'
-        };
-      }
-      
       // Check cache first
       const cachedPrice = this.getCachedPrice(normalizedAddress);
       if (cachedPrice !== null) {
         return cachedPrice;
+      }
+      
+      // For Solana tokens, get price using DexScreenerProvider
+      if (generalChain === BlockchainType.SVM) {
+        try {
+          const price = await this.dexScreenerProvider.getPrice(normalizedAddress, BlockchainType.SVM);
+          
+          // Cache the price if it was found
+          if (price !== null) {
+            this.setCachedPrice(normalizedAddress, BlockchainType.SVM, 'svm', price);
+            
+            console.log(`[MultiChainProvider] Successfully found Solana token info for ${normalizedAddress}: $${price}`);
+          }
+          
+          return {
+            price: price,
+            chain: BlockchainType.SVM,
+            specificChain: 'svm'
+          };
+        } catch (error) {
+          console.log(`[MultiChainProvider] Error fetching token info for Solana token ${normalizedAddress}:`, 
+            error instanceof Error ? error.message : 'Unknown error');
+            
+          return {
+            price: null,
+            chain: BlockchainType.SVM,
+            specificChain: 'svm'
+          };
+        }
       }
       
       // If a specific chain was provided, use it directly
@@ -271,12 +327,12 @@ export class MultiChainProvider implements PriceSource {
         try {
           console.log(`[MultiChainProvider] Attempting to fetch token info for ${normalizedAddress} on ${specificChain} chain directly`);
           
-          // Use NovesProvider's implementation to get price for a specific chain
-          const price = await this.novesProvider.getPriceForSpecificEVMChain(normalizedAddress, specificChain);
+          // Get price for specific chain using DexScreener
+          const price = await this.getPriceForSpecificEVMChain(normalizedAddress, specificChain);
           
           if (price !== null) {
             // Cache the result with the specific chain
-            this.setCachedPrice(normalizedAddress, specificChain, price);
+            this.setCachedPrice(normalizedAddress, BlockchainType.EVM, specificChain, price);
             
             console.log(`[MultiChainProvider] Successfully found token info for ${normalizedAddress} on ${specificChain} chain: $${price}`);
             

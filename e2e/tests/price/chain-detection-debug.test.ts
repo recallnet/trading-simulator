@@ -2,7 +2,6 @@ import axios from 'axios';
 import { getBaseUrl } from '../../utils/server';
 import { PriceTracker } from '../../../src/services/price-tracker.service';
 import { BlockchainType } from '../../../src/types';
-import { NovesProvider } from '../../../src/services/providers/noves.provider';
 import dotenv from 'dotenv';
 
 // Load environment variables
@@ -68,21 +67,6 @@ describe('Chain Detection Debug', () => {
   
   // Only run provider tests if API key is available
   (runProviderTests ? describe : describe.skip)('Direct Provider Tests', () => {
-    it('should fetch Ethereum price directly from NovesProvider', async () => {
-      // Test direct provider call to isolate issues
-      if (!apiKey) {
-        console.log('Skipping test - NOVES_API_KEY not set');
-        return;
-      }
-      
-      const novesProvider = new NovesProvider(apiKey);
-      console.log(`Calling provider.getPrice with token: ${ethereumTokens.ETH}, chain: ${BlockchainType.EVM}`);
-      const price = await novesProvider.getPrice(ethereumTokens.ETH, BlockchainType.EVM);
-      console.log(`Direct provider ETH price response: ${price}`);
-      expect(price).not.toBeNull();
-      expect(typeof price).toBe('number');
-      expect(price).toBeGreaterThan(0);
-    });
     
     it('should fetch Ethereum price via PriceTracker', async () => {
       // Test PriceTracker (which uses providers internally)
@@ -105,20 +89,6 @@ describe('Chain Detection Debug', () => {
       if (tokenInfo) {
         expect(tokenInfo.price).toBeGreaterThan(0);
       }
-    });
-  });
-  
-  describe('Specific Provider API Calls', () => {
-    it('should call the Noves provider API endpoint directly', async () => {
-      // Test using the specific provider endpoint
-      const baseUrl = getBaseUrl();
-      const directProviderUrl = `${baseUrl}/api/price/provider?token=${ethereumTokens.ETH}&provider=noves&chain=evm`;
-      console.log(`Making direct API call to: ${directProviderUrl}`);
-      const directResponse = await axios.get(directProviderUrl);
-      console.log(`Direct provider API response: ${JSON.stringify(directResponse.data)}`);
-      expect(directResponse.status).toBe(200);
-      expect(directResponse.data.success).toBe(true);
-      expect(directResponse.data.price).toBeGreaterThan(0);
     });
   });
 }); 
