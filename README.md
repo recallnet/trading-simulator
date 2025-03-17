@@ -327,6 +327,30 @@ The server will be available at http://localhost:3000 by default.
   - Note: Cross-chain trading can be disabled via server configuration (`ALLOW_CROSS_CHAIN_TRADING=false`)
 - `GET /api/trade/quote` - Get quote for a potential trade
 
+#### Example: Executing Trades with Chain Parameters
+
+When executing a trade, you can specify chain information to ensure the trade uses the correct blockchains:
+
+```javascript
+// Example request body for cross-chain trade
+const tradeBody = {
+  "fromToken": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", // USDC on Solana
+  "toToken": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",    // WETH on Ethereum
+  "amount": "50",
+  "price": "1.0",
+  "fromChain": "svm",            // Blockchain type for source token (svm)
+  "toChain": "evm",              // Blockchain type for destination token (evm)
+  "fromSpecificChain": "svm",    // Specific chain for source token (Solana)
+  "toSpecificChain": "eth"       // Specific chain for destination token (Ethereum)
+}
+```
+
+**Chain Parameters:**
+- `fromChain` / `toChain`: General blockchain type (`evm` or `svm`)
+- `fromSpecificChain` / `toSpecificChain`: Specific blockchain (`eth`, `polygon`, `base`, `svm`, etc.)
+
+When the server has `ALLOW_CROSS_CHAIN_TRADING=false`, it will validate that `fromChain` and `toChain` match, rejecting trades between different blockchains.
+
 ### Price Information
 - `GET /api/price` - Get current price for a token across chains (supports chain override)
 - `GET /api/price/token-info` - Get detailed token information including specific chain (supports chain override)
@@ -594,4 +618,45 @@ Configure this option in your `.env` file:
 ALLOW_CROSS_CHAIN_TRADING=true
 ```
 
-When disabled, the trade validation in the `TradeSimulator` service will verify that both tokens are on the same chain before proceeding with the trade execution. 
+When disabled, the trade validation in the `TradeSimulator` service will verify that both tokens are on the same chain before proceeding with the trade execution.
+
+### Using Chain Parameters with Trade Restrictions
+
+When executing trades with explicit chain parameters, the system's behavior will depend on the `ALLOW_CROSS_CHAIN_TRADING` setting:
+
+#### With Cross-Chain Trading Allowed (`ALLOW_CROSS_CHAIN_TRADING=true`):
+```javascript
+// This cross-chain trade will be accepted
+{
+  "fromToken": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", // USDC on Solana
+  "toToken": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",    // WETH on Ethereum
+  "amount": "50",
+  "fromChain": "svm",
+  "toChain": "evm",
+  "fromSpecificChain": "svm",
+  "toSpecificChain": "eth"
+}
+```
+
+#### With Cross-Chain Trading Disabled (`ALLOW_CROSS_CHAIN_TRADING=false`):
+```javascript
+// This cross-chain trade will be REJECTED with an error
+{
+  "fromToken": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", // USDC on Solana
+  "toToken": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",    // WETH on Ethereum
+  "amount": "50",
+  "fromChain": "svm",
+  "toChain": "evm"  // Different from fromChain, will be rejected
+}
+
+// This same-chain trade will be ACCEPTED
+{
+  "fromToken": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", // USDC on Solana
+  "toToken": "So11111111111111111111111111111111111111112",    // SOL on Solana
+  "amount": "50",
+  "fromChain": "svm",
+  "toChain": "svm"  // Same as fromChain, will be accepted
+}
+```
+
+This approach allows you to control whether trades can cross between different blockchains, while still using explicit chain parameters to avoid chain detection overhead. 

@@ -38,7 +38,11 @@ switch (tradeType) {
       toToken: ETH_ADDRESS,
       amount: "100.00",         // Amount as string, not number
       price: "3500.00",         // Optional price limit (can help with slippage)
-      slippageTolerance: "0.5"  // Optional slippage tolerance in percentage
+      slippageTolerance: "0.5", // Optional slippage tolerance in percentage
+      fromChain: "evm",         // Blockchain type for source token (evm or svm)
+      toChain: "evm",           // Blockchain type for destination token
+      fromSpecificChain: "eth", // Specific chain for source token (eth, polygon, etc)
+      toSpecificChain: "eth"    // Specific chain for destination token
     };
     console.log('Executing Ethereum trade: Buy ETH with USDC on Ethereum');
     break;
@@ -50,7 +54,11 @@ switch (tradeType) {
       toToken: ETH_ADDRESS,        // To buy ETH on Ethereum
       amount: "100.00",            // Amount as string, not number
       price: "3500.00",            // Optional price limit
-      slippageTolerance: "0.5"     // Optional slippage tolerance in percentage
+      slippageTolerance: "0.5",    // Optional slippage tolerance in percentage
+      fromChain: "svm",            // Blockchain type for source token (svm)
+      toChain: "evm",              // Blockchain type for destination token (evm)
+      fromSpecificChain: "svm",    // Specific chain for source token (Solana)
+      toSpecificChain: "eth"       // Specific chain for destination token (Ethereum)
     };
     console.log('Executing cross-chain trade: Buy ETH with Solana USDC');
     break;
@@ -63,7 +71,11 @@ switch (tradeType) {
       toToken: SOL_ADDRESS,
       amount: "100.00",        // Amount as string, not number
       price: "125.45",         // Optional price limit (can help with slippage)
-      slippageTolerance: "0.5" // Optional slippage tolerance in percentage
+      slippageTolerance: "0.5", // Optional slippage tolerance in percentage
+      fromChain: "svm",        // Blockchain type for source token
+      toChain: "svm",          // Blockchain type for destination token
+      fromSpecificChain: "svm", // Specific chain for source token
+      toSpecificChain: "svm"   // Specific chain for destination token
     };
     console.log('Executing Solana trade: Buy SOL with USDC on Solana');
     break;
