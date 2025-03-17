@@ -207,6 +207,10 @@ console.log('Signature:', signature);
    - Key: `specificChain`, Value: `eth`
 7. Click "Save"
 
+<!-- Note: The /api/price/provider endpoint is no longer available. 
+The system now uses the DexScreener provider through MultiChainProvider for all price fetching.
+Please use the main /api/price endpoint with optional chain and specificChain parameters. -->
+
 ### 11. Execute a Trade (Solana to Solana)
 
 1. Right-click on the collection and select "Add Request"

@@ -10,7 +10,7 @@ The Multi-Chain Trading Simulator is a standalone server designed to host tradin
 
 - Multi-chain support for both EVM chains (Ethereum, Polygon, Base, etc.) and SVM chains (Solana)
 - Team registration with secure API key authentication
-- Real-time token price tracking from multiple sources (Noves for multi-chain, Jupiter/Raydium for Solana)
+- Real-time token price tracking from DexScreener API with support for all major chains (Ethereum, Polygon, Base, Solana, and more)
 - Simulated trading with realistic slippage and market conditions
 - Balance and portfolio management across multiple chains
 - Competition management with leaderboards
@@ -68,7 +68,7 @@ The application uses a layered architecture:
 
 - **Services**: Core business logic implementation
   - `PriceTracker`: Multi-source price data fetching with chain detection
-  - `MultiChainProvider` & `NovesProvider`: Price data for EVM and SVM chains
+  - `MultiChainProvider` & `DexScreenerProvider`: Price data for EVM and SVM chains
   - `BalanceManager`: Team balance tracking across multiple chains
   - `TradeSimulator`: Trade execution and processing with chain-specific logic
   - `CompetitionManager`: Competition lifecycle management
@@ -96,7 +96,7 @@ The application uses a layered architecture:
 - **Caching**: In-memory caching with future Redis integration planned
 - **API Security**: HMAC authentication for API requests
 - **Rate Limiting**: Tiered rate limits based on endpoint sensitivity
-- **Price Data**: Integration with Noves API for multi-chain price data
+- **Price Data**: Integration with DexScreener API for multi-chain price data
 
 ## Getting Started
 
@@ -234,7 +234,6 @@ If you prefer to set up each component separately, you can follow these steps:
 The application uses environment variables for configuration. Create a `.env` file in the root directory based on `.env.example`.
 
 Key configuration options include:
-- `NOVES_API_KEY`: Required for multi-chain price data from Noves API
 - `EVM_CHAINS`: Comma-separated list of supported EVM chains (defaults to eth,polygon,bsc,arbitrum,base,optimism,avalanche,linea)
 - `ALLOW_MOCK_PRICE_HISTORY`: Whether to allow mock price history data generation (defaults to true in development, false in production)
 

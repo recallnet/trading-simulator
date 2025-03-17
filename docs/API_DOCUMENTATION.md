@@ -379,6 +379,10 @@ Returns the price for a specific token from a specific provider.
 }
 ```
 
+> **Note:** The `/api/price/provider` endpoint has been deprecated and is no longer available.
+> The system now uses the DexScreener provider through MultiChainProvider for all price fetching.
+> Please use the main `/api/price` endpoint with optional `chain` and `specificChain` parameters instead.
+
 #### Get Price History
 
 Returns historical price data for a specific token.

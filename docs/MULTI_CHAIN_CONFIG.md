@@ -214,4 +214,4 @@ The system uses the following process to determine which chains to query:
 3. The `MultiChainProvider` attempts to fetch prices from each chain in the specified order until it finds a valid price.
 4. This approach ensures that the system can fall back to alternative chains if a price is not available on the preferred chain.
 
-This approach ensures that teams start with the appropriate balances for tokens on both blockchains, enabling them to trade across chains using the multi-chain support provided by the Noves integration. 
+This approach ensures that teams start with the appropriate balances for tokens on both blockchains, enabling them to trade across chains using the multi-chain support provided by the DexScreener integration. 

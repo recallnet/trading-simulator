@@ -248,13 +248,9 @@ export class TradingSimulatorClient {
   }
 
   /**
-   * Get a price from a specific provider
-   * 
-   * @param token The token address to get the price for
-   * @param provider The provider name (e.g., "jupiter", "raydium", "serum", "noves", "multi-chain")
-   * @param chain Optional blockchain type (auto-detected if not provided)
-   * @param specificChain Optional specific chain for EVM tokens (eth, polygon, base, etc.)
-   * @returns A promise that resolves to the price response
+   * @deprecated The provider endpoint is no longer available
+   * This method has been deprecated as the system now uses only the DexScreener provider.
+   * Please use the getPrice() method instead with optional chain and specificChain parameters.
    */
   async getPriceFromProvider(
     token: string, 
@@ -262,19 +258,8 @@ export class TradingSimulatorClient {
     chain?: BlockchainType,
     specificChain?: SpecificChain
   ): Promise<any> {
-    let query = `?token=${encodeURIComponent(token)}&provider=${encodeURIComponent(provider)}`;
-    
-    // Add chain parameter if explicitly provided
-    if (chain) {
-      query += `&chain=${chain}`;
-    }
-    
-    // Add specificChain parameter if provided
-    if (specificChain) {
-      query += `&specificChain=${specificChain}`;
-    }
-    
-    return this.request<any>('GET', `/api/price/provider${query}`);
+    console.warn('This method is deprecated. Please use getPrice() instead.');
+    return this.getPrice(token, chain, specificChain);
   }
 
   /**

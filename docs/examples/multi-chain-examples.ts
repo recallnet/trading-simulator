@@ -55,13 +55,14 @@ async function getMultiChainPrices(client: TradingSimulatorClient) {
   const usdcEthPrice = await client.getPrice(TOKENS.USDC_ETH);
   console.log(`USDC (Ethereum) Price: $${usdcEthPrice.price} (Chain: ${usdcEthPrice.chain})`);
 
-  // Get price from specific provider (Noves supports both chains)
-  console.log('\nGetting prices from Noves provider...');
-  const solNovesPrice = await client.getPriceFromProvider(TOKENS.SOL, 'noves');
-  console.log(`SOL Price from Noves: $${solNovesPrice.price} (Chain: ${solNovesPrice.chain})`);
+  // Get prices directly using the standard endpoint
+  // Note: The system now uses DexScreener for all price lookups
+  console.log('\nGetting prices from DexScreener provider...');
+  const solDexPrice = await client.getPrice(TOKENS.SOL, BlockchainType.SVM);
+  console.log(`SOL Price from DexScreener: $${solDexPrice.price} (Chain: ${solDexPrice.chain})`);
   
-  const ethNovesPrice = await client.getPriceFromProvider(TOKENS.ETH, 'noves');
-  console.log(`ETH Price from Noves: $${ethNovesPrice.price} (Chain: ${ethNovesPrice.chain})`);
+  const ethDexPrice = await client.getPrice(TOKENS.ETH, BlockchainType.EVM);
+  console.log(`ETH Price from DexScreener: $${ethDexPrice.price} (Chain: ${ethDexPrice.chain})`);
 }
 
 /**
