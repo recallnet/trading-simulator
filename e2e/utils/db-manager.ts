@@ -151,35 +151,71 @@ export class DbManager {
    * part of the production schema
    */
   private async applyTestMigrations(): Promise<void> {
-    console.log('Applying standard test migrations...');
+    console.log('Applying standard test migrations from migration files...');
     
-    // Apply the specific_chain column migration
-    await this.applyMigration('add-specific-chain-column', async (client) => {
-      // Check if the column exists
-      const result = await client.query(`
-        SELECT EXISTS (
-          SELECT 1
-          FROM information_schema.columns
-          WHERE table_name = 'prices'
-          AND column_name = 'specific_chain'
-        ) as column_exists;
-      `);
+    try {
+      // Get all migration files from the migrations directory
+      const migrationsDir = path.join(process.cwd(), 'src/database/migrations');
+      const migrationFiles = fs.readdirSync(migrationsDir)
+        .filter(file => file.endsWith('.sql'))
+        .sort(); // Sort to ensure migrations run in correct order
+
+      console.log(`Found ${migrationFiles.length} migration files to apply`);
       
-      // If the column doesn't exist, add it
-      if (!result.rows[0].column_exists) {
-        console.log('Adding specific_chain column to prices table...');
-        
-        await client.query(`
-          ALTER TABLE prices ADD COLUMN specific_chain VARCHAR(20);
-          CREATE INDEX IF NOT EXISTS idx_prices_specific_chain ON prices(specific_chain);
-          CREATE INDEX IF NOT EXISTS idx_prices_token_specific_chain ON prices(token, specific_chain);
-        `);
-        
-        console.log('specific_chain column added to prices table');
-      } else {
-        console.log('specific_chain column already exists in prices table');
+      // Apply each migration
+      for (const file of migrationFiles) {
+        await this.applyMigrationFile(file, migrationsDir);
       }
-    });
+      
+      console.log('All standard migrations applied successfully');
+    } catch (error) {
+      console.error('Error applying standard migrations:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Apply a specific migration file
+   * @param filename The migration filename to apply
+   * @param migrationsDir The directory containing the migration
+   */
+  private async applyMigrationFile(filename: string, migrationsDir: string): Promise<void> {
+    const migrationId = filename.replace('.sql', '');
+    
+    if (this.migrationApplied.has(migrationId)) {
+      console.log(`Migration '${filename}' already applied in this session, skipping...`);
+      return;
+    }
+    
+    console.log(`Applying migration: ${filename}`);
+    
+    // Read migration SQL
+    const migrationPath = path.join(migrationsDir, filename);
+    const migrationSql = fs.readFileSync(migrationPath, 'utf8');
+    
+    const client = await this.pool!.connect();
+    
+    try {
+      // Execute the migration within a transaction
+      await client.query('BEGIN');
+      
+      // Execute the entire SQL file as a single statement
+      // This properly handles PL/pgSQL blocks with dollar-quoted strings
+      await client.query(migrationSql);
+      
+      await client.query('COMMIT');
+      
+      // Mark as applied
+      this.migrationApplied.add(migrationId);
+      console.log(`Successfully applied migration: ${filename}`);
+    } catch (error) {
+      // Rollback on error
+      await client.query('ROLLBACK');
+      console.error(`Failed to apply migration '${filename}':`, error);
+      throw error;
+    } finally {
+      client.release();
+    }
   }
 
   /**

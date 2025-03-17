@@ -17,6 +17,7 @@ The Multi-Chain Trading Simulator is a standalone server designed to host tradin
 - Comprehensive API for trading and account management
 - Rate limiting and security features
 - **NEW: Chain Override Feature** - Specify the exact chain for EVM tokens to reduce API response times from seconds to milliseconds
+- **NEW: Cross-Chain Trading Controls** - Configure whether trades between different chains are allowed or restricted
 
 ## Current Development Status
 
@@ -236,6 +237,7 @@ The application uses environment variables for configuration. Create a `.env` fi
 Key configuration options include:
 - `EVM_CHAINS`: Comma-separated list of supported EVM chains (defaults to eth,polygon,bsc,arbitrum,base,optimism,avalanche,linea)
 - `ALLOW_MOCK_PRICE_HISTORY`: Whether to allow mock price history data generation (defaults to true in development, false in production)
+- `ALLOW_CROSS_CHAIN_TRADING`: Whether to allow trades between different chains (defaults to true, set to false to restrict trading to within the same chain only)
 
 #### 2. Security Secret Generation
 
@@ -322,6 +324,7 @@ The server will be available at http://localhost:3000 by default.
 
 ### Trading Operations
 - `POST /api/trade/execute` - Execute a trade with chain specification
+  - Note: Cross-chain trading can be disabled via server configuration (`ALLOW_CROSS_CHAIN_TRADING=false`)
 - `GET /api/trade/quote` - Get quote for a potential trade
 
 ### Price Information
@@ -552,4 +555,43 @@ Portfolio snapshots are taken:
 Snapshot data is available via the admin API endpoint:
 ```
 GET /api/admin/competition/:competitionId/snapshots
-``` 
+```
+
+## Cross-Chain Trading Configuration
+
+The trading simulator supports two modes of operation for cross-chain trading:
+
+### Allowed Cross-Chain Trading (Default)
+
+With `ALLOW_CROSS_CHAIN_TRADING=true` (default setting), users can:
+- Trade between tokens on different blockchain types (e.g., Solana SOL to Ethereum ETH)
+- Execute trades between any supported chains (e.g., Polygon MATIC to Base ETH)
+- Maintain a diversified portfolio across multiple blockchains
+
+This mode is ideal for:
+- Multi-chain trading competitions
+- Teaching cross-chain trading strategies
+- Simulating real-world DeFi trading environments where bridges enable cross-chain transfers
+
+### Restricted Same-Chain Trading
+
+With `ALLOW_CROSS_CHAIN_TRADING=false`, the system will:
+- Reject trades where the source and destination tokens are on different chains
+- Return an error message indicating that cross-chain trading is disabled
+- Only allow trades between tokens on the same blockchain
+
+This mode is useful for:
+- Chain-specific trading competitions
+- Simulating environments without cross-chain bridges
+- Focusing participants on chain-specific trading strategies
+
+### Implementation
+
+Configure this option in your `.env` file:
+
+```
+# Set to false to disable trades between different chains
+ALLOW_CROSS_CHAIN_TRADING=true
+```
+
+When disabled, the trade validation in the `TradeSimulator` service will verify that both tokens are on the same chain before proceeding with the trade execution. 

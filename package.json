@@ -19,7 +19,7 @@
     "test:multi-chain": "jest src/services/providers/__tests__/multi-chain.provider.test.ts --forceExit",
     "test:multi-chain:e2e": "jest -c e2e/jest.config.js e2e/tests/price/multi-chain-provider.test.ts --forceExit",
     "test:noves:all": "npm run test:noves && npm run test:noves:integration && npm run test:noves:e2e && npm run test:multi-chain && npm run test:multi-chain:e2e",
-    "db:migrate:add-chain": "ts-node -e \"require('fs').readFileSync('src/database/migrations/add-chain-column-to-prices.sql', 'utf8').split(';').forEach(query => { if (query.trim()) console.log(query); })\" | psql $DATABASE_URL",
+    "db:migrate:general-chain": "ts-node -e \"require('fs').readFileSync('src/database/migrations/03_2024-03-13_add-general-chain-to-prices.sql', 'utf8').split(';').forEach(query => { if (query.trim()) console.log(query); })\" | psql $DATABASE_URL",
     "db:init": "ts-node scripts/setup-db.ts",
     "db:check": "ts-node scripts/check-db.ts",
     "db:clean": "NODE_ENV=development ts-node scripts/clean-db.ts",

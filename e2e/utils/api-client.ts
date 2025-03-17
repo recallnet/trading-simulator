@@ -314,6 +314,10 @@ export class ApiClient {
     amount: string;
     price: string;
     slippageTolerance?: string;
+    fromChain?: string;
+    fromSpecificChain?: string;
+    toChain?: string;
+    toSpecificChain?: string;
   }): Promise<any> {
     console.log(`[ApiClient] executeTrade called with params: ${JSON.stringify(params, null, 2)}`);
 
@@ -333,7 +337,11 @@ export class ApiClient {
         fromToken,
         toToken,
         amount: params.amount,
-        price: params.price
+        price: params.price,
+        fromChain: params.fromChain,
+        fromSpecificChain: params.fromSpecificChain,
+        toChain: params.toChain,
+        toSpecificChain: params.toSpecificChain
       }, null, 2)}`);
       
       // Make the API call
@@ -342,7 +350,11 @@ export class ApiClient {
         toToken,
         amount: params.amount,
         price: params.price,
-        slippageTolerance: params.slippageTolerance
+        slippageTolerance: params.slippageTolerance,
+        fromChain: params.fromChain,
+        fromSpecificChain: params.fromSpecificChain,
+        toChain: params.toChain,
+        toSpecificChain: params.toSpecificChain
       });
       
       return response.data;

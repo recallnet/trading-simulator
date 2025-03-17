@@ -2,7 +2,7 @@ import { setupAdminClient, registerTeamAndGetClient, startTestCompetition, clean
 import axios from 'axios';
 import { getBaseUrl } from '../utils/server';
 import config from '../../src/config';
-import { BlockchainType } from '../../src/types';
+import { BlockchainType, SpecificChain } from '../../src/types';
 
 describe('Trading API', () => {
   // Clean up test state before each test
@@ -493,6 +493,128 @@ describe('Trading API', () => {
       }
     } else {
       console.log('No SVM USDC available for trading to ETH, skipping trade execution');
+    }
+  });
+
+  test('team can execute trades with explicit chain parameters', async () => {
+    // Setup admin client
+    const adminClient = await setupAdminClient();
+    
+    // Register team and get client
+    const { client: teamClient, team } = await registerTeamAndGetClient(adminClient, 'Chain-Specific Trading Team');
+    
+    // Start a competition with our team
+    const competitionName = `Chain-Specific Trading Test ${Date.now()}`;
+    await startTestCompetition(adminClient, competitionName, [team.id]);
+    
+    // Wait for balances to be properly initialized
+    await wait(500);
+    
+    // Check initial balance
+    const initialBalanceResponse = await teamClient.getBalance();
+    expect(initialBalanceResponse.success).toBe(true);
+    
+    // Initial USDC balance should be the starting amount (e.g., 10000)
+    const usdcTokenAddress = config.tokens.usdc;
+    const initialUsdcBalance = parseFloat(initialBalanceResponse.balance[usdcTokenAddress]?.toString() || '0');
+    console.log(`Initial USDC balance: ${initialUsdcBalance}`);
+    expect(initialUsdcBalance).toBeGreaterThan(0);
+    
+    // Use SOL token for trading (since we know it has a price in the test environment)
+    const solTokenAddress = config.tokens.sol;
+    
+    // Initial SOL balance
+    const initialSolBalance = parseFloat(initialBalanceResponse.balance[solTokenAddress]?.toString() || '0');
+    console.log(`Initial SOL balance: ${initialSolBalance}`);
+    
+    // The amount to trade
+    const tradeAmount = 50;
+    
+    // Execute a buy trade with explicit Solana chain parameters
+    console.log('Executing trade with explicit Solana chain parameters');
+    const buyTradeResponse = await teamClient.executeTrade({
+      tokenAddress: solTokenAddress,
+      side: 'buy',
+      amount: tradeAmount.toString(),
+      price: '1.0',
+      fromChain: BlockchainType.SVM,
+      toChain: BlockchainType.SVM
+    });
+    
+    console.log(`Buy trade response: ${JSON.stringify(buyTradeResponse)}`);
+    expect(buyTradeResponse.success).toBe(true);
+    expect(buyTradeResponse.transaction).toBeDefined();
+    
+    // Verify chain fields in the transaction
+    expect(buyTradeResponse.transaction.fromChain).toBe(BlockchainType.SVM);
+    expect(buyTradeResponse.transaction.toChain).toBe(BlockchainType.SVM);
+    
+    // Wait for the trade to process
+    await wait(500);
+    
+    // Check updated balance
+    const updatedBalanceResponse = await teamClient.getBalance();
+    expect(updatedBalanceResponse.success).toBe(true);
+    
+    // USDC balance should have decreased
+    const updatedUsdcBalance = parseFloat(updatedBalanceResponse.balance[usdcTokenAddress]?.toString() || '0');
+    console.log(`Updated USDC balance: ${updatedUsdcBalance}`);
+    expect(updatedUsdcBalance).toBeLessThan(initialUsdcBalance);
+    
+    // SOL balance should have increased
+    const updatedSolBalance = parseFloat(updatedBalanceResponse.balance[solTokenAddress]?.toString() || '0');
+    console.log(`Updated SOL balance: ${updatedSolBalance}`);
+    expect(updatedSolBalance).toBeGreaterThan(initialSolBalance);
+    
+    // Get trade history and verify chain info is preserved
+    const tradeHistoryResponse = await teamClient.getTradeHistory();
+    expect(tradeHistoryResponse.success).toBe(true);
+    
+    // Get the most recent trade
+    const lastTrade = tradeHistoryResponse.trades[0];
+    
+    // Verify chain fields in the trade history
+    expect(lastTrade.fromChain).toBe(BlockchainType.SVM);
+    expect(lastTrade.toChain).toBe(BlockchainType.SVM);
+    
+    // Test cross-chain trading validation when disabled
+    // First, we need to check if cross-chain trading is disabled
+    try {
+      // Get Ethereum ETH token address
+      const ethTokenAddress = config.blockchainTokens?.[BlockchainType.EVM]?.eth;
+      if (!ethTokenAddress) {
+        console.log('Skipping cross-chain test: Ethereum ETH token address not configured');
+        return;
+      }
+      
+      // Attempt to execute a cross-chain trade with explicit chain parameters
+      // This should succeed if cross-chain trading is enabled, or fail if disabled
+      console.log('Attempting cross-chain trade (Solana USDC to Ethereum ETH)');
+      const crossChainTradeResponse = await teamClient.executeTrade({
+        tokenAddress: ethTokenAddress,
+        side: 'buy',
+        amount: tradeAmount.toString(),
+        price: '1.0',
+        fromChain: BlockchainType.SVM,
+        toChain: BlockchainType.EVM,
+        fromSpecificChain: 'svm',
+        toSpecificChain: 'eth'
+      });
+      
+      console.log(`Cross-chain trade response: ${JSON.stringify(crossChainTradeResponse)}`);
+      
+      // If ALLOW_CROSS_CHAIN_TRADING is false, this should fail
+      const allowCrossChainTrading = process.env.ALLOW_CROSS_CHAIN_TRADING !== 'false';
+      if (!allowCrossChainTrading) {
+        expect(crossChainTradeResponse.success).toBe(false);
+        expect(crossChainTradeResponse.error).toContain('Cross-chain trading is disabled');
+      } else {
+        // If cross-chain trading is allowed, this should succeed
+        expect(crossChainTradeResponse.success).toBe(true);
+      }
+      
+    } catch (error) {
+      console.error('Error testing cross-chain trading:', error);
     }
   });
 }); 

@@ -84,6 +84,12 @@ export interface Trade {
   teamId: string;
   competitionId: string;
   error?: string;
+  
+  // Chain information
+  fromChain?: BlockchainType;
+  toChain?: BlockchainType;
+  fromSpecificChain?: SpecificChain;
+  toSpecificChain?: SpecificChain;
 }
 
 /**

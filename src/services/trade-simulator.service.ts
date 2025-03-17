@@ -1,8 +1,17 @@
 import { v4 as uuidv4 } from 'uuid';
-import { Trade, TradeResult } from '../types';
+import { Trade, TradeResult, BlockchainType, SpecificChain } from '../types';
 import { BalanceManager } from './balance-manager.service';
 import { PriceTracker } from './price-tracker.service';
 import { repositories } from '../database';
+import { config, features } from '../config';
+
+// Define an interface for chain options
+interface ChainOptions {
+  fromChain?: BlockchainType;
+  fromSpecificChain?: SpecificChain;
+  toChain?: BlockchainType;
+  toSpecificChain?: SpecificChain;
+}
 
 /**
  * Trade Simulator Service
@@ -13,11 +22,15 @@ export class TradeSimulator {
   private priceTracker: PriceTracker;
   // Cache of recent trades for performance (teamId -> trades)
   private tradeCache: Map<string, Trade[]>;
+  // Whether to allow cross-chain trading
+  private allowCrossChainTrading: boolean;
 
   constructor(balanceManager: BalanceManager, priceTracker: PriceTracker) {
     this.balanceManager = balanceManager;
     this.priceTracker = priceTracker;
     this.tradeCache = new Map();
+    // Use features config instead of directly accessing environment variable
+    this.allowCrossChainTrading = features.ALLOW_CROSS_CHAIN_TRADING;
   }
 
   /**
@@ -28,6 +41,7 @@ export class TradeSimulator {
    * @param toToken The destination token address
    * @param fromAmount The amount to trade
    * @param slippageTolerance Optional slippage tolerance percentage
+   * @param chainOptions Optional chain specification for performance optimization
    * @returns TradeResult object with success status and trade details
    */
   async executeTrade(
@@ -36,7 +50,8 @@ export class TradeSimulator {
     fromToken: string,
     toToken: string,
     fromAmount: number,
-    slippageTolerance?: number
+    slippageTolerance?: number,
+    chainOptions?: ChainOptions
   ): Promise<TradeResult> {
     try {
       console.log(`\n[TradeSimulator] Starting trade execution:
@@ -46,6 +61,7 @@ export class TradeSimulator {
                 To Token: ${toToken}
                 Amount: ${fromAmount}
                 Slippage Tolerance: ${slippageTolerance || 'default'}
+                Chain Options: ${chainOptions ? JSON.stringify(chainOptions) : 'none'}
             `);
 
       // Validate minimum trade amount
@@ -78,13 +94,46 @@ export class TradeSimulator {
         };
       }
 
-      // Get prices
-      const fromPrice = await this.priceTracker.getPrice(fromToken);
-      const toPrice = await this.priceTracker.getPrice(toToken);
+      // Determine chains for both tokens (using provided chain info or detecting)
+      let fromTokenChain: BlockchainType, toTokenChain: BlockchainType;
+      let fromTokenSpecificChain: SpecificChain | undefined, toTokenSpecificChain: SpecificChain | undefined;
+      
+      // For the source token
+      if (chainOptions?.fromChain) {
+        fromTokenChain = chainOptions.fromChain;
+        fromTokenSpecificChain = chainOptions.fromSpecificChain;
+        console.log(`[TradeSimulator] Using provided chain for fromToken: ${fromTokenChain}, specificChain: ${fromTokenSpecificChain || 'none'}`);
+      } else {
+        fromTokenChain = this.priceTracker.determineChain(fromToken);
+        console.log(`[TradeSimulator] Detected chain for fromToken: ${fromTokenChain}`);
+      }
+      
+      // For the destination token
+      if (chainOptions?.toChain) {
+        toTokenChain = chainOptions.toChain;
+        toTokenSpecificChain = chainOptions.toSpecificChain;
+        console.log(`[TradeSimulator] Using provided chain for toToken: ${toTokenChain}, specificChain: ${toTokenSpecificChain || 'none'}`);
+      } else {
+        toTokenChain = this.priceTracker.determineChain(toToken);
+        console.log(`[TradeSimulator] Detected chain for toToken: ${toTokenChain}`);
+      }
+      
+      // Check for cross-chain trades if not allowed
+      if (!this.allowCrossChainTrading && fromTokenChain !== toTokenChain) {
+        console.log(`[TradeSimulator] Cross-chain trading is disabled. Cannot trade between ${fromTokenChain} and ${toTokenChain}`);
+        return {
+          success: false,
+          error: 'Cross-chain trading is disabled. Both tokens must be on the same blockchain.'
+        };
+      }
+      
+      // Get prices with chain information for better performance
+      const fromPrice = await this.priceTracker.getPrice(fromToken, fromTokenChain, fromTokenSpecificChain);
+      const toPrice = await this.priceTracker.getPrice(toToken, toTokenChain, toTokenSpecificChain);
 
       console.log(`[TradeSimulator] Got prices:
-                From Token (${fromToken}): $${fromPrice}
-                To Token (${toToken}): $${toPrice}
+                From Token (${fromToken}): $${fromPrice} (${fromTokenChain})
+                To Token (${toToken}): $${toPrice} (${toTokenChain})
             `);
 
       if (!fromPrice || !toPrice) {
@@ -154,7 +203,12 @@ export class TradeSimulator {
         price: toAmount / fromAmount, // Exchange rate
         success: true,
         teamId,
-        competitionId
+        competitionId,
+        // Add chain information to the trade record
+        fromChain: fromTokenChain,
+        toChain: toTokenChain,
+        fromSpecificChain: fromTokenSpecificChain,
+        toSpecificChain: toTokenSpecificChain
       };
 
       // Store the trade in database

@@ -65,15 +65,17 @@ CREATE TABLE IF NOT EXISTS trades (
   success BOOLEAN NOT NULL,
   error TEXT,
   timestamp TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-  chain VARCHAR(10), -- General chain type (evm, svm)
-  from_specific_chain VARCHAR(20), -- New column to track specific chain for from_token
-  to_specific_chain VARCHAR(20) -- New column to track specific chain for to_token
+  from_chain VARCHAR(10), -- General chain type for from_token (evm, svm)
+  to_chain VARCHAR(10), -- General chain type for to_token (evm, svm)
+  from_specific_chain VARCHAR(20), -- Specific chain for from_token (eth, polygon, base, etc.)
+  to_specific_chain VARCHAR(20) -- Specific chain for to_token (eth, polygon, base, etc.)
 );
 
 CREATE INDEX IF NOT EXISTS idx_trades_team_id ON trades(team_id);
 CREATE INDEX IF NOT EXISTS idx_trades_competition_id ON trades(competition_id);
 CREATE INDEX IF NOT EXISTS idx_trades_timestamp ON trades(timestamp);
-CREATE INDEX IF NOT EXISTS idx_trades_chain ON trades(chain);
+CREATE INDEX IF NOT EXISTS idx_trades_from_chain ON trades(from_chain);
+CREATE INDEX IF NOT EXISTS idx_trades_to_chain ON trades(to_chain);
 CREATE INDEX IF NOT EXISTS idx_trades_from_specific_chain ON trades(from_specific_chain);
 CREATE INDEX IF NOT EXISTS idx_trades_to_specific_chain ON trades(to_specific_chain);
 
