@@ -5,6 +5,9 @@ import * as crypto from 'crypto';
  * 
  * This example demonstrates how to make an authenticated request to
  * execute a trade between two tokens on the same chain or across chains.
+ * 
+ * Note: All pricing is determined automatically by the server based on
+ * current market data. The server calculates the appropriate exchange rate.
  */
 
 // Replace these with your team's credentials
@@ -37,7 +40,6 @@ switch (tradeType) {
       fromToken: USDC_ETH_ADDRESS, // Buying ETH with USDC (Ethereum)
       toToken: ETH_ADDRESS,
       amount: "100.00",         // Amount as string, not number
-      price: "3500.00",         // Optional price limit (can help with slippage)
       slippageTolerance: "0.5", // Optional slippage tolerance in percentage
       fromChain: "evm",         // Blockchain type for source token (evm or svm)
       toChain: "evm",           // Blockchain type for destination token
@@ -53,7 +55,6 @@ switch (tradeType) {
       fromToken: USDC_SOL_ADDRESS, // Using USDC from Solana
       toToken: ETH_ADDRESS,        // To buy ETH on Ethereum
       amount: "100.00",            // Amount as string, not number
-      price: "3500.00",            // Optional price limit
       slippageTolerance: "0.5",    // Optional slippage tolerance in percentage
       fromChain: "svm",            // Blockchain type for source token (svm)
       toChain: "evm",              // Blockchain type for destination token (evm)
@@ -70,7 +71,6 @@ switch (tradeType) {
       fromToken: USDC_SOL_ADDRESS, // Buying SOL with USDC
       toToken: SOL_ADDRESS,
       amount: "100.00",        // Amount as string, not number
-      price: "125.45",         // Optional price limit (can help with slippage)
       slippageTolerance: "0.5", // Optional slippage tolerance in percentage
       fromChain: "svm",        // Blockchain type for source token
       toChain: "svm",          // Blockchain type for destination token
@@ -136,6 +136,10 @@ async function executeTrade() {
     // Check chain information in the response
     if (result.transaction) {
       console.log(`Transaction executed on chains: From=${result.transaction.fromChain}, To=${result.transaction.toChain}`);
+      
+      // Display the actual exchange rate used by the server
+      const exchangeRate = result.transaction.toAmount / result.transaction.fromAmount;
+      console.log(`Exchange rate used by server: 1 ${result.transaction.fromToken} = ${exchangeRate.toFixed(6)} ${result.transaction.toToken}`);
     }
     
     return result;

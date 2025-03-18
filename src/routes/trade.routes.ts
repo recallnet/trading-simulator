@@ -17,6 +17,9 @@ const router = Router();
  *   "toChain": "string",   // Optional - Blockchain type for toToken
  *   "toSpecificChain": "string"  // Optional - Specific chain for toToken
  * }
+ * 
+ * Note: The server automatically calculates token prices based on current market data.
+ * The trade execution price is determined by the server, not by client input.
  */
 router.post('/execute', TradeController.executeTrade);
 

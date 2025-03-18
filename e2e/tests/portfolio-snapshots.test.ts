@@ -4,6 +4,7 @@ import { getBaseUrl } from '../utils/server';
 import config from '../../src/config';
 import { services } from '../../src/services';
 import { dbManager } from '../utils/db-manager';
+import { BlockchainType } from '../../src/types';
 
 describe('Portfolio Snapshots', () => {
   // Reset database between tests
@@ -154,10 +155,11 @@ describe('Portfolio Snapshots', () => {
     const solTokenAddress = config.tokens.sol;
     
     await teamClient.executeTrade({
-      tokenAddress: solTokenAddress,
-      side: 'buy',
+      fromToken: usdcTokenAddress,
+      toToken: solTokenAddress,
       amount: '100',
-      price: '1.0'
+      fromChain: BlockchainType.SVM,
+      toChain: BlockchainType.SVM
     });
     
     // Wait for trade to process

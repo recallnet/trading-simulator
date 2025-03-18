@@ -55,10 +55,11 @@ describe('Trading API', () => {
     
     // Execute a buy trade (buying SOL with USDC)
     const buyTradeResponse = await teamClient.executeTrade({
-      tokenAddress: solTokenAddress,
-      side: 'buy',
+      fromToken: usdcTokenAddress,
+      toToken: solTokenAddress,
       amount: tradeAmount.toString(),
-      price: '1.0' // Assume 1:1 price for simplicity in tests
+      fromChain: BlockchainType.SVM,
+      toChain: BlockchainType.SVM
     });
     
     console.log(`Buy trade response: ${JSON.stringify(buyTradeResponse)}`);
@@ -112,10 +113,11 @@ describe('Trading API', () => {
     console.log(`Token to sell: ${tokenToSell} (should be less than ${updatedSolBalance})`);
     
     const sellTradeResponse = await teamClient.executeTrade({
-      tokenAddress: solTokenAddress,
-      side: 'sell',
+      fromToken: solTokenAddress,
+      toToken: usdcTokenAddress,
       amount: tokenToSell.toString(),
-      price: '1.0' // Assume 1:1 price for simplicity in tests
+      fromChain: BlockchainType.SVM,
+      toChain: BlockchainType.SVM
     });
     
     console.log(`Sell trade response: ${JSON.stringify(sellTradeResponse)}`);
@@ -177,12 +179,13 @@ describe('Trading API', () => {
     const tradeAmount = 10; // 10 USDC
     console.log(`Trading ${tradeAmount} USDC for arbitrary token ${arbitraryTokenAddress}`);
     
-    // Use the client's executeTrade which expects tokenAddress and side
+    // Use the client's executeTrade which expects fromToken and toToken
     const buyTradeResponse = await teamClient.executeTrade({
-      tokenAddress: arbitraryTokenAddress,
-      side: 'buy',
+      fromToken: usdcTokenAddress,
+      toToken: arbitraryTokenAddress,
       amount: tradeAmount.toString(),
-      price: '1.0' // Assume 1:1 price for simplicity
+      fromChain: BlockchainType.SVM,
+      toChain: BlockchainType.SVM
     });
     
     console.log(`Buy trade response: ${JSON.stringify(buyTradeResponse)}`);
@@ -238,10 +241,11 @@ describe('Trading API', () => {
     
     // Try to execute a trade with invalid token address format
     const invalidTokenResponse = await teamClient.executeTrade({
-      tokenAddress: 'InvalidTokenAddressFormat123', // This should be rejected by the API as not a valid token address format
-      side: 'buy',
+      fromToken: usdcTokenAddress,
+      toToken: 'InvalidTokenAddressFormat123', // This should be rejected by the API as not a valid token address format
       amount: '100',
-      price: '1.0'
+      fromChain: BlockchainType.SVM,
+      toChain: BlockchainType.SVM
     });
     
     expect(invalidTokenResponse.success).toBe(false);
@@ -251,10 +255,11 @@ describe('Trading API', () => {
     const nonExistentTokenAddress = '1111111111111111111111111111111111111111111111111111';
     
     const noPriceTokenResponse = await teamClient.executeTrade({
-      tokenAddress: nonExistentTokenAddress,
-      side: 'buy',
+      fromToken: usdcTokenAddress,
+      toToken: nonExistentTokenAddress,
       amount: '100',
-      price: '1.0'
+      fromChain: BlockchainType.SVM,
+      toChain: BlockchainType.SVM
     });
     
     expect(noPriceTokenResponse.success).toBe(false);
@@ -262,10 +267,11 @@ describe('Trading API', () => {
     
     // Try to execute a trade with amount exceeding balance
     const excessiveAmountResponse = await teamClient.executeTrade({
-      tokenAddress: usdcTokenAddress, // Use USDC which has a known price
-      side: 'buy',
+      fromToken: usdcTokenAddress,
+      toToken: usdcTokenAddress, // Use USDC which has a known price
       amount: (initialUsdcBalance * 2).toString(), // Double the available balance
-      price: '1.0'
+      fromChain: BlockchainType.SVM,
+      toChain: BlockchainType.SVM
     });
     
     expect(excessiveAmountResponse.success).toBe(false);
@@ -274,10 +280,11 @@ describe('Trading API', () => {
     // Add a test for truly excessive amounts after fixing the token address
     // The test should now execute a transaction where from != to
     const solanaPriceResponse = await teamClient.executeTrade({
-      tokenAddress: config.tokens.sol, // Use SOL token which has a different address from USDC
-      side: 'buy',
+      fromToken: usdcTokenAddress,
+      toToken: config.tokens.sol, // Use SOL token which has a different address from USDC
       amount: (initialUsdcBalance * 2).toString(), // Double the available balance
-      price: '1.0' 
+      fromChain: BlockchainType.SVM,
+      toChain: BlockchainType.SVM
     });
     
     expect(solanaPriceResponse.success).toBe(false);
@@ -285,10 +292,11 @@ describe('Trading API', () => {
     
     // Try to execute a sell trade without having tokens
     const invalidSellResponse = await teamClient.executeTrade({
-      tokenAddress: config.tokens.sol, // Use SOL which we don't have in our balance
-      side: 'sell',
+      fromToken: config.tokens.sol, // Use SOL which we don't have in our balance
+      toToken: usdcTokenAddress,
       amount: '100',
-      price: '1.0'
+      fromChain: BlockchainType.SVM,
+      toChain: BlockchainType.SVM
     });
     
     expect(invalidSellResponse.success).toBe(false);
@@ -345,10 +353,11 @@ describe('Trading API', () => {
     
     // 3. Execute the trade (buy the token with 10 USDC)
     const buyTradeResponse = await teamClient.executeTrade({
-      tokenAddress: arbitraryTokenAddress,
-      side: 'buy',
+      fromToken: usdcTokenAddress,
+      toToken: arbitraryTokenAddress,
       amount: usdcAmount.toString(),
-      price: tokenPrice.toString()
+      fromChain: BlockchainType.SVM,
+      toChain: BlockchainType.SVM
     });
     
     console.log(`Buy trade response: ${JSON.stringify(buyTradeResponse)}`);
@@ -457,10 +466,11 @@ describe('Trading API', () => {
       
       // Execute a buy trade (buying ETH with USDC)
       const buyTradeResponse = await teamClient.executeTrade({
-        tokenAddress: ethTokenAddress,
-        side: 'buy',
+        fromToken: svmUsdcAddress,
+        toToken: ethTokenAddress,
         amount: tradeAmount.toString(),
-        price: '1.0' // Simplified price for testing
+        fromChain: BlockchainType.SVM,
+        toChain: BlockchainType.EVM
       });
       
       console.log(`Buy ETH trade response: ${JSON.stringify(buyTradeResponse)}`);
@@ -533,10 +543,9 @@ describe('Trading API', () => {
     // Execute a buy trade with explicit Solana chain parameters
     console.log('Executing trade with explicit Solana chain parameters');
     const buyTradeResponse = await teamClient.executeTrade({
-      tokenAddress: solTokenAddress,
-      side: 'buy',
+      fromToken: usdcTokenAddress,
+      toToken: solTokenAddress,
       amount: tradeAmount.toString(),
-      price: '1.0',
       fromChain: BlockchainType.SVM,
       toChain: BlockchainType.SVM
     });
@@ -591,10 +600,9 @@ describe('Trading API', () => {
       // This should succeed if cross-chain trading is enabled, or fail if disabled
       console.log('Attempting cross-chain trade (Solana USDC to Ethereum ETH)');
       const crossChainTradeResponse = await teamClient.executeTrade({
-        tokenAddress: ethTokenAddress,
-        side: 'buy',
+        fromToken: usdcTokenAddress,
+        toToken: ethTokenAddress,
         amount: tradeAmount.toString(),
-        price: '1.0',
         fromChain: BlockchainType.SVM,
         toChain: BlockchainType.EVM,
         fromSpecificChain: 'svm',

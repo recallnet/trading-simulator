@@ -100,10 +100,12 @@ async function executeMultiChainTrades(client: TradingSimulatorClient) {
   console.log('Executing Solana trade: Buy SOL with USDC...');
   try {
     const solTrade = await client.executeTrade({
-      tokenAddress: TOKENS.SOL,
-      side: 'buy',
+      fromToken: TOKENS.USDC_SOL,
+      toToken: TOKENS.SOL,
       amount: '10.00', // 10 USDC
-      slippageTolerance: '0.5'
+      slippageTolerance: '0.5',
+      fromChain: BlockchainType.SVM,
+      toChain: BlockchainType.SVM
     });
     console.log('Solana Trade Result:', JSON.stringify(solTrade, null, 2));
   } catch (error) {
@@ -114,10 +116,14 @@ async function executeMultiChainTrades(client: TradingSimulatorClient) {
   console.log('\nExecuting Ethereum trade: Buy ETH with USDC...');
   try {
     const ethTrade = await client.executeTrade({
-      tokenAddress: TOKENS.ETH,
-      side: 'buy',
+      fromToken: TOKENS.USDC_ETH,
+      toToken: TOKENS.ETH,
       amount: '10.00', // 10 USDC
-      slippageTolerance: '0.5'
+      slippageTolerance: '0.5',
+      fromChain: BlockchainType.EVM,
+      toChain: BlockchainType.EVM,
+      fromSpecificChain: SpecificChain.ETH,
+      toSpecificChain: SpecificChain.ETH
     });
     console.log('Ethereum Trade Result:', JSON.stringify(ethTrade, null, 2));
   } catch (error) {
@@ -134,11 +140,15 @@ async function executeCrossChainTrades(client: TradingSimulatorClient) {
   // 1. Trade Solana USDC to Ethereum ETH
   console.log('Executing cross-chain trade: Solana USDC to Ethereum ETH...');
   try {
-    const crossTrade1 = await client.executeCrossChainTrade({
+    const crossTrade1 = await client.executeTrade({
       fromToken: TOKENS.USDC_SOL,
       toToken: TOKENS.ETH,
       amount: '50.00',
-      slippageTolerance: '0.5'
+      slippageTolerance: '0.5',
+      fromChain: BlockchainType.SVM,
+      toChain: BlockchainType.EVM,
+      fromSpecificChain: SpecificChain.SVM,
+      toSpecificChain: SpecificChain.ETH
     });
     console.log('Cross-Chain Trade Result:', JSON.stringify(crossTrade1, null, 2));
     console.log(`From chain: ${crossTrade1.transaction.fromChain}, To chain: ${crossTrade1.transaction.toChain}`);
@@ -149,11 +159,15 @@ async function executeCrossChainTrades(client: TradingSimulatorClient) {
   // 2. Trade Ethereum USDC to Solana SOL
   console.log('\nExecuting cross-chain trade: Ethereum USDC to Solana SOL...');
   try {
-    const crossTrade2 = await client.executeCrossChainTrade({
+    const crossTrade2 = await client.executeTrade({
       fromToken: TOKENS.USDC_ETH,
       toToken: TOKENS.SOL,
       amount: '50.00',
-      slippageTolerance: '0.5'
+      slippageTolerance: '0.5',
+      fromChain: BlockchainType.EVM,
+      toChain: BlockchainType.SVM,
+      fromSpecificChain: SpecificChain.ETH,
+      toSpecificChain: SpecificChain.SVM
     });
     console.log('Cross-Chain Trade Result:', JSON.stringify(crossTrade2, null, 2));
     console.log(`From chain: ${crossTrade2.transaction.fromChain}, To chain: ${crossTrade2.transaction.toChain}`);

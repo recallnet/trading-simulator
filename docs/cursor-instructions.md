@@ -119,8 +119,8 @@ Developers should use the reference implementation to understand the core tradin
 - Records trade history
 - Implements slippage simulation:
   ```
-  baseSlippage = (tradeAmountUSD / 10000) * 0.5%
-  actualSlippage = baseSlippage * (0.8 + (Math.random() * 0.4))
+  baseSlippage = (tradeAmountUSD / 10000) * 0.05%
+  actualSlippage = baseSlippage * (0.9 + (Math.random() * 0.2))
   finalAmount = expectedAmount * (1 - actualSlippage)
   ```
 

@@ -202,19 +202,23 @@ console.log('LINK Price (with chain override):', linkPrice);
 
 // Execute a trade to buy SOL on Solana
 const solTrade = await client.executeTrade({
-  tokenAddress: COMMON_TOKENS.SVM.SOL,
-  side: 'buy',
+  fromToken: COMMON_TOKENS.SVM.USDC,
+  toToken: COMMON_TOKENS.SVM.SOL,
   amount: '100.00', // Use strings for amounts
-  price: '125.45'   // Optional price limit
+  fromChain: BlockchainType.SVM,
+  toChain: BlockchainType.SVM
 });
 console.log('SOL Trade Result:', solTrade);
 
 // Execute a trade to buy ETH on Ethereum
 const ethTrade = await client.executeTrade({
-  tokenAddress: COMMON_TOKENS.EVM.ETH,
-  side: 'buy',
+  fromToken: COMMON_TOKENS.EVM.USDC,
+  toToken: COMMON_TOKENS.EVM.ETH,
   amount: '100.00',
-  price: '3500.00'
+  fromChain: BlockchainType.EVM,
+  toChain: BlockchainType.EVM,
+  fromSpecificChain: SpecificChain.ETH,
+  toSpecificChain: SpecificChain.ETH
 });
 console.log('ETH Trade Result:', ethTrade);
 

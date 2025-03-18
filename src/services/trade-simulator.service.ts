@@ -161,8 +161,8 @@ export class TradeSimulator {
       }
 
       // Apply slippage based on trade size
-      const baseSlippage = (fromValueUSD / 10000) * 0.5; // 0.5% per $10,000
-      const actualSlippage = baseSlippage * (0.8 + (Math.random() * 0.4)); // ±20% randomness
+      const baseSlippage = (fromValueUSD / 10000) * 0.05; // 0.05% per $10,000 (10x lower than before)
+      const actualSlippage = baseSlippage * (0.9 + (Math.random() * 0.2)); // ±10% randomness (reduced from ±20%)
       const slippagePercentage = actualSlippage * 100;
       
       // Calculate final amount with slippage

@@ -309,10 +309,9 @@ export class ApiClient {
    * Execute a trade
    */
   async executeTrade(params: {
-    tokenAddress: string;
-    side: 'buy' | 'sell';
+    fromToken: string;
+    toToken: string;
     amount: string;
-    price: string;
     slippageTolerance?: string;
     fromChain?: string;
     fromSpecificChain?: string;
@@ -322,40 +321,11 @@ export class ApiClient {
     console.log(`[ApiClient] executeTrade called with params: ${JSON.stringify(params, null, 2)}`);
 
     try {
-      // Get active competition to get competition ID
-      const competitionStatusResponse = await this.getCompetitionStatus();
-      
-      // Format parameters for API call
-      // For buy orders, we're buying tokenAddress using USDC
-      // For sell orders, we're selling tokenAddress to get USDC
-      const USDC_ADDRESS = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
-      const fromToken = params.side === 'buy' ? USDC_ADDRESS : params.tokenAddress;
-      const toToken = params.side === 'buy' ? params.tokenAddress : USDC_ADDRESS;
-      
       // Debug log
-      console.log(`[ApiClient] About to execute trade with: ${JSON.stringify({
-        fromToken,
-        toToken,
-        amount: params.amount,
-        price: params.price,
-        fromChain: params.fromChain,
-        fromSpecificChain: params.fromSpecificChain,
-        toChain: params.toChain,
-        toSpecificChain: params.toSpecificChain
-      }, null, 2)}`);
+      console.log(`[ApiClient] About to execute trade with: ${JSON.stringify(params, null, 2)}`);
       
-      // Make the API call
-      const response = await this.axiosInstance.post('/api/trade/execute', {
-        fromToken,
-        toToken,
-        amount: params.amount,
-        price: params.price,
-        slippageTolerance: params.slippageTolerance,
-        fromChain: params.fromChain,
-        fromSpecificChain: params.fromSpecificChain,
-        toChain: params.toChain,
-        toSpecificChain: params.toSpecificChain
-      });
+      // Make the API call with the exact parameters
+      const response = await this.axiosInstance.post('/api/trade/execute', params);
       
       return response.data;
     } catch (error) {

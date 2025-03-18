@@ -323,33 +323,30 @@ The server will be available at http://localhost:3000 by default.
 - `GET /api/account/trades` - Get trade history
 
 ### Trading Operations
-- `POST /api/trade/execute` - Execute a trade with chain specification
-  - Note: Cross-chain trading can be disabled via server configuration (`ALLOW_CROSS_CHAIN_TRADING=false`)
-- `GET /api/trade/quote` - Get quote for a potential trade
 
-#### Example: Executing Trades with Chain Parameters
+The trading simulator provides API endpoints for executing trades and getting quotes:
 
-When executing a trade, you can specify chain information to ensure the trade uses the correct blockchains:
+#### Execute a Trade
+```
+POST /api/trade/execute
+```
 
-```javascript
-// Example request body for cross-chain trade
-const tradeBody = {
+Example request body for a cross-chain trade (Solana USDC to Ethereum WETH):
+```json
+{
   "fromToken": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", // USDC on Solana
-  "toToken": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",    // WETH on Ethereum
-  "amount": "50",
-  "price": "1.0",
-  "fromChain": "svm",            // Blockchain type for source token (svm)
-  "toChain": "evm",              // Blockchain type for destination token (evm)
-  "fromSpecificChain": "svm",    // Specific chain for source token (Solana)
-  "toSpecificChain": "eth"       // Specific chain for destination token (Ethereum)
+  "toToken": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2", // WETH on Ethereum
+  "amount": "100.00", // Amount of fromToken to trade
+  "fromChain": "svm", // Blockchain type for source token (svm)
+  "toChain": "evm", // Blockchain type for destination token (evm) 
+  "fromSpecificChain": "svm", // Specific chain for source token (Solana)
+  "toSpecificChain": "eth" // Specific chain for destination token (Ethereum)
 }
 ```
 
-**Chain Parameters:**
-- `fromChain` / `toChain`: General blockchain type (`evm` or `svm`)
-- `fromSpecificChain` / `toSpecificChain`: Specific blockchain (`eth`, `polygon`, `base`, `svm`, etc.)
+**Note**: All pricing is determined automatically by the server based on current market data. The server calculates the appropriate exchange rate for trades based on token prices from its pricing providers.
 
-When the server has `ALLOW_CROSS_CHAIN_TRADING=false`, it will validate that `fromChain` and `toChain` match, rejecting trades between different blockchains.
+Cross-chain trading can be disabled via server configuration (`ALLOW_CROSS_CHAIN_TRADING=false`). When disabled, the server will validate that both tokens are on the same blockchain and reject trades that attempt to trade between different chains.
 
 ### Price Information
 - `GET /api/price` - Get current price for a token across chains (supports chain override)

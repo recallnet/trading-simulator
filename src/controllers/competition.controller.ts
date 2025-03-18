@@ -162,7 +162,7 @@ export class CompetitionController {
             '3,000 requests per minute across all endpoints',
             '10,000 requests per hour per team'
           ],
-          slippageFormula: 'baseSlippage = (tradeAmountUSD / 10000) * 0.5%, actualSlippage = baseSlippage * (0.8 + (Math.random() * 0.4))'
+          slippageFormula: 'baseSlippage = (tradeAmountUSD / 10000) * 0.05%, actualSlippage = baseSlippage * (0.9 + (Math.random() * 0.2))'
         }
       });
     } catch (error) {

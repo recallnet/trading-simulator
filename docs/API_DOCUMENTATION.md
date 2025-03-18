@@ -590,7 +590,7 @@ Returns the rules for the current competition.
       "totalRequestsPerMinute": 3000,
       "totalRequestsPerHour": 10000
     },
-    "slippageFormula": "baseSlippage = (tradeAmountUSD / 10000) * 0.5%, actualSlippage = baseSlippage * (0.8 + (Math.random() * 0.4))"
+    "slippageFormula": "baseSlippage = (tradeAmountUSD / 10000) * 0.05%, actualSlippage = baseSlippage * (0.9 + (Math.random() * 0.2))"
   }
 }
 ```
