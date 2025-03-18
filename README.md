@@ -388,16 +388,16 @@ The trading simulator provides API endpoints for executing trades and getting qu
 POST /api/trade/execute
 ```
 
-Example request body for a cross-chain trade (Solana USDC to Ethereum WETH):
+Example request body for a trade on Base chain (USDC to TOSHI):
 ```json
 {
-  "fromToken": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", // USDC on Solana
-  "toToken": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2", // WETH on Ethereum
+  "fromToken": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", // USDC on Base
+  "toToken": "0x0b3e328455c4059EEb9e3f84b5543F74E24e7E1b", // TOSHI on Base
   "amount": "100.00", // Amount of fromToken to trade
-  "fromChain": "svm", // Blockchain type for source token (svm)
+  "fromChain": "evm", // Blockchain type for source token (evm)
   "toChain": "evm", // Blockchain type for destination token (evm) 
-  "fromSpecificChain": "svm", // Specific chain for source token (Solana)
-  "toSpecificChain": "eth" // Specific chain for destination token (Ethereum)
+  "fromSpecificChain": "base", // Specific chain for source token (Base)
+  "toSpecificChain": "base" // Specific chain for destination token (Base)
 }
 ```
 
@@ -709,7 +709,7 @@ GET /api/admin/competition/:competitionId/snapshots
 
 The trading simulator supports two modes of operation for cross-chain trading:
 
-### Allowed Cross-Chain Trading (Default)
+### Allowed Cross-Chain Trading
 
 With `ALLOW_CROSS_CHAIN_TRADING=true`, users can:
 - Trade between tokens on different blockchain types (e.g., Solana SOL to Ethereum ETH)
@@ -721,9 +721,9 @@ This mode is ideal for:
 - Teaching cross-chain trading strategies
 - Simulating real-world DeFi trading environments where bridges enable cross-chain transfers
 
-### Restricted Same-Chain Trading
+### Restricted Same-Chain Trading (Default)
 
-With `ALLOW_CROSS_CHAIN_TRADING=false`, the system will:
+With `ALLOW_CROSS_CHAIN_TRADING=false` (the default setting), the system will:
 - Reject trades where the source and destination tokens are on different chains
 - Return an error message indicating that cross-chain trading is disabled
 - Only allow trades between tokens on the same blockchain
@@ -750,7 +750,7 @@ When executing trades with explicit chain parameters, the system's behavior will
 
 #### With Cross-Chain Trading Allowed (`ALLOW_CROSS_CHAIN_TRADING=true`):
 ```javascript
-// This cross-chain trade will be accepted
+// Example 1: Cross-chain trade from Solana to Ethereum - ACCEPTED
 {
   "fromToken": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", // USDC on Solana
   "toToken": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",    // WETH on Ethereum
@@ -760,9 +760,31 @@ When executing trades with explicit chain parameters, the system's behavior will
   "fromSpecificChain": "svm",
   "toSpecificChain": "eth"
 }
+
+// Example 2: Cross-chain trade from Polygon to Base - ACCEPTED
+{
+  "fromToken": "0x0000000000000000000000000000000000001010", // MATIC on Polygon
+  "toToken": "0x0b3e328455c4059EEb9e3f84b5543F74E24e7E1b",   // TOSHI on Base
+  "amount": "50",
+  "fromChain": "evm",
+  "toChain": "evm",
+  "fromSpecificChain": "polygon",
+  "toSpecificChain": "base"
+}
+
+// Example 3: Same-chain trade on Base - ACCEPTED
+{
+  "fromToken": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", // USDC on Base
+  "toToken": "0x0b3e328455c4059EEb9e3f84b5543F74E24e7E1b",   // TOSHI on Base
+  "amount": "50",
+  "fromChain": "evm",
+  "toChain": "evm",
+  "fromSpecificChain": "base",
+  "toSpecificChain": "base"
+}
 ```
 
-#### With Cross-Chain Trading Disabled (`ALLOW_CROSS_CHAIN_TRADING=false`):
+#### DEFAULT - With Cross-Chain Trading Disabled (`ALLOW_CROSS_CHAIN_TRADING=false`):
 ```javascript
 // This cross-chain trade will be REJECTED with an error
 {
@@ -770,16 +792,20 @@ When executing trades with explicit chain parameters, the system's behavior will
   "toToken": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",    // WETH on Ethereum
   "amount": "50",
   "fromChain": "svm",
-  "toChain": "evm"  // Different from fromChain, will be rejected
+  "toChain": "evm",  // Different from fromChain, will be rejected
+  "fromSpecificChain": "svm",
+  "toSpecificChain": "eth"
 }
 
 // This same-chain trade will be ACCEPTED
 {
-  "fromToken": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", // USDC on Solana
-  "toToken": "So11111111111111111111111111111111111111112",    // SOL on Solana
+  "fromToken": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", // USDC on Base
+  "toToken": "0x0b3e328455c4059EEb9e3f84b5543F74E24e7E1b",   // TOSHI on Base
   "amount": "50",
-  "fromChain": "svm",
-  "toChain": "svm"  // Same as fromChain, will be accepted
+  "fromChain": "evm",
+  "toChain": "evm",  // Same as fromChain, will be accepted
+  "fromSpecificChain": "base",
+  "toSpecificChain": "base"
 }
 ```
 
