@@ -402,6 +402,13 @@ describe('Trading API', () => {
       console.log('Skipping Ethereum token test: Noves provider not configured');
       return;
     }
+
+    // Check if cross-chain trading is allowed
+    const allowCrossChainTrading = process.env.ALLOW_CROSS_CHAIN_TRADING !== 'false';
+    if (!allowCrossChainTrading) {
+      console.log('Skipping Ethereum token test: Cross-chain trading is disabled');
+      return;
+    }
     
     // Setup admin client
     const adminClient = await setupAdminClient();
