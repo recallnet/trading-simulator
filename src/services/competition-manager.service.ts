@@ -1,9 +1,10 @@
 import { v4 as uuidv4 } from 'uuid';
-import { Competition, CompetitionStatus, PortfolioValue } from '../types';
+import { Competition, CompetitionStatus, PortfolioValue, SpecificChain } from '../types';
 import { BalanceManager } from './balance-manager.service';
 import { TradeSimulator } from './trade-simulator.service';
 import { PriceTracker } from './price-tracker.service';
 import { repositories } from '../database';
+import { config } from '../config';
 
 // Define the shape of portfolio snapshot data
 interface PortfolioSnapshot {
@@ -217,24 +218,68 @@ export class CompetitionManager {
    * @param competitionId The competition ID
    */
   async takePortfolioSnapshots(competitionId: string): Promise<void> {
+    console.log(`[CompetitionManager] Taking portfolio snapshots for competition ${competitionId}`);
+    
+    const startTime = Date.now();
     const teams = await repositories.competitionRepository.getCompetitionTeams(competitionId);
     const timestamp = new Date();
+    let priceLookupCount = 0;
+    let dbPriceHitCount = 0;
+    let reusedPriceCount = 0;
     
     for (const teamId of teams) {
       const balances = await this.balanceManager.getAllBalances(teamId);
-      const valuesByToken: Record<string, { amount: number; valueUsd: number; price: number }> = {};
+      const valuesByToken: Record<string, { amount: number; valueUsd: number; price: number; specificChain?: SpecificChain }> = {};
       let totalValue = 0;
       
       for (const balance of balances) {
-        const price = await this.priceTracker.getPrice(balance.token);
+        priceLookupCount++;
+        
+        // First try to get latest price record from the database to reuse chain information
+        const latestPriceRecord = await repositories.priceRepository.getLatestPrice(balance.token);
+        
+        let price: number | null = null;
+        let specificChain: SpecificChain | undefined = undefined;
+        
+        if (latestPriceRecord) {
+          dbPriceHitCount++;
+          specificChain = latestPriceRecord.specificChain;
+          
+          // If price is recent enough (less than 10 minutes old), use it directly
+          const priceAge = Date.now() - latestPriceRecord.timestamp.getTime();
+          const isFreshPrice = priceAge < config.portfolio.priceFreshnessMs;
+          
+          if (isFreshPrice) {
+            // Use the existing price if it's fresh
+            price = latestPriceRecord.price;
+            reusedPriceCount++;
+            console.log(`[CompetitionManager] Using fresh price for ${balance.token} from DB: $${price} (${specificChain || 'unknown chain'}) - age ${Math.round(priceAge/1000)}s, threshold ${Math.round(config.portfolio.priceFreshnessMs/1000)}s`);
+          } else if (specificChain && latestPriceRecord.chain) {
+            // Use specific chain information to avoid chain detection when fetching a new price
+            console.log(`[CompetitionManager] Using specific chain info from DB for ${balance.token}: ${specificChain}`);
+            
+            // Pass both chain type and specific chain to getPrice to bypass chain detection
+            price = await this.priceTracker.getPrice(balance.token, latestPriceRecord.chain, specificChain);
+          } else {
+            // Fallback to regular price lookup
+            price = await this.priceTracker.getPrice(balance.token);
+          }
+        } else {
+          // No price record found, do regular price lookup
+          price = await this.priceTracker.getPrice(balance.token);
+        }
+        
         if (price) {
           const valueUsd = balance.amount * price;
           valuesByToken[balance.token] = {
             amount: balance.amount,
             valueUsd,
-            price
+            price,
+            specificChain
           };
           totalValue += valueUsd;
+        } else {
+          console.warn(`[CompetitionManager] No price available for token ${balance.token}, excluding from portfolio snapshot`);
         }
       }
       
@@ -253,12 +298,18 @@ export class CompetitionManager {
           tokenAddress: token,
           amount: data.amount,
           valueUsd: data.valueUsd,
-          price: data.price
+          price: data.price,
+          specificChain: data.specificChain
         });
       }
     }
     
-    console.log(`[CompetitionManager] Took portfolio snapshots for ${teams.length} teams in competition ${competitionId}`);
+    const endTime = Date.now();
+    const duration = endTime - startTime;
+    
+    console.log(`[CompetitionManager] Completed portfolio snapshots for ${teams.length} teams in ${duration}ms`);
+    console.log(`[CompetitionManager] Price lookup stats: Total: ${priceLookupCount}, DB hits: ${dbPriceHitCount}, Hit rate: ${(dbPriceHitCount/priceLookupCount*100).toFixed(2)}%`);
+    console.log(`[CompetitionManager] Reused existing prices: ${reusedPriceCount}/${priceLookupCount} (${(reusedPriceCount/priceLookupCount*100).toFixed(2)}%)`);
   }
 
   /**

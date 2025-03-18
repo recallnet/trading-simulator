@@ -642,11 +642,16 @@ The system automatically takes snapshots of team portfolios at regular intervals
 ```
 # Configure portfolio snapshot interval in milliseconds (default: 2 minutes)
 PORTFOLIO_SNAPSHOT_INTERVAL_MS=120000
+
+# Configure price freshness threshold in milliseconds (default: 10 minutes)
+PORTFOLIO_PRICE_FRESHNESS_MS=600000
 ```
 
-You can adjust this interval based on your needs:
-- For testing environments, you may want to use a shorter interval (e.g., 10000ms = 10 seconds)
-- For production environments, you might want to use a longer interval to reduce database load (e.g., 300000ms = 5 minutes)
+You can adjust these intervals based on your needs:
+- For testing environments, you may want to use shorter intervals (e.g., 10,000ms = 10 seconds for snapshots, 30,000ms = 30 seconds for price freshness)
+- For production environments, you might want to use longer intervals to reduce database and API load (e.g., 300,000ms = 5 minutes for snapshots, 1,800,000ms = 30 minutes for price freshness)
+
+The price freshness threshold controls when the system will reuse existing prices from the database instead of fetching new ones, optimizing both performance and accuracy.
 
 Portfolio snapshots are taken:
 1. When a competition starts

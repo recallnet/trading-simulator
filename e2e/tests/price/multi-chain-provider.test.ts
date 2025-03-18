@@ -570,15 +570,4 @@ describe('Multi-Chain Provider Tests', () => {
       expect(tokenInfoResponse.data.specificChain).toBe(expectedChain);
     }, 60000); // 60 second timeout for this test
   });
-
-  // Add proper cleanup after all tests
-  afterAll(async () => {
-    try {
-      // Close the database connection using DbManager
-      await dbManager.close();
-      console.log('[Test] Closed database connection');
-    } catch (error) {
-      console.error('[Test] Error during cleanup:', error);
-    }
-  });
 }); 

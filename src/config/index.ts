@@ -171,6 +171,8 @@ export const config = {
   portfolio: {
     // Default snapshot interval: 2 minutes (120000ms), configurable via env
     snapshotIntervalMs: parseInt(process.env.PORTFOLIO_SNAPSHOT_INTERVAL_MS || '120000', 10),
+    // How fresh a price needs to be to reuse directly from DB (default: 10 minutes)
+    priceFreshnessMs: parseInt(process.env.PORTFOLIO_PRICE_FRESHNESS_MS || '600000', 10),
   },
   // Whether to allow generation of mock price history data when real data is not available
   // Defaults to true in development/test, false in production

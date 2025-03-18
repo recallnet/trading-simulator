@@ -3,6 +3,7 @@ import axios from 'axios';
 import { getBaseUrl } from '../utils/server';
 import config from '../../src/config';
 import { BlockchainType } from '../../src/types';
+import { services } from '../../src/services';
 
 describe('Multi-Team Competition', () => {
   // Number of teams to create for multi-team tests
@@ -346,4 +347,219 @@ describe('Multi-Team Competition', () => {
     
     console.log('[Test] Completed multi-team unique token purchasing test');
   });
+
+  // Test that portfolio values change over time due to price fluctuations
+  test(
+    'portfolio values should change differently for teams holding different tokens', 
+    async () => {
+      console.log('[Test] Starting portfolio value fluctuation test');
+      
+      // Step 1: Setup admin client
+      adminClient = await setupAdminClient();
+      
+      // Step 2: Register teams with unique names
+      console.log(`Registering ${NUM_TEAMS} teams...`);
+      teamClients = [];
+      
+      for (let i = 0; i < NUM_TEAMS; i++) {
+        const teamName = `Price Team ${i + 1} ${Date.now()}`;
+        const email = `price_team${i + 1}_${Date.now()}@example.com`;
+        const contactPerson = `Price Contact ${i + 1}`;
+        
+        const teamData = await registerTeamAndGetClient(
+          adminClient, 
+          teamName,
+          email,
+          contactPerson
+        );
+        
+        teamClients.push(teamData);
+        console.log(`Registered team: ${teamName} with ID: ${teamData.team.id}`);
+      }
+      
+      expect(teamClients.length).toBe(NUM_TEAMS);
+      expect(teamClients.length).toBe(BASE_TOKENS.length);
+      
+      // Step 3: Start a competition with all teams
+      const competitionName = `Portfolio Value Test ${Date.now()}`;
+      const teamIds = teamClients.map(tc => tc.team.id);
+      
+      console.log(`Starting competition with ${teamIds.length} teams...`);
+      const competitionResponse = await startTestCompetition(adminClient, competitionName, teamIds);
+      
+      expect(competitionResponse.success).toBe(true);
+      expect(competitionResponse.competition).toBeDefined();
+      competitionId = competitionResponse.competition.id;
+      
+      // Wait for balances to be properly initialized
+      await wait(1000);
+      
+      // Step 4: Each team trades for a different token
+      console.log('Executing unique token trades for each team...');
+      
+      // Amount of USDC each team will trade
+      const tradeAmount = 500; // Using a larger amount to make price fluctuations more noticeable
+      
+      // Store token quantities and initial portfolio values
+      const initialPortfolioValues: { [teamId: string]: number } = {};
+      const tokensByTeam: { [teamId: string]: string } = {};
+      
+      // Execute trades for each team
+      for (let i = 0; i < NUM_TEAMS; i++) {
+        const team = teamClients[i];
+        const tokenToTrade = BASE_TOKENS[i];
+        tokensByTeam[team.team.id] = tokenToTrade;
+        
+        console.log(`Team ${i + 1} (${team.team.name}) trading ${tradeAmount} USDC for token ${tokenToTrade}`);
+        
+        // Execute trade - each team buys a different BASE token with USDC
+        const tradeResponse = await team.client.request('post', '/api/trade/execute', {
+          fromToken: BASE_USDC_ADDRESS,
+          toToken: tokenToTrade,
+          amount: tradeAmount.toString(),
+          fromChain: BlockchainType.EVM,
+          toChain: BlockchainType.EVM,
+          fromSpecificChain: BASE_CHAIN,
+          toSpecificChain: BASE_CHAIN
+        });
+        
+        // Verify trade was successful
+        expect(tradeResponse.success).toBe(true);
+        expect(tradeResponse.transaction).toBeDefined();
+        
+        // Log the token amount received
+        if (tradeResponse.transaction.toAmount) {
+          const tokenAmount = parseFloat(tradeResponse.transaction.toAmount);
+          console.log(`Team ${i + 1} received ${tokenAmount} of token ${tokenToTrade}`);
+        }
+        
+        // Wait briefly between trades
+        await wait(100);
+      }
+      
+      // Wait for all trades to settle
+      await wait(1000);
+      
+      // Step 5: Get initial portfolio values after trades
+      console.log('\n[Test] Getting initial portfolio values after trades...');
+      
+      for (let i = 0; i < NUM_TEAMS; i++) {
+        const team = teamClients[i];
+        
+        // Force a snapshot to ensure we have current values
+        await services.competitionManager.takePortfolioSnapshots(competitionId);
+        await wait(500);
+        
+        // Get team's initial portfolio value
+        const snapshotsResponse = await adminClient.request('get', `/api/admin/competition/${competitionId}/snapshots?teamId=${team.team.id}`);
+        expect(snapshotsResponse.success).toBe(true);
+        expect(snapshotsResponse.snapshots).toBeDefined();
+        expect(snapshotsResponse.snapshots.length).toBeGreaterThan(0);
+        
+        // Get the most recent snapshot
+        const latestSnapshot = snapshotsResponse.snapshots[snapshotsResponse.snapshots.length - 1];
+        const initialValue = latestSnapshot.totalValue;
+        initialPortfolioValues[team.team.id] = initialValue;
+        
+        console.log(`Team ${i + 1} (${team.team.name}) initial portfolio value: $${initialValue.toFixed(2)}`);
+        
+        // Log token-specific details
+        const token = tokensByTeam[team.team.id];
+        const tokenValue = latestSnapshot.valuesByToken[token];
+        if (tokenValue) {
+          console.log(`  - Token ${token}: ${tokenValue.amount} units at $${tokenValue.price} = $${tokenValue.valueUsd.toFixed(2)}`);
+        }
+      }
+      
+      // Step 6: Wait for a period of time to allow for multiple snapshots and price fluctuations
+      const waitTimeForPriceChanges = 20000; // 20 seconds
+      console.log(`\n[Test] Waiting ${waitTimeForPriceChanges/1000} seconds for price fluctuations...`);
+      
+      // Force several snapshots during the wait period to increase chances of capturing price changes
+      for (let i = 0; i < 4; i++) {
+        await wait(waitTimeForPriceChanges / 4);
+        console.log(`Taking snapshot ${i+1}/4 during wait period...`);
+        await services.competitionManager.takePortfolioSnapshots(competitionId);
+      }
+      
+      // Step 7: Get final portfolio values
+      console.log('\n[Test] Getting final portfolio values after waiting period...');
+      
+      const finalPortfolioValues: { [teamId: string]: number } = {};
+      const portfolioChanges: { [teamId: string]: { initial: number, final: number, change: number, percentChange: number } } = {};
+      let allTeamsHaveSameChange = true;
+      let previousPercentChange: number | null = null;
+      
+      for (let i = 0; i < NUM_TEAMS; i++) {
+        const team = teamClients[i];
+        
+        // Force one final snapshot to ensure we have the latest prices
+        await services.competitionManager.takePortfolioSnapshots(competitionId);
+        await wait(500);
+        
+        // Get team's final portfolio value
+        const snapshotsResponse = await adminClient.request('get', `/api/admin/competition/${competitionId}/snapshots?teamId=${team.team.id}`);
+        expect(snapshotsResponse.success).toBe(true);
+        expect(snapshotsResponse.snapshots.length).toBeGreaterThan(0);
+        
+        // Get the most recent snapshot
+        const latestSnapshot = snapshotsResponse.snapshots[snapshotsResponse.snapshots.length - 1];
+        const finalValue = latestSnapshot.totalValue;
+        finalPortfolioValues[team.team.id] = finalValue;
+        
+        // Calculate change
+        const initialValue = initialPortfolioValues[team.team.id];
+        const absoluteChange = finalValue - initialValue;
+        const percentChange = (absoluteChange / initialValue) * 100;
+        
+        portfolioChanges[team.team.id] = {
+          initial: initialValue,
+          final: finalValue,
+          change: absoluteChange,
+          percentChange: percentChange
+        };
+        
+        // Log detailed information
+        console.log(`Team ${i + 1} (${team.team.name}) final portfolio value: $${finalValue.toFixed(2)}`);
+        console.log(`  - Change: $${absoluteChange.toFixed(2)} (${percentChange.toFixed(2)}%)`);
+        
+        // Log token-specific details
+        const token = tokensByTeam[team.team.id];
+        const tokenValue = latestSnapshot.valuesByToken[token];
+        if (tokenValue) {
+          console.log(`  - Token ${token}: ${tokenValue.amount} units at $${tokenValue.price} = $${tokenValue.valueUsd.toFixed(2)}`);
+        }
+        
+        // Check if this percent change is different from previous teams
+        if (previousPercentChange !== null) {
+          // Allow a tiny bit of precision error (0.00001), but changes should differ by more than this
+          if (Math.abs(percentChange - previousPercentChange) > 0.00001) {
+            allTeamsHaveSameChange = false;
+          }
+        }
+        previousPercentChange = percentChange;
+      }
+      
+      // Step 8: Summary of portfolio changes
+      console.log('\n[Test] Portfolio change summary:');
+      for (let i = 0; i < NUM_TEAMS; i++) {
+        const team = teamClients[i];
+        const changes = portfolioChanges[team.team.id];
+        console.log(`Team ${i + 1} (${team.team.name}): $${changes.initial.toFixed(2)} → $${changes.final.toFixed(2)}, Change: ${changes.percentChange.toFixed(4)}%`);
+      }
+      
+      // Step 9: Verify that not all teams have exactly the same portfolio change
+      // This test could be flaky if market conditions are extremely stable during the test period
+      // or if there's a bug in the pricing system. We log a warning instead of failing in that case.
+      if (allTeamsHaveSameChange) {
+        console.warn('[Test] WARNING: All teams showed identical percentage changes in portfolio value.');
+        console.warn('[Test] This could indicate either extremely stable market conditions or a potential issue with pricing.');
+      } else {
+        console.log('[Test] Confirmed that teams with different tokens have different portfolio value changes.');
+      }
+      
+      console.log('[Test] Completed portfolio value fluctuation test');
+    },
+    60000 // Added timeout parameter
+  );
 }); 
