@@ -237,7 +237,7 @@ The application uses environment variables for configuration. Create a `.env` fi
 Key configuration options include:
 - `EVM_CHAINS`: Comma-separated list of supported EVM chains (defaults to eth,polygon,bsc,arbitrum,base,optimism,avalanche,linea)
 - `ALLOW_MOCK_PRICE_HISTORY`: Whether to allow mock price history data generation (defaults to true in development, false in production)
-- `ALLOW_CROSS_CHAIN_TRADING`: Whether to allow trades between different chains (defaults to true, set to false to restrict trading to within the same chain only)
+- `ALLOW_CROSS_CHAIN_TRADING`: Whether to allow trades between different chains (defaults to false for security, set to true to enable cross-chain trading)
 
 #### 2. Security Secret Generation
 
@@ -584,7 +584,7 @@ The trading simulator supports two modes of operation for cross-chain trading:
 
 ### Allowed Cross-Chain Trading (Default)
 
-With `ALLOW_CROSS_CHAIN_TRADING=true` (default setting), users can:
+With `ALLOW_CROSS_CHAIN_TRADING=true`, users can:
 - Trade between tokens on different blockchain types (e.g., Solana SOL to Ethereum ETH)
 - Execute trades between any supported chains (e.g., Polygon MATIC to Base ETH)
 - Maintain a diversified portfolio across multiple blockchains
@@ -611,8 +611,8 @@ This mode is useful for:
 Configure this option in your `.env` file:
 
 ```
-# Set to false to disable trades between different chains
-ALLOW_CROSS_CHAIN_TRADING=true
+# Set to true to enable trades between different chains (disabled by default)
+ALLOW_CROSS_CHAIN_TRADING=false
 ```
 
 When disabled, the trade validation in the `TradeSimulator` service will verify that both tokens are on the same chain before proceeding with the trade execution.

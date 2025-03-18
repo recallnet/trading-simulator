@@ -404,7 +404,7 @@ describe('Trading API', () => {
     }
 
     // Check if cross-chain trading is allowed
-    const allowCrossChainTrading = process.env.ALLOW_CROSS_CHAIN_TRADING !== 'false';
+    const allowCrossChainTrading = process.env.ALLOW_CROSS_CHAIN_TRADING === 'true';
     if (!allowCrossChainTrading) {
       console.log('Skipping Ethereum token test: Cross-chain trading is disabled');
       return;
@@ -619,7 +619,7 @@ describe('Trading API', () => {
       console.log(`Cross-chain trade response: ${JSON.stringify(crossChainTradeResponse)}`);
       
       // If ALLOW_CROSS_CHAIN_TRADING is false, this should fail
-      const allowCrossChainTrading = process.env.ALLOW_CROSS_CHAIN_TRADING !== 'false';
+      const allowCrossChainTrading = process.env.ALLOW_CROSS_CHAIN_TRADING === 'true';
       if (!allowCrossChainTrading) {
         expect(crossChainTradeResponse.success).toBe(false);
         expect(crossChainTradeResponse.error).toContain('Cross-chain trading is disabled');
