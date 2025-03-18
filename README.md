@@ -36,7 +36,9 @@ The application follows an MVC (Model-View-Controller) architecture with a robus
 - ✅ Trade simulation engine
 - ✅ Competition management service
 - ✅ Chain override feature for high-performance price lookups
-- ⏳ Comprehensive testing (in progress)
+- ✅ Portfolio snapshots with configurable intervals and price freshness optimization
+- ✅ Multiple price providers (DexScreener, Noves, Jupiter, Raydium, Serum)
+- ⏳ Testing (75% complete - E2E testing comprehensive, unit testing in progress)
 - ⏳ Documentation (in progress)
 - ⏳ Integration with front-end (planned)
 
@@ -584,6 +586,30 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## Testing
 
+The project employs a multi-layered testing strategy to ensure functionality and reliability across all components.
+
+### Current Testing Status
+
+The testing suite currently includes:
+
+- **End-to-End Tests**: Comprehensive suite covering the entire application stack
+- **Provider Unit Tests**: Tests for specific price providers (DexScreener, Noves)
+- **Integration Tests**: Testing the interaction between services
+- **Configuration Tests**: Validating environment configurations
+
+### End-to-End Test Coverage
+
+Our E2E test suite covers the following major areas:
+
+- ✅ **Portfolio Snapshots**: Taking snapshots, price freshness, portfolio calculations
+- ✅ **Multi-Team Competitions**: Team registration, performance ranking, leaderboards
+- ✅ **Chain-Specific Trading**: Trading on Ethereum, Polygon, Base, and Solana chains
+- ✅ **Cross-Chain Trading**: Trading between different blockchains
+- ✅ **Price Fetching**: Token price lookup with chain override optimizations
+- ✅ **Admin Operations**: Competition management, team registration
+- ✅ **Team Management**: Team creation, API key generation, authentication
+- ✅ **Competition Lifecycle**: Start, end, and status monitoring
+
 ### Unit Tests
 
 Run the unit tests with:
@@ -592,9 +618,9 @@ Run the unit tests with:
 npm test
 ```
 
-### End-to-End Tests
+Our unit test coverage currently focuses on the price provider implementations and utility functions.
 
-The project includes comprehensive end-to-end tests that verify the entire application stack from server startup to database operations and API endpoints.
+### End-to-End Tests
 
 To run the E2E tests:
 
@@ -608,7 +634,23 @@ For a more comprehensive test run with database setup:
 npm run test:e2e:runner
 ```
 
-#### Test Environment Configuration
+### Areas for Testing Improvement
+
+While our E2E testing is comprehensive, we have identified several areas for improvement:
+
+1. **Expanded Unit Test Coverage**: Increase unit tests for service-layer components
+2. **Performance Testing**: Add benchmarks for API performance and chain override optimizations
+3. **Concurrency Testing**: Test behavior under high concurrent load
+4. **Mock Provider Testing**: Expand test coverage for scenarios when external APIs are unavailable
+5. **Security Testing**: Add tests for authentication, rate limiting, and API security features
+
+#### Development Timeline
+
+- **Current Phase**: Extending E2E test coverage and beginning performance testing
+- **Next Phase**: Expanding unit test coverage for service-layer components
+- **Future Phase**: Implementing comprehensive security and concurrency testing
+
+### Test Environment Configuration
 
 E2E tests use the `.env.test` file for configuration when running with `NODE_ENV=test`. This separation allows you to maintain different configurations for testing versus development or production environments.
 
