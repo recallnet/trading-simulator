@@ -1,5 +1,6 @@
 import { ApiClient } from './api-client';
 import { dbManager } from './db-manager';
+import { resetRateLimiters } from '../../src/middleware/rate-limiter.middleware';
 
 // Configured test token address
 export const TEST_TOKEN_ADDRESS = process.env.TEST_SOL_TOKEN_ADDRESS || '4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R';
@@ -115,6 +116,10 @@ async function ensureDatabaseInitialized(): Promise<void> {
  */
 export async function cleanupTestState(): Promise<void> {
   await ensureDatabaseInitialized();
+  
+  // Also reset rate limiters to ensure clean state between tests
+  resetRateLimiters();
+  
   return dbManager.cleanupTestState();
 }
 

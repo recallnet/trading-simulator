@@ -25,12 +25,16 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Apply rate limiting middleware
-app.use(rateLimiterMiddleware);
-
-// Apply authentication middleware to protected routes
+// Define protected routes
 const protectedRoutes = ['/api/account', '/api/trade', '/api/competition'];
+
+// Apply authentication middleware to protected routes FIRST
+// This ensures req.teamId is set before rate limiting
 app.use(protectedRoutes, authMiddleware(services.teamManager, services.competitionManager));
+
+// Apply rate limiting middleware AFTER authentication
+// This ensures we can properly rate limit by team ID
+app.use(rateLimiterMiddleware);
 
 // Apply routes
 app.use('/api/auth', authRoutes.default);

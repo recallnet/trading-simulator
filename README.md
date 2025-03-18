@@ -53,6 +53,11 @@ The application uses a layered architecture:
          │
          ▼
 ┌─────────────────┐
+│   Middleware    │ ◄── Request processing, auth, rate limiting
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
 │    Services     │ ◄── Business logic implementation
 └────────┬────────┘
          │
@@ -71,11 +76,24 @@ The application uses a layered architecture:
 
 - **Services**: Core business logic implementation
   - `PriceTracker`: Multi-source price data fetching with chain detection
-  - `MultiChainProvider` & `DexScreenerProvider`: Price data for EVM and SVM chains
+  - `MultiChainProvider`: Aggregates price data for all chains
+  - `DexScreenerProvider`: EVM and SVM chain price data via DexScreener API
+  - `NovesProvider`: Advanced EVM chain price data 
+  - `RaydiumProvider`: Solana token price data from Raydium
+  - `SerumProvider`: Solana token price data from Serum markets
+  - `JupiterProvider`: Solana token price data from Jupiter API
+  - `SolanaProvider`: Basic SOL token information
   - `BalanceManager`: Team balance tracking across multiple chains
   - `TradeSimulator`: Trade execution and processing with chain-specific logic
   - `CompetitionManager`: Competition lifecycle management
   - `TeamManager`: Team registration and authentication
+  - `SchedulerService`: Portfolio snapshot scheduling and background tasks
+
+- **Middleware**: Request processing and security
+  - `AuthMiddleware`: API key validation for team endpoints
+  - `AdminAuthMiddleware`: JWT-based admin authentication
+  - `RateLimiterMiddleware`: Request throttling and protection
+  - `ErrorHandler`: Consistent error response formatting
 
 - **Controllers**: API endpoint handlers
   - `AccountController`: Balance and portfolio information
@@ -84,6 +102,8 @@ The application uses a layered architecture:
   - `CompetitionController`: Competition status and leaderboards
   - `PriceController`: Price information access
   - `TradeController`: Trade execution and quotes
+  - `DocsController`: API documentation endpoints
+  - `HealthController`: Health check endpoints
 
 - **Repositories**: Data access layer
   - `TeamRepository`: Team data management
@@ -568,13 +588,14 @@ For more information, see the [examples README](docs/examples/README.md).
 The following features are planned for upcoming development:
 
 1. Add support for more EVM chains (zkSync, Scroll, Mantle, etc.)
-2. Complete comprehensive test suite
-3. Enhance error handling and logging
-4. Implement scheduled tasks for portfolio snapshots
-5. Add more advanced analytics for team performance
-6. Integrate with a front-end application for visualization
-7. Add user notifications for significant events
-8. Implement Redis for improved caching and performance
+2. Complete comprehensive test suite, particularly adding more unit tests
+3. Enhance error handling and logging with structured logging format
+4. Add more advanced analytics for team performance monitoring
+5. Integrate with a front-end application for visualization
+6. Add user notifications for significant events
+7. Implement Redis for improved caching and performance
+8. Enhance documentation with OpenAPI/Swagger integration
+9. Add support for custom trading fee structures
 
 ## Contributing
 
