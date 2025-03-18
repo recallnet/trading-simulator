@@ -26,7 +26,53 @@ e2e/
 
 ## Environment Setup
 
-The tests use their own environment variables defined in `.env.test` at the project root. This ensures tests run against a separate database and server configuration from development or production.
+The tests are configured to use a separate `.env.test` file in the project root when running with `NODE_ENV=test`. This allows you to maintain different configuration settings for testing without affecting your development or production environments.
+
+To ensure your tests run with the correct environment:
+- Make sure you have a `.env.test` file in the project root
+- Run tests with `NODE_ENV=test` prefix, e.g., `NODE_ENV=test npm run test:e2e`
+- The test setup will automatically load and use this file
+
+## Required Balance Configuration
+
+For the E2E tests to run successfully, the `.env.test` file must include appropriate initial token balances. The trading tests rely on specific token balances being available to execute trades.
+
+### Minimum Required Balances
+
+The following balance settings should be in your `.env.test` file:
+
+```
+# Solana (SVM) balances
+INITIAL_SVM_SOL_BALANCE=10
+INITIAL_SVM_USDC_BALANCE=5000
+INITIAL_SVM_USDT_BALANCE=1000
+
+# Ethereum (EVM) balances
+INITIAL_EVM_ETH_BALANCE=1
+INITIAL_EVM_USDC_BALANCE=5000
+INITIAL_EVM_USDT_BALANCE=1000
+
+# Base-specific balances
+INITIAL_BASE_USDC_BALANCE=5000  # Required for base-trades.test.ts
+```
+
+Many tests, particularly in `trading.test.ts` and `base-trades.test.ts`, expect these minimum balances to execute trades properly. If the balances are set too low or to zero, the tests may fail with "Insufficient balance" errors.
+
+If you modify these values in the `.env.test` file, you may need to also update the expected values in the test assertions.
+
+> **Note**: The test suite is designed to adapt to the actual balances available. This flexible approach allows tests to pass with different balance configurations, but the values above are recommended for consistent testing behavior.
+
+### Cross-Chain Trading Tests
+
+The cross-chain trading tests depend on the `ALLOW_CROSS_CHAIN_TRADING` environment variable:
+
+```
+# Set to true to enable cross-chain trading tests
+# Set to false to skip cross-chain trading tests
+ALLOW_CROSS_CHAIN_TRADING=false
+```
+
+Tests will automatically adapt based on this setting, either executing cross-chain trades or skipping those tests.
 
 ## Running Tests
 

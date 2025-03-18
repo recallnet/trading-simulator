@@ -2,8 +2,15 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { BlockchainType, SpecificChain } from '../types';
 
-// Load environment variables from .env file
-dotenv.config({ path: path.resolve(process.cwd(), '.env') });
+// Environment file selection logic:
+// - When NODE_ENV=test, load from .env.test
+// - For all other environments (development, production), load from .env
+// This allows separate configurations for testing environments
+const envFile = process.env.NODE_ENV === 'test' ? '.env.test' : '.env';
+dotenv.config({ path: path.resolve(process.cwd(), envFile) });
+
+// Log which environment file was loaded (helpful for debugging)
+console.log(`Config loaded environment variables from: ${envFile}`);
 
 // Helper function to parse specific chain initial balance environment variables
 const getSpecificChainBalances = (): Record<SpecificChain, Record<string, number>> => {
@@ -13,7 +20,7 @@ const getSpecificChainBalances = (): Record<SpecificChain, Record<string, number
   if (process.env.INITIAL_ETH_ETH_BALANCE || process.env.INITIAL_ETH_USDC_BALANCE || process.env.INITIAL_ETH_USDT_BALANCE) {
     result.eth = {
       eth: parseInt(process.env.INITIAL_ETH_ETH_BALANCE || process.env.INITIAL_EVM_ETH_BALANCE || '0', 10),
-      usdc: parseInt(process.env.INITIAL_ETH_USDC_BALANCE || process.env.INITIAL_EVM_USDC_BALANCE || '1000', 10),
+      usdc: parseInt(process.env.INITIAL_ETH_USDC_BALANCE || process.env.INITIAL_EVM_USDC_BALANCE || '0', 10),
       usdt: parseInt(process.env.INITIAL_ETH_USDT_BALANCE || process.env.INITIAL_EVM_USDT_BALANCE || '0', 10),
     };
   }
@@ -22,7 +29,7 @@ const getSpecificChainBalances = (): Record<SpecificChain, Record<string, number
   if (process.env.INITIAL_POLYGON_MATIC_BALANCE || process.env.INITIAL_POLYGON_USDC_BALANCE) {
     result.polygon = {
       matic: parseInt(process.env.INITIAL_POLYGON_MATIC_BALANCE || '0', 10),
-      usdc: parseInt(process.env.INITIAL_POLYGON_USDC_BALANCE || process.env.INITIAL_EVM_USDC_BALANCE || '1000', 10),
+      usdc: parseInt(process.env.INITIAL_POLYGON_USDC_BALANCE || process.env.INITIAL_EVM_USDC_BALANCE || '0', 10),
       usdt: parseInt(process.env.INITIAL_POLYGON_USDT_BALANCE || process.env.INITIAL_EVM_USDT_BALANCE || '0', 10),
     };
   }
@@ -31,7 +38,7 @@ const getSpecificChainBalances = (): Record<SpecificChain, Record<string, number
   if (process.env.INITIAL_BASE_ETH_BALANCE || process.env.INITIAL_BASE_USDC_BALANCE) {
     result.base = {
       eth: parseInt(process.env.INITIAL_BASE_ETH_BALANCE || process.env.INITIAL_EVM_ETH_BALANCE || '0', 10),
-      usdc: parseInt(process.env.INITIAL_BASE_USDC_BALANCE || process.env.INITIAL_EVM_USDC_BALANCE || '1000', 10),
+      usdc: parseInt(process.env.INITIAL_BASE_USDC_BALANCE || process.env.INITIAL_EVM_USDC_BALANCE || '0', 10),
       usdt: parseInt(process.env.INITIAL_BASE_USDT_BALANCE || process.env.INITIAL_EVM_USDT_BALANCE || '0', 10),
     };
   }
@@ -39,7 +46,7 @@ const getSpecificChainBalances = (): Record<SpecificChain, Record<string, number
   // Solana (for consistency)
   result.svm = {
     sol: parseInt(process.env.INITIAL_SVM_SOL_BALANCE || process.env.INITIAL_SOL_BALANCE || '0', 10),
-    usdc: parseInt(process.env.INITIAL_SVM_USDC_BALANCE || process.env.INITIAL_USDC_BALANCE || '10000', 10),
+    usdc: parseInt(process.env.INITIAL_SVM_USDC_BALANCE || process.env.INITIAL_USDC_BALANCE || '0', 10),
     usdt: parseInt(process.env.INITIAL_SVM_USDT_BALANCE || process.env.INITIAL_USDT_BALANCE || '0', 10),
   };
   
@@ -93,19 +100,19 @@ export const config = {
   // Legacy initial balances (for backward compatibility)
   initialBalances: {
     sol: parseInt(process.env.INITIAL_SOL_BALANCE || '0', 10),
-    usdc: parseInt(process.env.INITIAL_USDC_BALANCE || '10000', 10),
+    usdc: parseInt(process.env.INITIAL_USDC_BALANCE || '0', 10),
     usdt: parseInt(process.env.INITIAL_USDT_BALANCE || '0', 10),
   },
   // Multi-chain initial balances - general chain types
   multiChainInitialBalances: {
     [BlockchainType.SVM]: {
       sol: parseInt(process.env.INITIAL_SVM_SOL_BALANCE || process.env.INITIAL_SOL_BALANCE || '0', 10),
-      usdc: parseInt(process.env.INITIAL_SVM_USDC_BALANCE || process.env.INITIAL_USDC_BALANCE || '10000', 10),
+      usdc: parseInt(process.env.INITIAL_SVM_USDC_BALANCE || process.env.INITIAL_USDC_BALANCE || '0', 10),
       usdt: parseInt(process.env.INITIAL_SVM_USDT_BALANCE || process.env.INITIAL_USDT_BALANCE || '0', 10),
     },
     [BlockchainType.EVM]: {
       eth: parseInt(process.env.INITIAL_EVM_ETH_BALANCE || '0', 10),
-      usdc: parseInt(process.env.INITIAL_EVM_USDC_BALANCE || '1000', 10),
+      usdc: parseInt(process.env.INITIAL_EVM_USDC_BALANCE || '0', 10),
       usdt: parseInt(process.env.INITIAL_EVM_USDT_BALANCE || '0', 10),
     }
   },

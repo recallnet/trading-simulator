@@ -29,8 +29,44 @@ const log = (message: string) => {
 // Setup function to run before all tests
 export async function setup() {
   // Load test environment variables
-  config({ path: path.resolve(__dirname, '../.env.test') });
-  
+  const envTestPath = path.resolve(__dirname, '../.env.test');
+  const envTestExists = fs.existsSync(envTestPath);
+
+  // Log important environment loading information
+  console.log('========== E2E TEST ENVIRONMENT SETUP ==========');
+  console.log(`Looking for .env.test at: ${envTestPath}`);
+  console.log(`.env.test file exists: ${envTestExists}`);
+
+  if (envTestExists) {
+    // Save original values for debugging
+    const originalBaseUsdcBalance = process.env.INITIAL_BASE_USDC_BALANCE;
+    
+    // Force override with .env.test values
+    const result = config({ path: envTestPath, override: true });
+    
+    console.log(`Loaded .env.test file: ${result.parsed ? 'successfully' : 'failed'}`);
+    if (result.parsed) {
+      console.log(`Loaded ${Object.keys(result.parsed).length} variables from .env.test`);
+      
+      // Check specific test-critical variables
+      console.log('Critical variables after loading .env.test:');
+      console.log(`- INITIAL_BASE_USDC_BALANCE: ${process.env.INITIAL_BASE_USDC_BALANCE} (was: ${originalBaseUsdcBalance})`);
+      console.log(`- ALLOW_CROSS_CHAIN_TRADING: ${process.env.ALLOW_CROSS_CHAIN_TRADING}`);
+    }
+  } else {
+    console.warn('⚠️ WARNING: .env.test file not found! Tests will use .env or default values.');
+    
+    // Try loading from .env as fallback and log the result
+    const envMainPath = path.resolve(__dirname, '../.env');
+    const envMainExists = fs.existsSync(envMainPath);
+    console.log(`Using .env as fallback. File exists: ${envMainExists}`);
+    
+    if (envMainExists) {
+      const result = config({ path: envMainPath, override: true });
+      console.log(`Loaded .env file: ${result.parsed ? 'successfully' : 'failed'}`);
+    }
+  }
+
   // Ensure TEST_MODE is set
   process.env.TEST_MODE = 'true';
   

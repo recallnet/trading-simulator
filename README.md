@@ -239,7 +239,62 @@ Key configuration options include:
 - `ALLOW_MOCK_PRICE_HISTORY`: Whether to allow mock price history data generation (defaults to true in development, false in production)
 - `ALLOW_CROSS_CHAIN_TRADING`: Whether to allow trades between different chains (defaults to false for security, set to true to enable cross-chain trading)
 
-#### 2. Security Secret Generation
+#### 2. Configuring Initial Token Balances
+
+By default, all token balances start at zero. You can configure initial balances for different tokens across multiple blockchains using the following environment variables in your `.env` file:
+
+**Legacy Balances (Backward Compatibility)**
+```
+INITIAL_SOL_BALANCE=10     # Initial SOL balance on Solana
+INITIAL_USDC_BALANCE=5000  # Initial USDC balance on Solana
+INITIAL_USDT_BALANCE=0     # Initial USDT balance on Solana
+```
+
+**Multi-Chain Configuration**
+
+For more granular control, you can set balances by blockchain type:
+
+```
+# Solana Virtual Machine (SVM) Balances
+INITIAL_SVM_SOL_BALANCE=10    # Initial SOL balance on Solana
+INITIAL_SVM_USDC_BALANCE=5000 # Initial USDC balance on Solana
+INITIAL_SVM_USDT_BALANCE=0    # Initial USDT balance on Solana
+
+# Ethereum Virtual Machine (EVM) Balances - applies to all EVM chains
+INITIAL_EVM_ETH_BALANCE=1     # Initial ETH balance for all EVM chains
+INITIAL_EVM_USDC_BALANCE=5000 # Initial USDC balance for all EVM chains
+INITIAL_EVM_USDT_BALANCE=0    # Initial USDT balance for all EVM chains
+```
+
+**Chain-Specific Configuration**
+
+For even more precise control, you can override balances for specific chains:
+
+```
+# Ethereum Mainnet specific balances
+INITIAL_ETH_ETH_BALANCE=2     # ETH on Ethereum Mainnet specifically
+INITIAL_ETH_USDC_BALANCE=3000 # USDC on Ethereum Mainnet specifically
+
+# Polygon specific balances
+INITIAL_POLYGON_MATIC_BALANCE=50  # MATIC on Polygon
+INITIAL_POLYGON_USDC_BALANCE=4000 # USDC on Polygon
+
+# Base specific balances
+INITIAL_BASE_ETH_BALANCE=3        # ETH on Base
+INITIAL_BASE_USDC_BALANCE=3500    # USDC on Base
+```
+
+**Balance Hierarchy and Overrides**
+
+The system uses the following precedence for balances:
+1. Specific chain balances (e.g., `INITIAL_ETH_USDC_BALANCE`)
+2. General blockchain type balances (e.g., `INITIAL_EVM_USDC_BALANCE`)
+3. Legacy balances (e.g., `INITIAL_USDC_BALANCE`)
+4. Zero (default)
+
+This allows fine-grained control over initial token balances across different blockchains.
+
+#### 3. Security Secret Generation
 
 Generate all required security secrets with:
 
@@ -253,7 +308,7 @@ This will create the following secrets:
 - `HMAC_SECRET`: Used for request signing
 - `MASTER_ENCRYPTION_KEY`: Used for encrypting API secrets
 
-#### 3. Database Initialization
+#### 4. Database Initialization
 
 Initialize the database with:
 
@@ -261,7 +316,7 @@ Initialize the database with:
 npm run db:init
 ```
 
-#### 4. Run Migrations
+#### 5. Run Migrations
 
 Apply all database migrations:
 
@@ -269,7 +324,7 @@ Apply all database migrations:
 npm run db:migrate
 ```
 
-#### 5. Build the Application
+#### 6. Build the Application
 
 Build the TypeScript application:
 
@@ -277,7 +332,7 @@ Build the TypeScript application:
 npm run build
 ```
 
-#### 6. Start the Server
+#### 7. Start the Server
 
 Start the server:
 
@@ -285,7 +340,7 @@ Start the server:
 npm run start
 ```
 
-#### 7. Set Up Admin Account
+#### 8. Set Up Admin Account
 
 In a separate terminal, set up the admin account:
 
@@ -552,6 +607,31 @@ For a more comprehensive test run with database setup:
 ```bash
 npm run test:e2e:runner
 ```
+
+#### Test Environment Configuration
+
+E2E tests use the `.env.test` file for configuration when running with `NODE_ENV=test`. This separation allows you to maintain different configurations for testing versus development or production environments.
+
+The following balance settings in your `.env.test` file are needed for successful test execution:
+
+```
+# Solana (SVM) balances
+INITIAL_SVM_SOL_BALANCE=10
+INITIAL_SVM_USDC_BALANCE=5000
+INITIAL_SVM_USDT_BALANCE=1000
+
+# Ethereum (EVM) balances
+INITIAL_EVM_ETH_BALANCE=1
+INITIAL_EVM_USDC_BALANCE=5000
+INITIAL_EVM_USDT_BALANCE=1000
+
+# Base-specific balances
+INITIAL_BASE_USDC_BALANCE=5000  # Required for base-trades.test.ts
+```
+
+If you modify these values, you may need to update the test assertions as well. The test suite will automatically adapt to the `ALLOW_CROSS_CHAIN_TRADING` setting, running or skipping cross-chain tests accordingly.
+
+> **Note**: The test suite tries to adapt to whatever balances are available, but setting balances to zero will cause certain tests to fail with "Insufficient balance" errors, as those tests expect minimum balances to be available for trading.
 
 For more information on the E2E testing architecture, see the [E2E test documentation](./e2e/README.md).
 

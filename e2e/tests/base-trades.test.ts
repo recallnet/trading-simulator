@@ -1,8 +1,19 @@
 import { setupAdminClient, registerTeamAndGetClient, startTestCompetition, cleanupTestState, wait, ADMIN_USERNAME, ADMIN_PASSWORD, ADMIN_EMAIL } from '../utils/test-helpers';
 import axios from 'axios';
 import { getBaseUrl } from '../utils/server';
-import config from '../../src/config';
+import config, { features } from '../../src/config';
 import { BlockchainType } from '../../src/types';
+
+// Log critical environment variables at test suite startup to verify which values are used
+console.log('\n========== BASE TRADES TEST ENVIRONMENT CHECK ==========');
+console.log(`Test is using these environment variables:`);
+console.log(`- INITIAL_BASE_USDC_BALANCE = ${process.env.INITIAL_BASE_USDC_BALANCE}`);
+console.log(`- ALLOW_CROSS_CHAIN_TRADING = ${process.env.ALLOW_CROSS_CHAIN_TRADING}`);
+console.log(`- Imported config from ../../src/config has initial balances:`, {
+  'evm.usdc': config.multiChainInitialBalances?.evm?.usdc,
+  'base.usdc': config.specificChainBalances?.base?.usdc
+});
+console.log('===========================================================\n');
 
 describe('Base Chain Trading', () => {
   // Base tokens to test with
@@ -192,6 +203,7 @@ describe('Base Chain Trading', () => {
   test('users cannot execute cross-chain trades when ALLOW_CROSS_CHAIN_TRADING=false', async () => {
     console.log('[Test] Starting test to verify cross-chain trading restrictions');
     console.log(`Environment variable ALLOW_CROSS_CHAIN_TRADING = ${process.env.ALLOW_CROSS_CHAIN_TRADING}`);
+    console.log(`Features config setting: features.ALLOW_CROSS_CHAIN_TRADING = ${features.ALLOW_CROSS_CHAIN_TRADING}`);
     
     // Setup admin client
     const adminClient = await setupAdminClient();
@@ -215,6 +227,14 @@ describe('Base Chain Trading', () => {
     const initialBaseUsdcBalance = parseFloat(initialBalanceResponse.balance[BASE_USDC_ADDRESS]?.toString() || '0');
     console.log(`Initial Base USDC balance: ${initialBaseUsdcBalance}`);
     expect(initialBaseUsdcBalance).toBeGreaterThan(0);
+    
+    // Check for any initial ETH balance (should be zero)
+    const initialEthBalance = parseFloat(initialBalanceResponse.balance[ETH_ADDRESS]?.toString() || '0');
+    console.log(`Initial ETH balance: ${initialEthBalance}`);
+    // If there's already ETH in the balance, this will affect our test
+    if (initialEthBalance > 0) {
+      console.warn(`⚠️ WARNING: Account already has ETH balance of ${initialEthBalance} before the test`);
+    }
     
     // Make a record of all initial balances
     console.log('Initial balances:');
@@ -292,6 +312,7 @@ describe('Base Chain Trading', () => {
     // ETH balance should remain zero
     const ethBalance = parseFloat(finalBalanceResponse.balance[ETH_ADDRESS]?.toString() || '0');
     console.log(`ETH balance: ${ethBalance}`);
+    console.log(`ETH address being checked: ${ETH_ADDRESS}`);
     
     // CRITICAL TEST: If cross-chain trading is disabled:
     // 1. An error should occur or trade.success should be false
@@ -299,22 +320,36 @@ describe('Base Chain Trading', () => {
     // 3. No ETH should be received
     
     const crossChainEnabled = process.env.ALLOW_CROSS_CHAIN_TRADING === 'true';
+    console.log(`Cross-chain trading enabled from env: ${crossChainEnabled}`);
     
     if (!crossChainEnabled) {
-      // If cross-chain trading is disabled, verify nothing was spent
-      if (usdcDifference > 0) {
-        console.error(`POTENTIAL BUG: ${usdcDifference} USDC was spent despite cross-chain trades being disabled!`);
+        console.log('Cross-chain trading should be disabled. Verifying test conditions:');
         
-        // Get trade history to see what transaction occurred
-        const tradeHistory = await teamClient.getTradeHistory();
-        console.log('Recent trades:', JSON.stringify(tradeHistory.trades.slice(0, 3), null, 2));
+        // If cross-chain trading is disabled, verify nothing was spent
+        if (usdcDifference > 0) {
+            console.error(`POTENTIAL BUG: ${usdcDifference} USDC was spent despite cross-chain trades being disabled!`);
+            
+            // Get trade history to see what transaction occurred
+            const tradeHistory = await teamClient.getTradeHistory();
+            console.log('Recent trades:', JSON.stringify(tradeHistory.trades.slice(0, 3), null, 2));
+            
+            // This should fail the test if USDC was actually spent on a cross-chain trade
+            expect(usdcDifference).toBe(0);
+        } else {
+            console.log('✅ No USDC was spent - this is correct');
+        }
         
-        // This should fail the test if USDC was actually spent on a cross-chain trade
-        expect(usdcDifference).toBe(0);
-      }
-      
-      // Verify no ETH was received
-      expect(ethBalance).toBe(0);
+        // Verify no ETH was received
+        console.log(`ETH balance check: ${ethBalance} should be <= ${initialEthBalance}`);
+        if (ethBalance > initialEthBalance) {
+            console.error(`POTENTIAL BUG: Account has ${ethBalance} ETH (increased from ${initialEthBalance}) despite cross-chain trading being disabled!`);
+            
+            // Get trade history to see what transaction occurred
+            const tradeHistory = await teamClient.getTradeHistory();
+            console.log('Recent trades:', JSON.stringify(tradeHistory.trades.slice(0, 3), null, 2));
+        }
+        // Instead of expecting ETH balance to be 0, check that it hasn't increased
+        expect(ethBalance).toBeLessThanOrEqual(initialEthBalance);
     }
     
     console.log(`[Test] Completed test verifying cross-chain trading restrictions. Cross-chain enabled: ${crossChainEnabled}`);
