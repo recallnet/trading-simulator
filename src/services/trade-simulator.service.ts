@@ -119,8 +119,10 @@ export class TradeSimulator {
       }
       
       // Check for cross-chain trades if not allowed
-      if (!this.allowCrossChainTrading && fromTokenChain !== toTokenChain) {
-        console.log(`[TradeSimulator] Cross-chain trading is disabled. Cannot trade between ${fromTokenChain} and ${toTokenChain}`);
+      if (!this.allowCrossChainTrading && 
+          (fromTokenChain !== toTokenChain || 
+           (fromTokenSpecificChain && toTokenSpecificChain && fromTokenSpecificChain !== toTokenSpecificChain))) {
+        console.log(`[TradeSimulator] Cross-chain trading is disabled. Cannot trade between ${fromTokenChain}(${fromTokenSpecificChain || 'none'}) and ${toTokenChain}(${toTokenSpecificChain || 'none'})`);
         return {
           success: false,
           error: 'Cross-chain trading is disabled. Both tokens must be on the same blockchain.'
