@@ -2,9 +2,9 @@
   "name": "trading-simulator",
   "version": "1.0.0",
   "description": "Solana Trading Simulator Server for hosting trading competitions",
-  "main": "dist/index.js",
+  "main": "dist/src/index.js",
   "scripts": {
-    "start": "node dist/index.js",
+    "start": "node dist/src/index.js",
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
     "build": "tsc",
     "test": "jest --forceExit",
@@ -61,6 +61,8 @@
     "uuid": "^9.0.0"
   },
   "devDependencies": {
+    "@elizaos/core": "^0.25.9",
+    "@project-serum/serum": "^0.13.65",
     "@types/bcrypt": "^5.0.0",
     "@types/cors": "^2.8.13",
     "@types/jest": "^29.5.14",
