@@ -127,7 +127,7 @@ async function setupEverything() {
     console.log('\n=============================================================');
     console.log('🎉 SETUP COMPLETE!');
     console.log('=============================================================\n');
-    console.log('Your Solana Trading Simulator Server is now set up and ready to use.');
+    console.log('Your Trading Simulator Server is now set up and ready to use.');
     console.log('\nTo start the server, run:');
     console.log('  npm run start\n');
     console.log('You can now access the API at: http://localhost:3000');
