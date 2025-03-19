@@ -231,7 +231,14 @@ As the administrator of this application, you'll need to properly configure the 
 
 ### Quick Setup (Recommended)
 
-For a seamless setup experience, we've created a single command that handles everything for you:
+For a seamless setup experience, we've created a single command that handles everything for you. First, make sure you have PostgreSQL installed and running. For example, with Homebrew on macOS:
+
+```bash
+brew install postgresql
+brew services start postgresql
+```
+
+Then, run the following command:
 
 ```bash
 npm run setup:all
