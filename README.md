@@ -395,6 +395,14 @@ Start the server:
 npm run start
 ```
 
+For development with hot reloading:
+
+```bash
+npm run dev
+```
+
+The server will be available at http://localhost:3000 by default.
+
 #### 8. Set Up Admin Account
 
 In a separate terminal, set up the admin account:
@@ -409,46 +417,82 @@ This will prompt you to enter admin credentials or will generate them for you.
 
 We provide several utility scripts to manage teams directly from the command line:
 
-##### Register a New Team
+##### Team Management
 
-```bash
-npm run register:team "Team Name" "email@fake.com" "Contact Person"
-```
+- **Register a new team**:
+  ```
+  npm run register:team
+  ```
+  
+  This script will:
+  - Prompt for team name, email, and contact person
+  - Generate a secure API key and secret
+  - Register the team in the system
+  - Display the credentials (only time the API secret is shown in plain text)
 
-This script will:
-- Register a new team in the system
-- Generate API key and secret for the team
-- Display the team details and credentials
+- **List all teams**:
+  ```
+  npm run list:teams
+  ```
+  
+  This script will display detailed information about all registered teams, including:
+  - Team ID
+  - Team name
+  - Contact information
+  - API Key
+  - Creation date
 
-You can provide the team details as command-line arguments or enter them when prompted.
+- **Delete a team**:
+  ```
+  npm run delete:team
+  ```
+  
+  This script will:
+  - Display a list of all registered teams
+  - Prompt for the team ID to delete
+  - Confirm the deletion
+  - Remove the team from the system
 
-##### List All Teams
+##### Competition Management
 
-```bash
-npm run list:teams
-```
+- **Setup a competition**:
+  ```
+  npm run setup:competition
+  ```
+  
+  This script provides an interactive way to create and start a new trading competition:
+  - Checks if there's already an active competition and offers to end it
+  - Prompts for competition name and description
+  - Displays all available teams with detailed information
+  - Allows selecting teams to participate using simple number selection (e.g., "1,3,5-7") or "all"
+  - Confirms the selection and starts the competition
+  - Shows detailed competition information
 
-This script will display detailed information about all registered teams, including:
-- Team ID
-- Team name
-- Email
-- Contact person
-- API key
-- Creation date
-- Last update date
+- **Check competition status**:
+  ```
+  npm run comp:status
+  ```
+  
+  This script displays comprehensive information about the active competition:
+  - Competition details (name, description, duration)
+  - List of participating teams
+  - Current leaderboard with portfolio values and performance metrics
+  - Performance statistics (highest/lowest/average values)
+  - If no active competition exists, shows information about past competitions
 
-##### Delete a Team
+- **End a competition**:
+  ```
+  npm run end:competition
+  ```
+  
+  This script helps end the currently active competition:
+  - Displays active competition details
+  - Shows the current standings
+  - Confirms before ending the competition
+  - Presents final results with rankings and performance metrics
+  - Uses emoji medals (🥇, 🥈, 🥉) to highlight top performers
 
-```bash
-npm run delete:team [teamId]
-```
-
-This script will:
-- List all teams if no team ID is provided
-- Ask for confirmation before deletion
-- Remove the team and all associated data from the system
-
-Use with caution as team deletion cannot be undone.
+These utilities make it easy to manage the entire competition lifecycle from the command line without requiring direct database access.
 
 ### Starting the Server
 
@@ -465,6 +509,10 @@ npm run dev
 ```
 
 The server will be available at http://localhost:3000 by default.
+
+#### 10. Admin Dashboard
+
+// ... existing code ...
 
 ## API Endpoints
 
@@ -766,7 +814,7 @@ Below is a comprehensive list of all environment variables available in `.env.ex
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
 | `EVM_CHAINS` | Optional | `eth,polygon,bsc,arbitrum,base,optimism,avalanche,linea` | Comma-separated list of supported EVM chains |
-| `ALLOW_CROSS_CHAIN_TRADING` | Optional | `false` | Enable trading between different blockchains |
+| `ALLOW_CROSS_CHAIN_TRADING` | Optional | `false` | Enable trading between different chains |
 | `EVM_CHAIN_PRIORITY` | Optional | `eth,polygon,base,arbitrum` | Chain priority for price lookups (first chain checked first) |
 | `ALLOW_MOCK_PRICE_HISTORY` | Optional | `true` in dev, `false` in prod | Allow generation of mock price history data |
 

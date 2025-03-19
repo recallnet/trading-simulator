@@ -31,7 +31,10 @@
     "setup:all": "ts-node scripts/setup-everything.ts",
     "register:team": "ts-node scripts/register-team.ts",
     "delete:team": "ts-node scripts/delete-team.ts",
-    "list:teams": "ts-node scripts/list-teams.ts"
+    "list:teams": "ts-node scripts/list-teams.ts",
+    "setup:competition": "ts-node scripts/setup-competition.ts",
+    "end:competition": "ts-node scripts/end-competition.ts",
+    "comp:status": "ts-node scripts/competition-status.ts"
   },
   "keywords": [
     "solana",
