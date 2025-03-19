@@ -142,23 +142,44 @@ The application uses a layered architecture:
    npm install
    ```
 
-3. Set up the environment and database (automated setup):
+3. Set up your environment configuration:
    ```
-   npm run setup
+   cp .env.example .env
    ```
-   This command:
-   - Generates secure random values for JWT_SECRET, API_KEY_SECRET, and HMAC_SECRET
-   - Creates or updates the .env file with these values
-   - Initializes the database schema with all necessary tables
-   - Applies all required migrations automatically
+   
+   Open the `.env` file in your editor and configure the following:
+   - Database connection details
+   - Initial token balances for different chains
+   - Cross-chain trading settings (enabled/disabled)
+   - EVM chains to support
+   - Price tracking and portfolio snapshot intervals
+   
+   This step is critical as it determines how your trading simulator will be configured.
 
-   Alternatively, you can run the steps separately:
+4. Run the automated setup:
+   ```
+   npm run setup:all
+   ```
+   This command will:
+   - Generate secure random values for security secrets (JWT_SECRET, API_KEY_SECRET, etc.)
+   - Initialize the database schema with all necessary tables
+   - Apply all required migrations automatically
+   - Build the application
+   - Start a temporary server
+   - Set up the admin account (with interactive prompts)
+   - Provide final instructions
+
+   Alternatively, you can run the steps separately if you need more control:
    ```
    npm run generate:secrets  # Generate security secrets
    npm run db:init           # Initialize the database with full schema
+   npm run db:migrate        # Run all migrations
+   npm run build             # Build the application
+   npm run start             # Start the server
+   npm run setup:admin       # Set up the admin account (in a separate terminal)
    ```
 
-4. Start the development server:
+5. Start the development server:
    ```
    npm run dev
    ```
@@ -238,7 +259,14 @@ brew install postgresql
 brew services start postgresql
 ```
 
-Then, run the following command:
+Then, copy the example environment file and configure it:
+
+```bash
+cp .env.example .env
+# Edit the .env file to configure your environment settings
+```
+
+After configuring your environment, run the setup command:
 
 ```bash
 npm run setup:all
@@ -261,12 +289,18 @@ If you prefer to set up each component separately, you can follow these steps:
 
 #### 1. Environment Configuration
 
-The application uses environment variables for configuration. Create a `.env` file in the root directory based on `.env.example`.
+The application uses environment variables for configuration. Create a `.env` file in the root directory based on `.env.example`:
 
-Key configuration options include:
+```bash
+cp .env.example .env
+```
+
+Then edit the file to configure your environment. Key configuration options include:
 - `EVM_CHAINS`: Comma-separated list of supported EVM chains (defaults to eth,polygon,bsc,arbitrum,base,optimism,avalanche,linea)
 - `ALLOW_MOCK_PRICE_HISTORY`: Whether to allow mock price history data generation (defaults to true in development, false in production)
 - `ALLOW_CROSS_CHAIN_TRADING`: Whether to allow trades between different chains (defaults to false for security, set to true to enable cross-chain trading)
+- `DATABASE_URL`: PostgreSQL connection string
+- `PORT`: The port to run the server on (defaults to 3000)
 
 #### 2. Configuring Initial Token Balances
 
@@ -653,6 +687,124 @@ For advanced examples including chain override performance testing:
 
 For more information, see the [examples README](docs/examples/README.md).
 
+## Environment Variables Reference
+
+Below is a comprehensive list of all environment variables available in `.env.example` that can be configured in your `.env` file. This reference indicates whether each variable is required or optional, its default value (if any), and a description of its purpose.
+
+### Database Configuration
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `DATABASE_URL` | **Required** | None | PostgreSQL connection string in the format `postgres://username:password@host:port/database` |
+| `DATABASE_HOST` | Optional | `localhost` | Database host when not using `DATABASE_URL` |
+| `DATABASE_PORT` | Optional | `5432` | Database port when not using `DATABASE_URL` |
+| `DATABASE_USERNAME` | Optional | `postgres` | Database username when not using `DATABASE_URL` |
+| `DATABASE_PASSWORD` | Optional | None | Database password when not using `DATABASE_URL` |
+| `DATABASE_NAME` | Optional | `trading_simulator` | Database name when not using `DATABASE_URL` |
+
+### Security Settings
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `JWT_SECRET` | Optional | Auto-generated | Secret key for JWT token generation and validation |
+| `API_KEY_SECRET` | Optional | Auto-generated | Secret for API key generation |
+| `HMAC_SECRET` | Optional | Auto-generated | Secret used for HMAC signature calculation fallback |
+| `MASTER_ENCRYPTION_KEY` | Optional | Auto-generated | Master key for API secret encryption |
+| `ADMIN_USERNAME` | Optional | Input during setup | Default admin username if not provided during setup |
+| `ADMIN_PASSWORD` | Optional | None | Default admin password (not recommended for production) |
+
+### Server Configuration
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `PORT` | Optional | `3000` | Server port number |
+| `NODE_ENV` | Optional | `development` | Environment mode (`development`, `production`, or `test`) |
+| `ENABLE_CORS` | Optional | `true` | Enable Cross-Origin Resource Sharing |
+| `MAX_PAYLOAD_SIZE` | Optional | `1mb` | Maximum request body size |
+| `RATE_LIMIT_WINDOW_MS` | Optional | `60000` | Rate limiting window in milliseconds |
+| `RATE_LIMIT_MAX_REQUESTS` | Optional | `100` | Maximum requests per rate limit window |
+
+### Chain Configuration
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `EVM_CHAINS` | Optional | `eth,polygon,bsc,arbitrum,base,optimism,avalanche,linea` | Comma-separated list of supported EVM chains |
+| `ALLOW_CROSS_CHAIN_TRADING` | Optional | `false` | Enable trading between different blockchains |
+| `EVM_CHAIN_PRIORITY` | Optional | `eth,polygon,base,arbitrum` | Chain priority for price lookups (first chain checked first) |
+| `ALLOW_MOCK_PRICE_HISTORY` | Optional | `true` in dev, `false` in prod | Allow generation of mock price history data |
+
+### Initial Token Balances
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| **Legacy Balance Variables** |
+| `INITIAL_SOL_BALANCE` | Optional | `0` | Legacy: Initial SOL balance on Solana |
+| `INITIAL_USDC_BALANCE` | Optional | `0` | Legacy: Initial USDC balance on Solana |
+| `INITIAL_USDT_BALANCE` | Optional | `0` | Legacy: Initial USDT balance on Solana |
+| **Blockchain Type Balances** |
+| `INITIAL_SVM_SOL_BALANCE` | Optional | `0` | Initial SOL balance on Solana |
+| `INITIAL_SVM_USDC_BALANCE` | Optional | `0` | Initial USDC balance on Solana |
+| `INITIAL_SVM_USDT_BALANCE` | Optional | `0` | Initial USDT balance on Solana |
+| `INITIAL_EVM_ETH_BALANCE` | Optional | `0` | Initial ETH balance for all EVM chains |
+| `INITIAL_EVM_USDC_BALANCE` | Optional | `0` | Initial USDC balance for all EVM chains |
+| `INITIAL_EVM_USDT_BALANCE` | Optional | `0` | Initial USDT balance for all EVM chains |
+| **Chain-Specific Balances** |
+| `INITIAL_ETH_ETH_BALANCE` | Optional | `0` | Initial ETH balance on Ethereum |
+| `INITIAL_ETH_USDC_BALANCE` | Optional | `0` | Initial USDC balance on Ethereum |
+| `INITIAL_POLYGON_MATIC_BALANCE` | Optional | `0` | Initial MATIC balance on Polygon |
+| `INITIAL_POLYGON_USDC_BALANCE` | Optional | `0` | Initial USDC balance on Polygon |
+| `INITIAL_BASE_ETH_BALANCE` | Optional | `0` | Initial ETH balance on Base |
+| `INITIAL_BASE_USDC_BALANCE` | Optional | `0` | Initial USDC balance on Base |
+
+### Portfolio & Price Tracking
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `PORTFOLIO_SNAPSHOT_INTERVAL_MS` | Optional | `120000` (2 minutes) | Interval for taking portfolio snapshots |
+| `PORTFOLIO_PRICE_FRESHNESS_MS` | Optional | `600000` (10 minutes) | Maximum age of price data before refreshing |
+| `PRICE_CACHE_DURATION_MS` | Optional | `60000` (1 minute) | Duration to cache price data in memory |
+| `PRICE_BACKFILL_DAYS` | Optional | `7` | Number of days to backfill for price history |
+| `PRICE_HISTORY_INTERVAL_MINUTES` | Optional | `30` | Interval between price history data points |
+
+### External API Integration
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `DEXSCREENER_API_URL` | Optional | Default DexScreener URL | DexScreener API endpoint |
+| `NOVES_API_URL` | Optional | Default Noves URL | Noves API endpoint |
+| `JUPITER_API_URL` | Optional | Default Jupiter URL | Jupiter API endpoint |
+| `EXTERNAL_API_TIMEOUT_MS` | Optional | `5000` (5 seconds) | Timeout for external API requests |
+| `FALLBACK_TO_SECONDARY_PROVIDERS` | Optional | `true` | Fall back to secondary price providers if primary fails |
+
+### Performance Tuning
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `MAX_CONCURRENT_REQUESTS` | Optional | `10` | Maximum concurrent external API requests |
+| `ENABLE_QUERY_LOGGING` | Optional | `false` | Enable database query logging |
+| `ENABLE_PERFORMANCE_METRICS` | Optional | `true` | Enable performance metrics collection |
+| `CHAIN_DETECTION_TIMEOUT_MS` | Optional | `3000` (3 seconds) | Timeout for chain detection |
+
+### Hierarchy & Precedence
+
+The system follows specific rules for resolving settings when multiple related variables exist:
+
+1. **Initial Balances**: Uses the most specific setting available:
+   - Chain-specific balances (e.g., `INITIAL_ETH_USDC_BALANCE`)
+   - Blockchain type balances (e.g., `INITIAL_EVM_USDC_BALANCE`)
+   - Legacy balances (e.g., `INITIAL_USDC_BALANCE`)
+   - Zero (default)
+
+2. **Database Connection**: Uses the most comprehensive setting available:
+   - `DATABASE_URL` connection string
+   - Individual parameters (`DATABASE_HOST`, `DATABASE_PORT`, etc.)
+
+3. **Security Settings**: Automatically generated if not provided, but can be explicitly set for production environments.
+
+### Testing Configuration
+
+For end-to-end testing, configure the `.env.test` file with appropriate values. The test suite requires sufficient token balances to execute trade-related tests successfully.
+
 ## Next Steps
 
 The following features are planned for upcoming development:
@@ -770,7 +922,7 @@ For more information on the E2E testing architecture, see the [E2E test document
 
 ## Portfolio Snapshots
 
-The system automatically takes snapshots of team portfolios at regular intervals for performance tracking. The snapshot interval is configurable via environment variables:
+The system automatically takes snapshots of team portfolios at regular intervals for performance tracking. The snapshot interval is configurable via environment variables in your `.env` file:
 
 ```
 # Configure portfolio snapshot interval in milliseconds (default: 2 minutes)
@@ -798,7 +950,7 @@ GET /api/admin/competition/:competitionId/snapshots
 
 ## Cross-Chain Trading Configuration
 
-The trading simulator supports two modes of operation for cross-chain trading:
+The trading simulator supports two modes of operation for cross-chain trading, configurable in your `.env` file:
 
 ### Allowed Cross-Chain Trading
 
@@ -826,7 +978,7 @@ This mode is useful for:
 
 ### Implementation
 
-Configure this option in your `.env` file:
+Configure this option in your `.env` file after copying from `.env.example`:
 
 ```
 # Set to true to enable trades between different chains (disabled by default)

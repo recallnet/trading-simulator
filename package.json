@@ -26,13 +26,9 @@
     "db:reset": "npm run db:clean && npm run db:init",
     "db:migrate": "ts-node src/database/migrate.ts",
     "db:migrate:admin": "ts-node scripts/add-admin-field.ts",
-    "db:encrypt-secrets": "ts-node scripts/encrypt-api-secrets.ts",
     "generate:secrets": "ts-node scripts/generate-secrets.ts",
     "setup:admin": "ts-node scripts/setup-admin.ts",
-    "setup:all": "ts-node scripts/setup-everything.ts",
-    "setup:all:legacy": "npm run generate:secrets && npm run db:init && npm run db:migrate && npm run build && (npm run start & sleep 5 && npm run setup:admin && kill $!)",
-    "setup": "npm run generate:secrets && npm run db:init && npm run db:migrate && npm run db:encrypt-secrets",
-    "setup:secrets": "npm run generate:secrets && npm run db:encrypt-secrets"
+    "setup:all": "ts-node scripts/setup-everything.ts"
   },
   "keywords": [
     "solana",

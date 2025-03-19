@@ -2,428 +2,34 @@
 
 ## 1. Introduction
 
-This document outlines the technical specifications for a standalone Solana Trading Simulator Server designed to host a competition that involves simulated trading. The server will allow multiple teams to connect via unique API keys, submit trade requests, and keep track of individual team performances.
+This document outlines the technical specifications for a standalone Multi-Chain Trading Simulator Server designed to host a competition that involves simulated trading across multiple blockchains. The server will allow multiple teams to connect via unique API keys, submit trade requests, and keep track of individual team performances across different blockchain networks.
 
 ## 2. Project Overview
 
 ### 2.1 Purpose
 
-The Solana Trading Simulator Server will provide a controlled environment for teams to practice and compete in simulated trading on the Solana blockchain without risking real assets. This will allow participants to:
+The Multi-Chain Trading Simulator Server will provide a controlled environment for teams to practice and compete in simulated trading across multiple blockchains (Ethereum, Polygon, Base, Solana, and more) without risking real assets. This will allow participants to:
 
-- Execute trades using virtual balances
-- Track performance over time
-- Compare results with other participants
-- Learn about Solana token trading in a safe environment
-
-### 2.2 Key Features
-
-- Team registration and API key management
-- Token price simulation using real market data
-- Trade execution with configurable parameters
-- Balance and portfolio tracking
-- Performance analytics and leaderboards
-- Administrative dashboard for competition management
-
-### 2.3 Reference Implementation
-
-A reference implementation of the core trading functionality can be found in the `plugin-simulator-solana-example` directory. This implementation was originally created as a plugin for a separate application and should be used as guidance rather than directly integrated.
-
-#### 2.3.1 Reference Architecture
-
-The example implementation includes:
-
-- **Price Tracking**: Multi-provider approach for fetching token prices (Jupiter, Raydium, Serum, and Solana)
-- **Balance Management**: Simple balance tracking for different tokens
-- **Trade Simulation**: Basic trade execution with price-based calculations
-- **API Actions**: Example endpoints for executing trades and fetching data
-
-#### 2.3.2 Adaptation Notes
-
-When using the reference implementation:
-
-- The core trading simulation logic in `services/TradeSimulator.ts` can be largely reused
-- The price tracking mechanism in `services/PriceTracker.ts` with multiple providers is a robust approach to adopt
-- The balance management in `services/BalanceManager.ts` provides a foundation but needs to be extended for multi-team support
-- The API interface in `actions/` directory needs to be redesigned for a standalone server architecture
-- The existing implementation lacks competition management features which need to be built from scratch
-- Authentication and authorization need significant enhancement for the multi-team server model
-
-Developers should use the reference implementation to understand the core trading mechanics while building a new standalone application that fulfills all the requirements in this specification.
-
-## 3. System Architecture
-
-### 3.1 High-Level Architecture
-
-```
-┌───────────────────┐    ┌───────────────────┐    ┌───────────────────┐
-│                   │    │                   │    │                   │
-│  Client Teams     │◄──►│  API Gateway      │◄──►│  Authentication   │
-│  (Competitors)    │    │  Rate Limiting    │    │  & Authorization  │
-│                   │    │                   │    │                   │
-└───────────────────┘    └─────────┬─────────┘    └────────┬──────────┘
-                                   │                       │
-                                   ▼                       ▼
-                     ┌─────────────────────────────────────────────┐
-                     │                                             │
-                     │              Core Services                  │
-                     │                                             │
-                     │  ┌─────────────┐     ┌─────────────────┐   │
-                     │  │ Trading     │     │ Account         │   │
-                     │  │ Service     │◄───►│ Manager         │   │
-                     │  └─────────────┘     └─────────────────┘   │
-                     │         │                   │              │
-                     │         ▼                   ▼              │
-                     │  ┌─────────────┐     ┌─────────────────┐   │
-                     │  │ Price       │     │ Competition     │   │
-                     │  │ Tracker     │     │ Manager         │   │
-                     │  └─────────────┘     └─────────────────┘   │
-                     │                                             │
-                     └────────────────┬────────────────────────────┘
-                                      │
-                                      ▼
-                     ┌─────────────────────────────────────────────┐
-                     │                                             │
-                     │              Data Storage                   │
-                     │                                             │
-                     │  ┌─────────────┐     ┌─────────────────┐   │
-                     │  │ User        │     │ Trading         │   │
-                     │  │ Database    │     │ Database        │   │
-                     │  └─────────────┘     └─────────────────┘   │
-                     │                                             │
-                     └─────────────────────────────────────────────┘
-```
-
-### 3.2 Service Components
-
-#### 3.2.1 API Gateway
-- Handles all incoming requests
-- Implements rate limiting
-- Routes requests to appropriate services
-- Handles request validation
-
-#### 3.2.2 Authentication & Authorization
-- API key validation
-- Team identity management
-- Permission enforcement
-- Rate limit enforcement per team
-  - 100 requests per minute for trade operations
-  - 300 requests per minute for price queries
-  - 30 requests per minute for balance/portfolio checks
-  - 3,000 requests per minute across all endpoints
-  - 10,000 requests per hour per team
-
-#### 3.2.3 Trading Service
-- Processes trade requests
-- Validates trade parameters
-- Executes simulated trades
-- Records trade history
-- Implements slippage simulation:
-  ```
-  baseSlippage = (tradeAmountUSD / 10000) * 0.05%
-  actualSlippage = baseSlippage * (0.9 + (Math.random() * 0.2))
-  finalAmount = expectedAmount * (1 - actualSlippage)
-  ```
-
-#### 3.2.4 Account Manager
-- Manages virtual balances
-- Tracks portfolio values
-- Handles initial balance allocation
-  - Default: 10 SOL, 1000 USDC, 1000 USDT per team
-- Updates account states after trades
-
-#### 3.2.5 Price Tracker
-- Fetches and caches real token price data
-- Provides historical price information
-- Uses multiple data sources with fallback mechanisms:
-  - Primary: Jupiter
-  - Secondary: Raydium
-  - Tertiary: Serum
-  - Fallback: Basic Solana chain data
-- Trades rejected if no valid price data available for tokens
-- 30-second cache for price data to reduce API load
-
-#### 3.2.6 Competition Manager
-- Manages competition lifecycle with simple start/end functionality
-- Competition starts when admins call start endpoint
-  - Resets team balances
-  - Enables trading endpoints
-  - Records start timestamp
-- Competition ends when admins call end endpoint
-  - Disables trading (read-only mode)
-  - Records end timestamp
-  - Calculates final rankings
-- Tracks team rankings
-- Generates performance reports
-
-### 3.3 Data Storage
-
-#### 3.3.1 User Database
-- Team information
-- API key management (using secure hashing)
-- Authentication records
-- Team settings and preferences
-
-#### 3.3.2 Trading Database
-- Account balances
-- Transaction history
-- Price history
-- Competition metrics
-
-## 4. API Specifications
-
-### 4.1 Authentication
-
-```
-POST /api/auth/login
-POST /api/auth/validate
-```
-
-All protected endpoints require:
-- API Key in request header (`X-API-Key`)
-- Request timestamp in header (`X-Timestamp`)
-- HMAC signature in header (`X-Signature`)
-  - Signature = HMAC-SHA256(requestMethod + path + timestamp + requestBody, apiSecret)
-
-### 4.2 Account Management
-
-```
-GET /api/account/balances
-GET /api/account/portfolio
-GET /api/account/trades
-```
-
-### 4.3 Trading Operations
-
-```
-POST /api/trade/execute
-  Payload: {
-    "fromToken": "string",
-    "toToken": "string",
-    "amount": number,
-    "slippageTolerance": number (optional)
-  }
-  
-  Notes:
-  - Slippage is calculated using the formula defined in section 3.2.3
-  - Minimum trade amount: 0.000001 tokens
-  - Maximum single trade: 25% of team's total portfolio value
-  - Transaction fees are not simulated in the MVP
-
-GET /api/trade/quote
-  Query parameters: fromToken, toToken, amount
-```
-
-### 4.4 Price Information
-
-```
-GET /api/price/current
-  Query parameters: token
-  
-GET /api/price/history
-  Query parameters: token, timeframe
-```
-
-### 4.5 Competition Information
-
-```
-GET /api/competition/leaderboard
-GET /api/competition/status
-GET /api/competition/rules
-```
-
-### 4.6 Admin Operations
-
-```
-POST /api/admin/teams/register
-  Payload: {
-    "teamName": "string",
-    "email": "string",
-    "contactPerson": "string"
-  }
-  Response: {
-    "teamId": "uuid",
-    "apiKey": "generated-api-key",
-    "secret": "generated-secret"
-  }
-
-POST /api/admin/competition/start
-  - Creates a new competition instance
-  - Resets team balances to predetermined values
-  - Enables trading API endpoints
-  - Returns competition ID and start timestamp
-
-POST /api/admin/competition/end
-  - Disables trading API endpoints (read-only mode)
-  - Records end timestamp
-  - Calculates and finalizes team rankings
-  - Returns competition summary
-
-GET /api/admin/reports/performance
-```
-
-## 5. Security Considerations
-
-### 5.1 API Security
-- Use of HTTPS for all connections
-- API key authentication with HMAC signatures for all endpoints
-- Rate limiting to prevent abuse
-- Input validation to prevent injection attacks
-- API keys are 32+ random characters with high entropy
-- Secrets stored using bcrypt/argon2 hashing
-
-### 5.2 Data Protection
-- Encrypted storage of sensitive data
-- Backup and recovery procedures
-- Audit logging for all operations
-- Isolation between team data
-
-## 6. Scalability Considerations
-
-### 6.1 Horizontal Scaling
-- Stateless API design to allow multiple instances
-- Load balancing for API endpoints
-- Database sharding strategies for high volumes
-- Caching layers for frequent data access
-
-### 6.2 Performance Optimization
-- Optimized database queries
-- Efficient trade execution algorithms
-- Background processing for non-critical operations
-- 30-second price data caching to reduce external API calls
-
-## 7. Deployment Architecture
-
-### 7.1 Infrastructure
-- Cloud-based deployment (AWS/GCP/Azure)
-- Containerized services with Docker
-- CI/CD pipeline for automated deployments
-
-### 7.2 Environment Strategy
-- Development environment
-- Staging environment
-- Production environment
-- Monitoring and logging infrastructure
-
-## 8. Implementation Plan
-
-### 8.1 Phase 1: Core Infrastructure
-- Set up base server architecture
-- Implement authentication system
-- Develop basic trading functionality
-- Create initial database schema
-
-### 8.2 Phase 2: Trading Functionality
-- Implement price tracking service
-- Develop trade execution engine
-- Build account management features
-- Create API endpoints for trading
-
-### 8.3 Phase 3: Competition Features
-- Develop team registration system
-- Create leaderboard functionality
-- Implement competition start/end controls
-- Build administrative dashboard
-
-### 8.4 Phase 4: Testing and Optimization
-- Conduct load testing
-- Optimize performance
-- Fix identified issues
-- Security audit
-
-### 8.5 Phase 5: Deployment and Operations
-- Deploy to production environment
-- Establish monitoring and alerting
-- Prepare operational documentation
-- Conduct final end-to-end testing
-
-## 9. Technology Stack
-
-### 9.1 Backend
-- Node.js with TypeScript
-- Express.js for API server
-- Redis for caching and rate limiting
-
-### 9.2 Database
-- PostgreSQL for relational data
-- TimescaleDB for time-series data (price history)
-- Redis for caching and session management
-
-### 9.3 DevOps
-- Docker for containerization
-- GitHub Actions for CI/CD
-- Prometheus and Grafana for monitoring
-
-## 10. Testing Strategy
-
-### 10.1 Unit Testing
-- Test individual components in isolation
-- Use Jest for automated testing
-- Aim for high test coverage of core functionality
-
-### 10.2 Integration Testing
-- Test interaction between components
-- Validate API contracts
-- Ensure data flow integrity
-
-### 10.3 Load Testing
-- Simulate high concurrency scenarios
-- Validate system performance under load
-- Identify bottlenecks and optimization opportunities
-
-### 10.4 Security Testing
-- Penetration testing
-- API security validation
-- Vulnerability scanning
-
-## 11. Trading Rules and Constraints
-
-- Trading is only allowed for tokens with valid price data
-- If price data cannot be fetched from any provider, trades for that token will be rejected
-- All teams start with identical token balances (10 SOL, 1000 USDC, 1000 USDT)
-- Minimum trade amount: 0.000001 tokens
-- Maximum single trade: 25% of team's total portfolio value
-- No shorting allowed (trades limited to available balance)
-- Rate limiting as defined in section 3.2.2
-- Teams can only trade during active competition periods
-- Slippage is applied to all trades according to the formula in section 3.2.3
-- Transaction fees are not simulated in the MVP
-
-## 12. Conclusion
-
-This technical specification outlines the architecture and implementation plan for the Solana Trading Simulator Server. The document will guide the development team in building a robust, scalable platform that can support a trading competition with multiple teams accessing the system via API keys. 
-
-# Multi-Chain Trading Simulator - Technical Specification
-
-## 1. Introduction
-
-This document outlines the technical specifications for a standalone Multi-Chain Trading Simulator Server designed to host trading competitions across multiple blockchains (Ethereum, Polygon, Base, Solana, and more). The server allows multiple teams to connect via unique API keys, submit trade requests, and track their performance without risking real assets.
-
-## 2. Project Overview
-
-### 2.1 Purpose
-
-The Multi-Chain Trading Simulator Server provides a controlled environment for teams to practice and compete in simulated trading across multiple blockchains without risking real assets. This allows participants to:
-
-- Execute trades using virtual balances on multiple chains (Ethereum, Polygon, Base, Solana, etc.)
-- Perform cross-chain trades
+- Execute trades using virtual balances across multiple chains
+- Perform cross-chain trading (if enabled)
 - Track performance over time across their entire portfolio
 - Compare results with other participants
-- Learn about multi-chain trading dynamics in a safe environment
+- Learn about multi-chain token trading in a safe environment
 
 ### 2.2 Key Features
 
 - Team registration and API key management with HMAC authentication
-- Token price tracking from DexScreener API with support for all major chains
+- Token price simulation using real market data from multiple chains
 - Multi-chain trade execution with configurable parameters
-- Cross-chain trading capabilities
-- Balance and portfolio tracking across multiple chains
+- Cross-chain trading capabilities (optional)
+- Balance and portfolio tracking across multiple blockchains
 - Performance analytics and leaderboards
 - Administrative dashboard for competition management
-- Chain override feature for performance optimization
+- Chain override feature for high-performance price lookups
 
 ### 2.3 Reference Implementation
 
-The reference implementation provides the foundation for the multi-chain trading simulator. This implementation has been enhanced to support multiple blockchains, improved price data sources, and more efficient API responses.
+A reference implementation of the core trading functionality can be found in the project repository. This implementation has been enhanced to support multiple blockchains, improved price data sources, and more efficient API responses.
 
 #### 2.3.1 Current Architecture
 
@@ -434,6 +40,16 @@ The current implementation includes:
 - **Trade Simulation**: Advanced trade execution with support for cross-chain trades
 - **Chain Detection**: Automatic detection of token chains with optional override for performance optimization
 - **API Actions**: Comprehensive endpoints for executing trades and fetching data across chains
+
+#### 2.3.2 Adaptation Notes
+
+The core trading simulation logic has been extended to support:
+
+- Multiple blockchain networks (EVM chains like Ethereum, Polygon, Base, and SVM chains like Solana)
+- Cross-chain trading capabilities
+- Enhanced price tracking with chain detection and override
+- Optimized API responses with chain-specific data
+- Comprehensive team management and competition features
 
 ## 3. System Architecture
 
@@ -493,7 +109,7 @@ The current implementation includes:
 - Handles request validation
 
 #### 3.2.2 Authentication & Authorization
-- API key validation with HMAC signatures
+- API key validation
 - Team identity management
 - Permission enforcement
 - Rate limit enforcement per team
@@ -508,34 +124,45 @@ The current implementation includes:
 - Validates trade parameters
 - Executes simulated trades with chain awareness
 - Records trade history with chain information
-- Implements slippage simulation
-- Supports cross-chain trading
+- Implements slippage simulation:
+  ```
+  baseSlippage = (tradeAmountUSD / 10000) * 0.05%
+  actualSlippage = baseSlippage * (0.9 + (Math.random() * 0.2))
+  finalAmount = expectedAmount * (1 - actualSlippage)
+  ```
+- Supports cross-chain trading (if enabled)
 
 #### 3.2.4 Account Manager
 - Manages virtual balances across multiple chains
-- Tracks multi-chain portfolio values
-- Handles initial balance allocation for each chain
+- Tracks portfolio values across all supported blockchains
+- Handles initial balance allocation for each supported chain
+  - Default balances configurable via environment variables
+  - Chain-specific balance overrides available
 - Updates account states after trades
+- Maintains separate balances for each blockchain
 
 #### 3.2.5 Price Tracker
 - Fetches and caches token price data across all supported chains
 - Provides historical price information with chain context
-- Uses DexScreener API through MultiChainProvider
-- Supports chain override feature for performance optimization
+- Uses multiple data sources with fallback mechanisms:
+  - Primary: DexScreener API for all chains
+  - Secondary providers for specific chains
+- Supports chain override feature for optimized performance
+  - 10-20x faster price lookups with specific chain information
 - Trades rejected if no valid price data available for tokens
 - 30-second cache for price data to reduce API load
 
 #### 3.2.6 Multi-Chain Provider
 - Determines token chain (EVM or SVM)
-- Fetches prices from DexScreener API
+- Fetches prices from various providers based on chain
 - Supports specific chain overrides for EVM tokens
 - Provides token information with chain details
-- 10-20x performance improvement with chain override
+- Handles chain-specific price formatting and normalization
 
 #### 3.2.7 Competition Manager
 - Manages competition lifecycle with simple start/end functionality
 - Competition starts when admins call start endpoint
-  - Resets team balances across all chains
+  - Resets team balances
   - Enables trading endpoints
   - Records start timestamp
 - Competition ends when admins call end endpoint
@@ -554,9 +181,9 @@ The current implementation includes:
 - Team settings and preferences
 
 #### 3.3.2 Trading Database
-- Account balances with chain information
-- Transaction history with chain context
-- Price history with chain details
+- Account balances
+- Transaction history
+- Price history
 - Competition metrics
 
 ## 4. API Specifications
@@ -578,14 +205,74 @@ All protected endpoints require:
 
 ```
 GET /api/account/balances
-  - Returns balances across all chains
+  Returns balances across all supported chains
+  
+  Response: {
+    "success": true,
+    "teamId": "string",
+    "balances": [
+      { "token": "string", "amount": number, "chain": "string", "specificChain": "string" }
+    ]
+  }
+  
+  Note: Client typically transforms this to a more convenient format:
+  {
+    "success": true,
+    "teamId": "string",
+    "balance": {
+      "tokenAddress1": number,
+      "tokenAddress2": number
+    }
+  }
 
 GET /api/account/portfolio
-  - Returns portfolio value and composition across chains
+  Returns portfolio value and composition across chains
+  
+  Response: {
+    "success": true,
+    "teamId": "string",
+    "portfolioValue": number,
+    "tokens": [
+      { 
+        "token": "string", 
+        "amount": number,
+        "valueUsd": number,
+        "chain": "string",
+        "specificChain": "string"
+      }
+    ]
+  }
 
 GET /api/account/trades
-  - Query parameters: chain, token, limit, offset
-  - Returns trade history with chain information
+  Query parameters: 
+    - chain (optional): Filter by blockchain type ("svm" or "evm")
+    - token (optional): Filter by token address
+    - limit (optional): Number of trades to return (default: 100)
+    - offset (optional): Pagination offset (default: 0)
+  
+  Returns trade history with chain information
+  
+  Response: {
+    "success": true,
+    "teamId": "string",
+    "trades": [
+      {
+        "id": "string",
+        "timestamp": "string",
+        "fromToken": "string",
+        "toToken": "string",
+        "fromAmount": "string",
+        "toAmount": "string",
+        "fromChain": "string",
+        "toChain": "string",
+        "fromSpecificChain": "string",
+        "toSpecificChain": "string",
+        "status": "string"
+      }
+    ],
+    "count": number,
+    "total": number
+  }
 ```
 
 ### 4.3 Trading Operations
@@ -596,18 +283,56 @@ POST /api/trade/execute
     "fromToken": "string",  // Token address to sell
     "toToken": "string",    // Token address to buy
     "amount": "string",     // Amount to trade (as a string to preserve precision)
-    "price": "string",      // Optional price to use
-    "slippageTolerance": "string"  // Optional slippage tolerance (default: "0.5")
+    "slippageTolerance": "string" (optional),  // Default: "0.5"
+    "fromChain": "string" (optional),  // "svm" or "evm"
+    "toChain": "string" (optional),    // "svm" or "evm"
+    "fromSpecificChain": "string" (optional),  // e.g., "eth", "polygon", "base"
+    "toSpecificChain": "string" (optional)     // e.g., "eth", "polygon", "base"
+  }
+  
+  Response: {
+    "success": true,
+    "trade": {
+      "id": "string",
+      "fromToken": "string",
+      "toToken": "string",
+      "fromAmount": "string",
+      "toAmount": "string",
+      "fromChain": "string",
+      "toChain": "string",
+      "timestamp": "string",
+      "status": "completed"
+    }
   }
   
   Notes:
-  - Supports cross-chain trading automatically
-  - Will detect chains based on token addresses
+  - Cross-chain trading configurable via environment variables
+  - Chain detection based on token address format
   - Minimum trade amount: 0.000001 tokens
   - Maximum single trade: 25% of team's total portfolio value
+  - Transaction fees are not simulated in the MVP
 
 GET /api/trade/quote
-  Query parameters: fromToken, toToken, amount
+  Query parameters: 
+    - fromToken (required): Token address to sell
+    - toToken (required): Token address to buy
+    - amount (required): Amount to trade
+    - fromChain (optional): "svm" or "evm"
+    - toChain (optional): "svm" or "evm"
+    - fromSpecificChain (optional): e.g., "eth", "polygon", "base"
+    - toSpecificChain (optional): e.g., "eth", "polygon", "base"
+  
+  Response: {
+    "success": true,
+    "quote": {
+      "fromToken": "string",
+      "toToken": "string",
+      "fromAmount": "string",
+      "estimatedToAmount": "string",
+      "exchangeRate": "string",
+      "timestamp": "string"
+    }
+  }
 ```
 
 ### 4.4 Price Information
@@ -619,6 +344,15 @@ GET /api/price
     - chain (optional): "svm" or "evm" to override automatic detection
     - specificChain (optional): "eth", "polygon", "base", etc. for EVM tokens
   
+  Response: {
+    "success": true,
+    "token": "string",
+    "price": number,
+    "chain": "string",
+    "specificChain": "string",
+    "timestamp": "string"
+  }
+  
   Notes:
   - Using specificChain improves response time from 1-3 seconds to 50-100ms
   
@@ -628,6 +362,18 @@ GET /api/price/token-info
     - chain (optional): "svm" or "evm"
     - specificChain (optional): For EVM tokens
   
+  Response: {
+    "success": true,
+    "token": "string",
+    "name": "string",
+    "symbol": "string",
+    "decimals": number,
+    "chain": "string",
+    "specificChain": "string",
+    "price": number,
+    "timestamp": "string"
+  }
+  
 GET /api/price/history
   Query parameters: 
     - token (required): Token address
@@ -636,14 +382,65 @@ GET /api/price/history
     - interval (optional): "1m", "5m", "15m", "1h", "4h", "1d"
     - chain (optional): "svm" or "evm"
     - specificChain (optional): For EVM tokens
+  
+  Response: {
+    "success": true,
+    "token": "string",
+    "chain": "string",
+    "specificChain": "string",
+    "prices": [
+      {
+        "timestamp": "string",
+        "price": number
+      }
+    ]
+  }
 ```
 
 ### 4.5 Competition Information
 
 ```
 GET /api/competition/leaderboard
+  Response: {
+    "success": true,
+    "competition": {
+      "id": "string",
+      "name": "string",
+      "status": "string"
+    },
+    "leaderboard": [
+      {
+        "teamId": "string",
+        "teamName": "string",
+        "portfolioValue": number,
+        "rank": number,
+        "change24h": number
+      }
+    ]
+  }
+
 GET /api/competition/status
+  Response: {
+    "success": true,
+    "competition": {
+      "id": "string",
+      "name": "string",
+      "description": "string",
+      "status": "string",
+      "startTime": "string",
+      "endTime": "string"
+    },
+    "isActive": boolean,
+    "timeRemaining": number
+  }
+
 GET /api/competition/rules
+  Response: {
+    "success": true,
+    "rules": [
+      "string"
+    ]
+  }
 ```
 
 ### 4.6 Admin Operations
@@ -656,24 +453,113 @@ POST /api/admin/teams/register
     "contactPerson": "string"
   }
   Response: {
-    "teamId": "uuid",
-    "apiKey": "generated-api-key",
-    "secret": "generated-secret"
+    "success": true,
+    "team": {
+      "id": "string",
+      "name": "string",
+      "email": "string",
+      "contactPerson": "string",
+      "apiKey": "string",
+      "apiSecret": "string",
+      "createdAt": "string"
+    }
+  }
+
+GET /api/admin/teams
+  Returns list of all registered teams
+  
+  Response: {
+    "success": true,
+    "teams": [
+      {
+        "id": "string",
+        "name": "string",
+        "email": "string",
+        "contactPerson": "string",
+        "createdAt": "string"
+      }
+    ]
+  }
+
+DELETE /api/admin/teams/{teamId}
+  Deletes a team by ID
+  
+  Response: {
+    "success": true,
+    "message": "Team deleted successfully"
   }
 
 POST /api/admin/competition/start
+  Payload: {
+    "name": "string",
+    "description": "string",
+    "teamIds": ["string"]
+  }
+  
+  Response: {
+    "success": true,
+    "competition": {
+      "id": "string",
+      "name": "string",
+      "description": "string",
+      "status": "active",
+      "startTime": "string"
+    }
+  }
+  
+  Notes:
   - Creates a new competition instance
   - Resets team balances across all chains to predetermined values
   - Enables trading API endpoints
   - Returns competition ID and start timestamp
 
 POST /api/admin/competition/end
+  Payload: {
+    "competitionId": "string"
+  }
+  
+  Response: {
+    "success": true,
+    "competition": {
+      "id": "string",
+      "name": "string",
+      "status": "completed",
+      "startTime": "string",
+      "endTime": "string",
+      "finalRankings": [
+        {
+          "teamId": "string",
+          "teamName": "string",
+          "rank": number,
+          "portfolioValue": number
+        }
+      ]
+    }
+  }
+  
+  Notes:
   - Disables trading API endpoints (read-only mode)
   - Records end timestamp
   - Calculates and finalizes team rankings
   - Returns competition summary
 
 GET /api/admin/reports/performance
+  Response: {
+    "success": true,
+    "systemPerformance": {
+      "totalRequests": number,
+      "avgResponseTime": number,
+      "errorRate": number
+    },
+    "teamActivity": [
+      {
+        "teamId": "string",
+        "teamName": "string",
+        "totalTrades": number,
+        "requestsLastHour": number
+      }
+    ]
+  }
 ```
 
 ## 5. Security Considerations
@@ -684,10 +570,7 @@ GET /api/admin/reports/performance
 - Rate limiting to prevent abuse
 - Input validation to prevent injection attacks
 - API keys are 32+ random characters with high entropy
-- API secrets stored using secure methods:
-  - Bcrypt hash for authentication
-  - Encrypted version for HMAC validation
-- Master encryption key for additional security
+- Secrets stored using bcrypt/argon2 hashing
 
 ### 5.2 Data Protection
 - Encrypted storage of sensitive data
@@ -704,11 +587,10 @@ GET /api/admin/reports/performance
 - Caching layers for frequent data access
 
 ### 6.2 Performance Optimization
-- Chain override feature for 10-20x faster price lookups
-- Optimized database queries with chain-specific indexes
+- Optimized database queries
 - Efficient trade execution algorithms
 - Background processing for non-critical operations
-- Price data caching to reduce external API calls
+- 30-second price data caching to reduce external API calls
 
 ## 7. Multi-Chain Support
 
@@ -732,7 +614,7 @@ GET /api/admin/reports/performance
 - Optional chain override for improved performance
 
 ### 7.3 Cross-Chain Trading
-- Seamless trading between different chains
+- Seamless trading between different chains (if enabled)
 - Automatic conversion using current market rates
 - Chain-specific balance updates
 - Tracking of cross-chain trade history
@@ -748,31 +630,31 @@ Set initial balances for each chain using environment variables:
 
 #### 8.1.1 Solana (SVM) Token Balances
 ```
-INITIAL_SVM_SOL_BALANCE=0       # Initial SOL balance
-INITIAL_SVM_USDC_BALANCE=10000  # Initial USDC balance on Solana
-INITIAL_SVM_USDT_BALANCE=0      # Initial USDT balance on Solana
+INITIAL_SVM_SOL_BALANCE=10      # Initial SOL balance
+INITIAL_SVM_USDC_BALANCE=5000   # Initial USDC balance on Solana
+INITIAL_SVM_USDT_BALANCE=1000   # Initial USDT balance on Solana
 ```
 
 #### 8.1.2 Ethereum (EVM) Token Balances - General
 ```
-INITIAL_EVM_ETH_BALANCE=0       # Initial ETH balance
-INITIAL_EVM_USDC_BALANCE=1000   # Initial USDC balance on Ethereum
-INITIAL_EVM_USDT_BALANCE=0      # Initial USDT balance on Ethereum
+INITIAL_EVM_ETH_BALANCE=1       # Initial ETH balance
+INITIAL_EVM_USDC_BALANCE=5000   # Initial USDC balance on Ethereum
+INITIAL_EVM_USDT_BALANCE=1000   # Initial USDT balance on Ethereum
 ```
 
 #### 8.1.3 Specific EVM Chain Balances
 ```
 # Ethereum Mainnet Specific Balances
 INITIAL_ETH_ETH_BALANCE=1       # Initial ETH balance on Ethereum Mainnet
-INITIAL_ETH_USDC_BALANCE=1000   # Initial USDC balance on Ethereum Mainnet
+INITIAL_ETH_USDC_BALANCE=5000   # Initial USDC balance on Ethereum Mainnet
 
 # Polygon Specific Balances
 INITIAL_POLYGON_MATIC_BALANCE=10  # Initial MATIC balance on Polygon
-INITIAL_POLYGON_USDC_BALANCE=1000 # Initial USDC balance on Polygon
+INITIAL_POLYGON_USDC_BALANCE=5000 # Initial USDC balance on Polygon
 
 # Base Specific Balances
 INITIAL_BASE_ETH_BALANCE=1        # Initial ETH balance on Base
-INITIAL_BASE_USDC_BALANCE=1000    # Initial USDC balance on Base
+INITIAL_BASE_USDC_BALANCE=5000    # Initial USDC balance on Base
 ```
 
 ### 8.2 Chain Priority Configuration
@@ -781,35 +663,7 @@ INITIAL_BASE_USDC_BALANCE=1000    # Initial USDC balance on Base
 EVM_CHAINS=eth,polygon,base,arbitrum,optimism,bsc,avalanche,linea
 ```
 
-## 9. Technology Stack
-
-### 9.1 Backend
-- Node.js with TypeScript
-- Express.js for API server
-- PostgreSQL for database
-- Redis for caching and rate limiting
-
-### 9.2 Integrations
-- DexScreener API for multi-chain price data
-
-### 9.3 DevOps
-- Docker for containerization
-- GitHub Actions for CI/CD
-- Prometheus and Grafana for monitoring
-
-## 10. Trading Rules and Constraints
-
-- Trading is only allowed for tokens with valid price data
-- If price data cannot be fetched, trades for that token will be rejected
-- Teams start with configured balances for each chain
-- Minimum trade amount: 0.000001 tokens
-- Maximum single trade: 25% of team's total portfolio value
-- No shorting allowed (trades limited to available balance)
-- Rate limiting as defined in section 3.2.2
-- Teams can only trade during active competition periods
-- Slippage is applied to all trades
-
-## 11. Chain Override Performance Optimization
+## 9. Chain Override Performance Optimization
 
 The chain override feature significantly improves API response times when fetching token prices on EVM chains:
 
@@ -835,6 +689,104 @@ const TOKEN_CHAINS = {
 };
 ```
 
-## 12. Conclusion
+## 10. Deployment Architecture
 
-This technical specification outlines the architecture and implementation of the Multi-Chain Trading Simulator Server. The document serves as a guide for understanding the system's capabilities, API endpoints, and configuration options, with a particular focus on the multi-chain architecture and performance optimizations. 
+### 10.1 Infrastructure
+- Cloud-based deployment (AWS/GCP/Azure)
+- Containerized services with Docker
+- CI/CD pipeline for automated deployments
+
+### 10.2 Environment Strategy
+- Development environment
+- Staging environment
+- Production environment
+- Monitoring and logging infrastructure
+
+## 11. Implementation Plan
+
+### 11.1 Phase 1: Core Infrastructure
+- Set up base server architecture
+- Implement authentication system
+- Develop basic trading functionality
+- Create initial database schema
+
+### 11.2 Phase 2: Trading Functionality
+- Implement price tracking service with multi-chain support
+- Develop trade execution engine with chain awareness
+- Build account management features for multiple chains
+- Create API endpoints for trading
+
+### 11.3 Phase 3: Competition Features
+- Develop team registration system
+- Create leaderboard functionality
+- Implement competition start/end controls
+- Build administrative dashboard
+
+### 11.4 Phase 4: Testing and Optimization
+- Conduct load testing
+- Optimize performance with chain override feature
+- Fix identified issues
+- Security audit
+
+### 11.5 Phase 5: Deployment and Operations
+- Deploy to production environment
+- Establish monitoring and alerting
+- Prepare operational documentation
+- Conduct final end-to-end testing
+
+## 12. Technology Stack
+
+### 12.1 Backend
+- Node.js with TypeScript
+- Express.js for API server
+- Redis for caching and rate limiting
+
+### 12.2 Database
+- PostgreSQL for relational data
+- TimescaleDB for time-series data (price history)
+- Redis for caching and session management
+
+### 12.3 DevOps
+- Docker for containerization
+- GitHub Actions for CI/CD
+- Prometheus and Grafana for monitoring
+
+## 13. Testing Strategy
+
+### 13.1 Unit Testing
+- Test individual components in isolation
+- Use Jest for automated testing
+- Aim for high test coverage of core functionality
+
+### 13.2 Integration Testing
+- Test interaction between components
+- Validate API contracts
+- Ensure data flow integrity
+
+### 13.3 Load Testing
+- Simulate high concurrency scenarios
+- Validate system performance under load
+- Identify bottlenecks and optimization opportunities
+
+### 13.4 Security Testing
+- Penetration testing
+- API security validation
+- Vulnerability scanning
+
+## 14. Trading Rules and Constraints
+
+- Trading is only allowed for tokens with valid price data
+- If price data cannot be fetched from any provider, trades for that token will be rejected
+- Teams start with configured balances for each supported chain
+- Minimum trade amount: 0.000001 tokens
+- Maximum single trade: 25% of team's total portfolio value
+- No shorting allowed (trades limited to available balance)
+- Rate limiting as defined in section 3.2.2
+- Teams can only trade during active competition periods
+- Slippage is applied to all trades according to the formula in section 3.2.3
+- Cross-chain trading can be enabled/disabled via configuration
+- Transaction fees are not simulated in the MVP
+
+## 15. Conclusion
+
+This technical specification outlines the architecture and implementation plan for the Multi-Chain Trading Simulator Server. The document will guide the development team in building a robust, scalable platform that can support trading competitions across multiple blockchains with multiple teams accessing the system via API keys. 

@@ -207,7 +207,7 @@ async function setupEverything() {
     console.log('----------------------------------------\n');
     console.log('To start the server, run:');
     console.log('  npm run start\n');
-    console.log('You can now access the API at: http://localhost:3000');
+    console.log('You can then access the API at: http://localhost:3000');
     console.log('=============================================================\n');
     
   } catch (error) {
