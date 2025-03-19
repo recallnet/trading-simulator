@@ -3,8 +3,36 @@ import * as crypto from 'crypto';
 /**
  * Trading Simulator API Client
  * 
- * This example client demonstrates how to authenticate and make requests
- * to the Trading Simulator API using TypeScript.
+ * This client handles authentication, request signing, and provides methods for interacting
+ * with the Trading Simulator API. It's designed primarily for teams participating in trading
+ * competitions to execute trades, check balances, and view competition status.
+ * 
+ * Required configuration:
+ * - API key: Your team's unique API key provided during registration
+ * - API secret: Your team's secret key for request signing (keep this secure!)
+ * - Base URL: The endpoint of the Trading Simulator server
+ * 
+ * @example
+ * // Basic setup
+ * const client = new TradingSimulatorClient(
+ *   "sk_7b550f528ba35cfb50b9de65b63e27e4",  // Your API key
+ *   "a56229f71f5a2a42f93197fb32159916d1ff7796433c133d00b90097a0bbf12f",  // Your API secret 
+ *   "https://trading-simulator.example.com"  // API base URL
+ * );
+ * 
+ * // Get team balances
+ * const balances = await client.getBalances();
+ * 
+ * // Execute a trade on Base chain (within-chain trade)
+ * const tradeResult = await client.executeTrade({
+ *   fromToken: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", // USDC on Base
+ *   toToken: "0x0b3e328455c4059EEb9e3f84b5543F74E24e7E1b", // TOSHI on Base
+ *   amount: "50",
+ *   fromChain: BlockchainType.EVM,
+ *   toChain: BlockchainType.EVM,
+ *   fromSpecificChain: SpecificChain.BASE,
+ *   toSpecificChain: SpecificChain.BASE
+ * });
  */
 
 // Define blockchain types
@@ -162,9 +190,14 @@ export class TradingSimulatorClient {
   }
 
   /**
-   * Get the current balances for your team
+   * Get your team's token balances across all supported chains
    * 
-   * @returns A promise that resolves to the balances response
+   * @returns Balance information including tokens on all chains (EVM and SVM)
+   * 
+   * @example
+   * const balances = await client.getBalances();
+   * console.log('My ETH balance on Base:', balances.balance['0x4200000000000000000000000000000000000006']);
+   * console.log('My USDC balance on Base:', balances.balance['0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913']);
    */
   async getBalances(): Promise<any> {
     return this.request<any>('GET', '/api/account/balances');
@@ -268,10 +301,35 @@ export class TradingSimulatorClient {
   }
 
   /**
-   * Execute a trade between two tokens
+   * Execute a token trade on the trading simulator
    * 
-   * @param params Trading parameters object
-   * @returns A promise that resolves to the trade response
+   * This method allows you to trade between tokens on the same chain,
+   * which is the default supported behavior.
+   * 
+   * @param params - Trade parameters
+   * @param params.fromToken - Source token address to sell
+   * @param params.toToken - Destination token address to buy
+   * @param params.amount - Amount of fromToken to sell (as string)
+   * @param params.slippageTolerance - Optional slippage tolerance percentage (e.g., "0.5" for 0.5%)
+   * @param params.fromChain - Blockchain type of source token (BlockchainType.EVM or BlockchainType.SVM)
+   * @param params.fromSpecificChain - Specific chain for source token (e.g., SpecificChain.ETH, SpecificChain.BASE)
+   *                                   Providing this greatly improves performance for EVM tokens
+   * @param params.toChain - Blockchain type of destination token (should match fromChain for within-chain trades)
+   * @param params.toSpecificChain - Specific chain for destination token (should match fromSpecificChain)
+   * 
+   * @returns Trade result with transaction ID, amounts, and updated balances
+   * 
+   * @example
+   * // Trade USDC for TOSHI on Base chain (within-chain trade)
+   * const tradeResult = await client.executeTrade({
+   *   fromToken: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", // USDC on Base
+   *   toToken: "0x0b3e328455c4059EEb9e3f84b5543F74E24e7E1b",   // TOSHI on Base
+   *   amount: "50",
+   *   fromChain: BlockchainType.EVM,
+   *   toChain: BlockchainType.EVM,
+   *   fromSpecificChain: SpecificChain.BASE,
+   *   toSpecificChain: SpecificChain.BASE
+   * });
    */
   async executeTrade(params: {
     fromToken: string;
