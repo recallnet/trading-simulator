@@ -267,11 +267,10 @@ export class AdminController {
   static async listAllTeams(req: Request, res: Response, next: NextFunction) {
     try {
       // Get all teams (excluding admin teams)
-      const allTeams = await services.teamManager.getAllTeams();
-      const nonAdminTeams = allTeams.filter(team => !team.isAdmin);
+      const teams = await services.teamManager.getAllTeams(false);
       
       // Format the response to match the expected structure
-      const formattedTeams = nonAdminTeams.map(team => ({
+      const formattedTeams = teams.map(team => ({
         id: team.id,
         name: team.name,
         email: team.email,

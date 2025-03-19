@@ -51,8 +51,8 @@ export class CompetitionController {
       // Get leaderboard
       const leaderboard = await services.competitionManager.getLeaderboard(competitionId);
       
-      // Get all teams
-      const teams = await services.teamManager.getAllTeams();
+      // Get all teams (excluding admin teams)
+      const teams = await services.teamManager.getAllTeams(false);
       
       // Map team IDs to names
       const teamMap = new Map(teams.map(team => [team.id, team.name]));

@@ -28,7 +28,10 @@
     "db:migrate:admin": "ts-node scripts/add-admin-field.ts",
     "generate:secrets": "ts-node scripts/generate-secrets.ts",
     "setup:admin": "ts-node scripts/setup-admin.ts",
-    "setup:all": "ts-node scripts/setup-everything.ts"
+    "setup:all": "ts-node scripts/setup-everything.ts",
+    "register:team": "ts-node scripts/register-team.ts",
+    "delete:team": "ts-node scripts/delete-team.ts",
+    "list:teams": "ts-node scripts/list-teams.ts"
   },
   "keywords": [
     "solana",

@@ -98,13 +98,20 @@ export class TeamManager {
 
   /**
    * Get all teams
-   * @returns Array of all teams
+   * @param includeAdmins Whether to include admin accounts in the results (default: true)
+   * @returns Array of teams, filtered by the includeAdmins parameter
    */
-  async getAllTeams(): Promise<Team[]> {
+  async getAllTeams(includeAdmins: boolean = true): Promise<Team[]> {
     try {
       const teams = await repositories.teamRepository.findAll();
+      
+      // Filter out admin teams if needed
+      const filteredTeams = includeAdmins 
+        ? teams 
+        : teams.filter(team => !team.isAdmin);
+      
       // Don't expose hashed secrets
-      return teams.map(team => ({
+      return filteredTeams.map(team => ({
         ...team,
         apiSecret: '[REDACTED]' 
       }));

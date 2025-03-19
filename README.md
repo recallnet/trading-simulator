@@ -405,6 +405,51 @@ npm run setup:admin
 
 This will prompt you to enter admin credentials or will generate them for you.
 
+#### 9. Admin Utility Scripts
+
+We provide several utility scripts to manage teams directly from the command line:
+
+##### Register a New Team
+
+```bash
+npm run register:team "Team Name" "email@fake.com" "Contact Person"
+```
+
+This script will:
+- Register a new team in the system
+- Generate API key and secret for the team
+- Display the team details and credentials
+
+You can provide the team details as command-line arguments or enter them when prompted.
+
+##### List All Teams
+
+```bash
+npm run list:teams
+```
+
+This script will display detailed information about all registered teams, including:
+- Team ID
+- Team name
+- Email
+- Contact person
+- API key
+- Creation date
+- Last update date
+
+##### Delete a Team
+
+```bash
+npm run delete:team [teamId]
+```
+
+This script will:
+- List all teams if no team ID is provided
+- Ask for confirmation before deletion
+- Remove the team and all associated data from the system
+
+Use with caution as team deletion cannot be undone.
+
 ### Starting the Server
 
 After completing the setup, start the server with:
