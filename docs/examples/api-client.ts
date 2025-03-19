@@ -87,11 +87,14 @@ export class TradingSimulatorClient {
    * @param body The request body (if any)
    * @returns An object containing the required headers
    */
-  private generateHeaders(method: string, path: string, body: string = ''): Record<string, string> {
+  private generateHeaders(method: string, path: string, body: string = '{}'): Record<string, string> {
     // Use timestamp 2 years in the future for e2e tests (to avoid expiration)
     // In production, use current timestamp: const timestamp = new Date().toISOString();
     const timestamp = new Date(Date.now() + 2 * 365 * 24 * 60 * 60 * 1000).toISOString();
-    const data = method + path + timestamp + body;
+    
+    // Important: Use '{}' for empty bodies to match the test utility implementation
+    const bodyString = body || '{}';
+    const data = method + path + timestamp + bodyString;
     
     const signature = crypto
       .createHmac('sha256', this.apiSecret)
@@ -116,13 +119,15 @@ export class TradingSimulatorClient {
    */
   private async request<T>(method: string, path: string, body: any = null): Promise<T> {
     const url = `${this.baseUrl}${path}`;
-    const bodyString = body ? JSON.stringify(body) : '';
+    
+    // Important: Use '{}' for empty bodies to match test utility implementation
+    const bodyString = body ? JSON.stringify(body) : '{}';
     const headers = this.generateHeaders(method, path, bodyString);
     
     const options: RequestInit = {
       method,
       headers,
-      body: bodyString || undefined
+      body: body ? bodyString : undefined  // Only include body if it exists
     };
 
     try {

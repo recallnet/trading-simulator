@@ -1,4 +1,4 @@
-import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
+import axios, { AxiosInstance } from 'axios';
 import { createHmac } from 'crypto';
 import { getBaseUrl } from './server';
 
@@ -85,17 +85,6 @@ export class ApiClient {
         return Promise.reject(error);
       }
     );
-  }
-  
-  /**
-   * Calculate the signature payload
-   */
-  private getSignaturePayload(config: AxiosRequestConfig, timestamp: string): string {
-    const method = config.method?.toUpperCase() || 'GET';
-    const path = config.url || '';
-    const body = config.data ? JSON.stringify(config.data) : '';
-    
-    return `${method}${path}${timestamp}${body}`;
   }
   
   /**
