@@ -397,11 +397,74 @@ The server will be available at http://localhost:3000 by default.
 
 ## API Endpoints
 
+Before you can use the API, you need to register a team—and before registering a team, you need to be logged in as an admin.
+
 ### Authentication
+
 - `POST /api/auth/login` - Login with API key and secret
 - `POST /api/auth/validate` - Validate API credentials
 
+For example, after you run the setup script and the server is running, you can login as an admin with the values that you provided:
+
+```
+curl -X POST http://localhost:3000/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "admin",
+    "password": "your-password"
+  }'
+```
+
+This will return a JWT token that you can use to authenticate your requests:
+
+```
+{
+  "success": true,
+  "token": "ey...",
+  "admin": {
+    "id": "20e3e1b1-970b-4745-9ad4-c7e48bae69f4",
+    "username": "admin",
+    "email": "admin@example.com"
+  },
+  "message": "Admin authentication successful"
+}
+```
+
+Then, the admin can register a team with the following request, where `$AUTH_TOKEN` is the JWT `token` from above:
+
+```
+curl -X POST http://localhost:3000/api/admin/teams/register \                              
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $AUTH_TOKEN" \
+  -d '{                       
+        "teamName": "TestTeam",
+        "email": "test@example.com",
+        "contactPerson": "Test User"
+      }'
+```
+
+This will return a team ID that you can use to authenticate your requests:
+
+```
+{
+  "success": true,
+  "team": {
+    "id": "0fe984a2-598e-4261-b888-56a0eed4d4e0",
+    "name": "TestTeam",
+    "email": "test@example.com",
+    "contactPerson": "Test User",
+    "contact_person": "Test User",
+    "apiKey": "sk_7b550f528ba35cfb50b9de65b63e27e4",
+    "apiSecret": "a56229f71f5a2a42f93197fb32159916d1ff7796433c133d00b90097a0bbf12f",
+    "createdAt": "2025-03-19T03:30:40.328Z"
+  }
+}
+```
+
+Now, a team can use the `apiKey` and `apiSecret` to authenticate their requests on non-admin endpoints.
+
 ### Account Management
+
 - `GET /api/account/balances` - Get current balances across all chains
 - `GET /api/account/portfolio` - Get portfolio value and composition
 - `GET /api/account/trades` - Get trade history
