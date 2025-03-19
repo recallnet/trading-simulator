@@ -38,8 +38,8 @@ export const executeTradeAction: Action = {
   handler: async (
     runtime: IAgentRuntime,
     message: Memory,
-    state: State,
-    _options: { [key: string]: unknown },
+    state?: State,
+    _options: { [key: string]: unknown } = {},
     callback?: HandlerCallback,
   ): Promise<boolean> => {
     let text = '';
