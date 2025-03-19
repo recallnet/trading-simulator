@@ -61,17 +61,6 @@ EVM_CHAINS=eth,polygon,base,arbitrum,optimism,bsc,avalanche,linea
 
 If not specified, the system will use a default priority list.
 
-#### Legacy Variables (for backward compatibility)
-
-```
-# Legacy Initial Balances (for backward compatibility)
-INITIAL_SOL_BALANCE=0
-INITIAL_USDC_BALANCE=10000
-INITIAL_USDT_BALANCE=0
-```
-
-The legacy variables are still supported for backward compatibility. If both the legacy and the chain-specific variables are set, the chain-specific variables take precedence.
-
 ### Adding New Tokens
 
 To add support for a new token:
@@ -136,15 +125,15 @@ INITIAL_POLYGON_LINK_BALANCE=100
 ```typescript
 multiChainInitialBalances: {
   [BlockchainType.SVM]: {
-    sol: parseInt(process.env.INITIAL_SVM_SOL_BALANCE || process.env.INITIAL_SOL_BALANCE || '0', 10),
-    usdc: parseInt(process.env.INITIAL_SVM_USDC_BALANCE || process.env.INITIAL_USDC_BALANCE || '10000', 10),
-    usdt: parseInt(process.env.INITIAL_SVM_USDT_BALANCE || process.env.INITIAL_USDT_BALANCE || '0', 10),
+    sol: parseInt(process.env.INITIAL_SVM_SOL_BALANCE || '0', 10),
+    usdc: parseInt(process.env.INITIAL_SVM_USDC_BALANCE || '0', 10),
+    usdt: parseInt(process.env.INITIAL_SVM_USDT_BALANCE || '0', 10),
     // Add your new Solana token initial balance
     bonk: parseInt(process.env.INITIAL_SVM_BONK_BALANCE || '0', 10)
   },
   [BlockchainType.EVM]: {
     eth: parseInt(process.env.INITIAL_EVM_ETH_BALANCE || '0', 10),
-    usdc: parseInt(process.env.INITIAL_EVM_USDC_BALANCE || '1000', 10),
+    usdc: parseInt(process.env.INITIAL_EVM_USDC_BALANCE || '0', 10),
     usdt: parseInt(process.env.INITIAL_EVM_USDT_BALANCE || '0', 10),
     // Add your new Ethereum token initial balance
     link: parseInt(process.env.INITIAL_EVM_LINK_BALANCE || '0', 10)
@@ -163,7 +152,7 @@ const getSpecificChainBalances = (): Record<SpecificChain, Record<string, number
   if (process.env.INITIAL_ETH_ETH_BALANCE || process.env.INITIAL_ETH_USDC_BALANCE || process.env.INITIAL_ETH_USDT_BALANCE || process.env.INITIAL_ETH_LINK_BALANCE) {
     result.eth = {
       eth: parseInt(process.env.INITIAL_ETH_ETH_BALANCE || process.env.INITIAL_EVM_ETH_BALANCE || '0', 10),
-      usdc: parseInt(process.env.INITIAL_ETH_USDC_BALANCE || process.env.INITIAL_EVM_USDC_BALANCE || '1000', 10),
+      usdc: parseInt(process.env.INITIAL_ETH_USDC_BALANCE || process.env.INITIAL_EVM_USDC_BALANCE || '0', 10),
       usdt: parseInt(process.env.INITIAL_ETH_USDT_BALANCE || process.env.INITIAL_EVM_USDT_BALANCE || '0', 10),
       link: parseInt(process.env.INITIAL_ETH_LINK_BALANCE || process.env.INITIAL_EVM_LINK_BALANCE || '0', 10)
     };
@@ -173,11 +162,19 @@ const getSpecificChainBalances = (): Record<SpecificChain, Record<string, number
   if (process.env.INITIAL_POLYGON_MATIC_BALANCE || process.env.INITIAL_POLYGON_USDC_BALANCE || process.env.INITIAL_POLYGON_LINK_BALANCE) {
     result.polygon = {
       matic: parseInt(process.env.INITIAL_POLYGON_MATIC_BALANCE || '0', 10),
-      usdc: parseInt(process.env.INITIAL_POLYGON_USDC_BALANCE || process.env.INITIAL_EVM_USDC_BALANCE || '1000', 10),
+      usdc: parseInt(process.env.INITIAL_POLYGON_USDC_BALANCE || process.env.INITIAL_EVM_USDC_BALANCE || '0', 10),
       usdt: parseInt(process.env.INITIAL_POLYGON_USDT_BALANCE || process.env.INITIAL_EVM_USDT_BALANCE || '0', 10),
       link: parseInt(process.env.INITIAL_POLYGON_LINK_BALANCE || process.env.INITIAL_EVM_LINK_BALANCE || '0', 10)
     };
   }
+  
+  // Add SVM (Solana) balances
+  result.svm = {
+    sol: parseInt(process.env.INITIAL_SVM_SOL_BALANCE || '0', 10),
+    usdc: parseInt(process.env.INITIAL_SVM_USDC_BALANCE || '0', 10),
+    usdt: parseInt(process.env.INITIAL_SVM_USDT_BALANCE || '0', 10),
+    // Add new token balances as needed
+  };
   
   // Add other chains as needed
   

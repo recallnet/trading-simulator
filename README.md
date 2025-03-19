@@ -306,16 +306,9 @@ Then edit the file to configure your environment. Key configuration options incl
 
 By default, all token balances start at zero. You can configure initial balances for different tokens across multiple blockchains using the following environment variables in your `.env` file:
 
-**Legacy Balances (Backward Compatibility)**
-```
-INITIAL_SOL_BALANCE=10     # Initial SOL balance on Solana
-INITIAL_USDC_BALANCE=5000  # Initial USDC balance on Solana
-INITIAL_USDT_BALANCE=0     # Initial USDT balance on Solana
-```
-
 **Multi-Chain Configuration**
 
-For more granular control, you can set balances by blockchain type:
+For granular control, you can set balances by blockchain type:
 
 ```
 # Solana Virtual Machine (SVM) Balances
@@ -352,8 +345,7 @@ INITIAL_BASE_USDC_BALANCE=3500    # USDC on Base
 The system uses the following precedence for balances:
 1. Specific chain balances (e.g., `INITIAL_ETH_USDC_BALANCE`)
 2. General blockchain type balances (e.g., `INITIAL_EVM_USDC_BALANCE`)
-3. Legacy balances (e.g., `INITIAL_USDC_BALANCE`)
-4. Zero (default)
+3. Zero (default)
 
 This allows fine-grained control over initial token balances across different blockchains.
 
@@ -737,10 +729,6 @@ Below is a comprehensive list of all environment variables available in `.env.ex
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| **Legacy Balance Variables** |
-| `INITIAL_SOL_BALANCE` | Optional | `0` | Legacy: Initial SOL balance on Solana |
-| `INITIAL_USDC_BALANCE` | Optional | `0` | Legacy: Initial USDC balance on Solana |
-| `INITIAL_USDT_BALANCE` | Optional | `0` | Legacy: Initial USDT balance on Solana |
 | **Blockchain Type Balances** |
 | `INITIAL_SVM_SOL_BALANCE` | Optional | `0` | Initial SOL balance on Solana |
 | `INITIAL_SVM_USDC_BALANCE` | Optional | `0` | Initial USDC balance on Solana |
@@ -792,7 +780,6 @@ The system follows specific rules for resolving settings when multiple related v
 1. **Initial Balances**: Uses the most specific setting available:
    - Chain-specific balances (e.g., `INITIAL_ETH_USDC_BALANCE`)
    - Blockchain type balances (e.g., `INITIAL_EVM_USDC_BALANCE`)
-   - Legacy balances (e.g., `INITIAL_USDC_BALANCE`)
    - Zero (default)
 
 2. **Database Connection**: Uses the most comprehensive setting available:
