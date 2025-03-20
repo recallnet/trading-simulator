@@ -1,6 +1,4 @@
 import { Request, Response, NextFunction } from 'express';
-import path from 'path';
-import fs from 'fs';
 
 /**
  * Documentation Controller
@@ -70,12 +68,20 @@ export class DocsController {
             getCurrentPrice: {
               method: 'GET',
               path: '/api/price/current',
-              description: 'Get the current price for a token'
+              description: 'Get the current price for a token',
+              requiresAuth: true
             },
             getPriceHistory: {
               method: 'GET',
               path: '/api/price/history',
-              description: 'Get the price history for a token'
+              description: 'Get the price history for a token',
+              requiresAuth: true
+            },
+            getTokenInfo: {
+              method: 'GET',
+              path: '/api/price/token-info',
+              description: 'Get detailed token information including specific chain',
+              requiresAuth: true
             }
           },
           competition: {

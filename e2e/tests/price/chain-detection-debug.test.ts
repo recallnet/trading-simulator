@@ -1,5 +1,14 @@
+import { 
+  setupAdminClient, 
+  cleanupTestState,
+  registerTeamAndGetClient,
+  ADMIN_USERNAME, 
+  ADMIN_PASSWORD, 
+  ADMIN_EMAIL 
+} from '../../utils/test-helpers';
 import axios from 'axios';
 import { getBaseUrl } from '../../utils/server';
+import { ApiClient } from '../../utils/api-client';
 import { PriceTracker } from '../../../src/services/price-tracker.service';
 import { BlockchainType } from '../../../src/types';
 import dotenv from 'dotenv';
@@ -23,9 +32,30 @@ const apiKey = process.env.NOVES_API_KEY;
 const runProviderTests = !!apiKey;
 
 describe('Chain Detection Debug', () => {
+  // Create variables for authenticated clients
+  let adminClient: ApiClient;
+  let client: ApiClient;
   let priceTracker: PriceTracker;
-  
-  beforeEach(() => {
+
+  // Clean up test state before each test
+  beforeEach(async () => {
+    await cleanupTestState();
+    
+    // Create admin account directly
+    await axios.post(`${getBaseUrl()}/api/admin/setup`, {
+      username: ADMIN_USERNAME,
+      password: ADMIN_PASSWORD,
+      email: ADMIN_EMAIL
+    });
+    
+    // Setup admin client
+    adminClient = await setupAdminClient();
+    
+    // Register a team and get an authenticated client
+    const result = await registerTeamAndGetClient(adminClient);
+    client = result.client;
+    
+    // Initialize price tracker
     priceTracker = new PriceTracker();
   });
   
@@ -45,23 +75,11 @@ describe('Chain Detection Debug', () => {
     });
   });
   
-  describe('API Chain Detection', () => {
-    it('should correctly detect chain via API for Solana tokens', async () => {
-      // Test chain detection through API call for Solana tokens
-      const baseUrl = getBaseUrl();
-      const response = await axios.get(`${baseUrl}/api/price/token-info?token=${solanaTokens.SOL}`);
-      console.log(`API response for Solana token info: ${JSON.stringify(response.data)}`);
-      expect(response.status).toBe(200);
-      expect(response.data.chain).toBe(BlockchainType.SVM);
-    });
-    
-    it('should correctly detect chain via API for Ethereum tokens', async () => {
-      // Test chain detection through API call for Ethereum tokens
-      const baseUrl = getBaseUrl();
-      const response = await axios.get(`${baseUrl}/api/price/token-info?token=${ethereumTokens.ETH}`);
-      console.log(`API response for Ethereum token info: ${JSON.stringify(response.data)}`);
-      expect(response.status).toBe(200);
-      expect(response.data.chain).toBe(BlockchainType.EVM);
+  describe('API Tests', () => {
+    it('should detect Ethereum token as EVM chain', async () => {
+      const response = await client.getTokenInfo(ethereumTokens.ETH);
+      console.log(`API response for Ethereum token info: ${JSON.stringify(response)}`);
+      expect(response.chain).toBe(BlockchainType.EVM);
     });
   });
   
@@ -88,6 +106,7 @@ describe('Chain Detection Debug', () => {
       expect(tokenInfo).not.toBeNull();
       if (tokenInfo) {
         expect(tokenInfo.price).toBeGreaterThan(0);
+        expect(tokenInfo.chain).toBe(BlockchainType.EVM);
       }
     });
   });

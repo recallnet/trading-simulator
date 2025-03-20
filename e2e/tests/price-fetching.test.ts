@@ -1,7 +1,15 @@
-import { setupAdminClient, cleanupTestState, ADMIN_USERNAME, ADMIN_PASSWORD, ADMIN_EMAIL } from '../utils/test-helpers';
+import { 
+  setupAdminClient, 
+  cleanupTestState, 
+  ADMIN_USERNAME, 
+  ADMIN_PASSWORD, 
+  ADMIN_EMAIL,
+  registerTeamAndGetClient
+} from '../utils/test-helpers';
 import axios from 'axios';
 import { getBaseUrl } from '../utils/server';
 import config from '../../src/config';
+import { ApiClient } from '../utils/api-client';
 
 // Define Ethereum token addresses for testing
 const ETHEREUM_TOKENS = {
@@ -16,6 +24,10 @@ const BASE_TOKENS = {
 };
 
 describe('Price Fetching', () => {
+  // Create variables for authenticated clients
+  let adminClient: ApiClient;
+  let client: ApiClient;
+  
   // Clean up test state before each test
   beforeEach(async () => {
     await cleanupTestState();
@@ -26,126 +38,112 @@ describe('Price Fetching', () => {
       password: ADMIN_PASSWORD,
       email: ADMIN_EMAIL
     });
+    
+    // Setup admin client
+    adminClient = await setupAdminClient();
+    
+    // Register a team and get an authenticated client
+    const result = await registerTeamAndGetClient(adminClient);
+    client = result.client;
   });
   
   test('should fetch prices for standard tokens', async () => {
-    // Setup admin client
-    const adminClient = await setupAdminClient();
-    
-    // Create an endpoint to test price fetching
-    const baseUrl = getBaseUrl();
-    
-    // Test price for SOL
-    const solResponse = await axios.get(`${baseUrl}/api/price?token=${config.tokens.sol}`);
-    expect(solResponse.status).toBe(200);
-    expect(solResponse.data.success).toBe(true);
-    expect(solResponse.data.price).toBeDefined();
-    expect(typeof solResponse.data.price).toBe('number');
-    expect(solResponse.data.price).toBeGreaterThan(0);
-    expect(solResponse.data.chain).toBe('svm');
-    console.log(`SOL price: $${solResponse.data.price}`);
+    // Test price for SOL using authenticated client
+    const solResponse = await client.getPrice(config.tokens.sol);
+    expect(solResponse.success).toBe(true);
+    expect(solResponse.price).toBeDefined();
+    expect(typeof solResponse.price).toBe('number');
+    expect(solResponse.price).toBeGreaterThan(0);
+    expect(solResponse.chain).toBe('svm');
+    console.log(`SOL price: $${solResponse.price}`);
     
     // Test price for USDC
-    const usdcResponse = await axios.get(`${baseUrl}/api/price?token=${config.tokens.usdc}`);
-    expect(usdcResponse.status).toBe(200);
-    expect(usdcResponse.data.success).toBe(true);
-    expect(usdcResponse.data.price).toBeDefined();
-    expect(typeof usdcResponse.data.price).toBe('number');
+    const usdcResponse = await client.getPrice(config.tokens.usdc);
+    expect(usdcResponse.success).toBe(true);
+    expect(usdcResponse.price).toBeDefined();
+    expect(typeof usdcResponse.price).toBe('number');
     // Allow for stablecoin price variations (0.8 to 1.2 range)
-    expect(usdcResponse.data.price).toBeGreaterThan(0.8);
-    expect(usdcResponse.data.price).toBeLessThan(1.2);
-    expect(usdcResponse.data.chain).toBe('svm');
-    console.log(`USDC price: $${usdcResponse.data.price}`);
+    expect(usdcResponse.price).toBeGreaterThan(0.8);
+    expect(usdcResponse.price).toBeLessThan(1.2);
+    expect(usdcResponse.chain).toBe('svm');
+    console.log(`USDC price: $${usdcResponse.price}`);
     
     // Test price for USDT
-    const usdtResponse = await axios.get(`${baseUrl}/api/price?token=${config.tokens.usdt}`);
-    expect(usdtResponse.status).toBe(200);
-    expect(usdtResponse.data.success).toBe(true);
-    expect(usdtResponse.data.price).toBeDefined();
-    expect(typeof usdtResponse.data.price).toBe('number');
+    const usdtResponse = await client.getPrice(config.tokens.usdt);
+    expect(usdtResponse.success).toBe(true);
+    expect(usdtResponse.price).toBeDefined();
+    expect(typeof usdtResponse.price).toBe('number');
     // Allow for stablecoin price variations (0.8 to 1.2 range)
-    expect(usdtResponse.data.price).toBeGreaterThan(0.8);
-    expect(usdtResponse.data.price).toBeLessThan(1.2);
-    expect(usdtResponse.data.chain).toBe('svm');
-    console.log(`USDT price: $${usdtResponse.data.price}`);
+    expect(usdtResponse.price).toBeGreaterThan(0.8);
+    expect(usdtResponse.price).toBeLessThan(1.2);
+    expect(usdtResponse.chain).toBe('svm');
+    console.log(`USDT price: $${usdtResponse.price}`);
   });
   
   test('should fetch price for arbitrary token if available', async () => {
     // The arbitrary token address to test with
     const arbitraryTokenAddress = '4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R';
     
-    // Test price for arbitrary token
-    const baseUrl = getBaseUrl();
-    const response = await axios.get(`${baseUrl}/api/price?token=${arbitraryTokenAddress}`);
+    // Test price for arbitrary token using authenticated client
+    const response = await client.getPrice(arbitraryTokenAddress);
     
-    console.log(`Arbitrary token (${arbitraryTokenAddress}) price response:`, response.data);
+    console.log(`Arbitrary token (${arbitraryTokenAddress}) price response:`, response);
     
-    // We expect a valid HTTP response, regardless of whether a price is available
-    expect(response.status).toBe(200);
+    // We expect a valid response, regardless of whether a price is available
+    expect(response).toBeDefined();
     
     // If a price is available, validate it
-    if (response.data.success && response.data.price !== null) {
-      expect(response.data.price).toBeDefined();
-      expect(typeof response.data.price).toBe('number');
-      expect(response.data.price).toBeGreaterThan(0);
-      expect(response.data.chain).toBe('svm');
-      console.log(`Arbitrary token price: $${response.data.price}`);
+    if (response.success && response.price !== null) {
+      expect(response.price).toBeDefined();
+      expect(typeof response.price).toBe('number');
+      expect(response.price).toBeGreaterThan(0);
+      expect(response.chain).toBe('svm');
+      console.log(`Arbitrary token price: $${response.price}`);
     } else {
       // Log diagnostic information but don't fail the test
       console.log(`No price available for arbitrary token: ${arbitraryTokenAddress}`);
-      console.log(`Response: ${JSON.stringify(response.data)}`);
+      console.log(`Response: ${JSON.stringify(response)}`);
       console.log(`This is expected if the token doesn't have active liquidity pools or API errors occurred.`);
     }
   });
 
   test('should fetch prices for tokens across different chains', async () => {
-    const baseUrl = getBaseUrl();
-    
     // Test SOL price (Solana chain)
     const solToken = config.tokens.sol;
-    const solResponse = await axios.get(`${baseUrl}/api/price?token=${solToken}`);
-    expect(solResponse.status).toBe(200);
-    expect(solResponse.data.success).toBeTruthy();
-    expect(solResponse.data.price).toBeGreaterThan(0);
-    expect(solResponse.data.chain).toBe('svm');
-    console.log(`SOL price: $${solResponse.data.price}`);
+    const solResponse = await client.getPrice(solToken);
+    expect(solResponse.success).toBeTruthy();
+    expect(solResponse.price).toBeGreaterThan(0);
+    expect(solResponse.chain).toBe('svm');
+    console.log(`SOL price: $${solResponse.price}`);
     
     // Test ETH price (Ethereum chain)
     const ethToken = ETHEREUM_TOKENS.ETH;
-    const ethResponse = await axios.get(`${baseUrl}/api/price?token=${ethToken}`);
-    expect(ethResponse.status).toBe(200);
+    const ethResponse = await client.getPrice(ethToken);
     
     // If we get a successful response with price data
-    if (ethResponse.data.success && ethResponse.data.price) {
-      expect(ethResponse.data.price).toBeGreaterThan(0);
-      expect(ethResponse.data.chain).toBe('evm');
-      console.log(`ETH price: $${ethResponse.data.price}`);
+    if (ethResponse.success && ethResponse.price) {
+      expect(ethResponse.price).toBeGreaterThan(0);
+      expect(ethResponse.chain).toBe('evm');
+      console.log(`ETH price: $${ethResponse.price}`);
       
       // Check if we got specific chain information
-      if (ethResponse.data.specificChain) {
-        expect(ethResponse.data.specificChain).toBe('eth');
+      if (ethResponse.specificChain) {
+        expect(ethResponse.specificChain).toBe('eth');
       }
     } else {
       console.log(`Note: Could not get ETH price. This could be due to API issues.`);
-      console.log(`Response: ${JSON.stringify(ethResponse.data)}`);
+      console.log(`Response: ${JSON.stringify(ethResponse)}`);
     }
     
     // Test Base Chain ETH with specific chain parameter
     try {
-      const baseEthResponse = await axios.get(`${baseUrl}/api/price`, {
-        params: {
-          token: BASE_TOKENS.ETH,
-          chain: 'evm',
-          specificChain: 'base'
-        }
-      });
+      const baseEthResponse = await client.getPrice(BASE_TOKENS.ETH, 'evm', 'base');
       
-      expect(baseEthResponse.status).toBe(200);
-      if (baseEthResponse.data.success && baseEthResponse.data.price) {
-        expect(baseEthResponse.data.price).toBeGreaterThan(0);
-        expect(baseEthResponse.data.chain).toBe('evm');
-        expect(baseEthResponse.data.specificChain).toBe('base');
-        console.log(`Base chain ETH price: $${baseEthResponse.data.price}`);
+      if (baseEthResponse.success && baseEthResponse.price) {
+        expect(baseEthResponse.price).toBeGreaterThan(0);
+        expect(baseEthResponse.chain).toBe('evm');
+        expect(baseEthResponse.specificChain).toBe('base');
+        console.log(`Base chain ETH price: $${baseEthResponse.price}`);
       }
     } catch (error) {
       console.log(`Error fetching Base chain ETH price: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -153,24 +151,21 @@ describe('Price Fetching', () => {
   });
   
   test('should fetch USDC price from both chains', async () => {
-    const baseUrl = getBaseUrl();
-    
     // Test Solana USDC
     const solanaUsdcAddress = config.tokens.usdc;
     try {
-      const solanaResponse = await axios.get(`${baseUrl}/api/price?token=${solanaUsdcAddress}`);
-      expect(solanaResponse.status).toBe(200);
+      const solanaResponse = await client.getPrice(solanaUsdcAddress);
       
       // Check if the response is successful
-      if (solanaResponse.data.success) {
-        expect(solanaResponse.data.price).toBeGreaterThan(0);
+      if (solanaResponse.success) {
+        expect(solanaResponse.price).toBeGreaterThan(0);
         // Allow for stablecoin price variations (0.8 to 1.2 range)
-        expect(solanaResponse.data.price).toBeGreaterThan(0.8);
-        expect(solanaResponse.data.price).toBeLessThan(1.2);
-        expect(solanaResponse.data.chain).toBe('svm');
-        console.log(`Solana USDC price: $${solanaResponse.data.price}`);
+        expect(solanaResponse.price).toBeGreaterThan(0.8);
+        expect(solanaResponse.price).toBeLessThan(1.2);
+        expect(solanaResponse.chain).toBe('svm');
+        console.log(`Solana USDC price: $${solanaResponse.price}`);
       } else {
-        console.log(`Note: Couldn't get Solana USDC price. Response: ${JSON.stringify(solanaResponse.data)}`);
+        console.log(`Note: Couldn't get Solana USDC price. Response: ${JSON.stringify(solanaResponse)}`);
       }
     } catch (error) {
       console.log(`Error fetching Solana USDC price: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -179,23 +174,22 @@ describe('Price Fetching', () => {
     // Test Ethereum USDC
     const ethereumUsdcAddress = ETHEREUM_TOKENS.USDC;
     try {
-      const ethereumResponse = await axios.get(`${baseUrl}/api/price?token=${ethereumUsdcAddress}`);
-      expect(ethereumResponse.status).toBe(200);
+      const ethereumResponse = await client.getPrice(ethereumUsdcAddress);
       
-      if (ethereumResponse.data.success) {
+      if (ethereumResponse.success) {
         // Allow for stablecoin price variations (0.8 to 1.2 range)
-        expect(ethereumResponse.data.price).toBeGreaterThan(0.8);
-        expect(ethereumResponse.data.price).toBeLessThan(1.2);
-        expect(ethereumResponse.data.chain).toBe('evm');
-        console.log(`Ethereum USDC price: $${ethereumResponse.data.price}`);
+        expect(ethereumResponse.price).toBeGreaterThan(0.8);
+        expect(ethereumResponse.price).toBeLessThan(1.2);
+        expect(ethereumResponse.chain).toBe('evm');
+        console.log(`Ethereum USDC price: $${ethereumResponse.price}`);
         
         // Check if we got specific chain information
-        if (ethereumResponse.data.specificChain) {
-          expect(ethereumResponse.data.specificChain).toBe('eth');
-          console.log(`Ethereum USDC detected on chain: ${ethereumResponse.data.specificChain}`);
+        if (ethereumResponse.specificChain) {
+          expect(ethereumResponse.specificChain).toBe('eth');
+          console.log(`Ethereum USDC detected on chain: ${ethereumResponse.specificChain}`);
         }
       } else {
-        console.log(`Note: Couldn't get Ethereum USDC price. Response: ${JSON.stringify(ethereumResponse.data)}`);
+        console.log(`Note: Couldn't get Ethereum USDC price. Response: ${JSON.stringify(ethereumResponse)}`);
       }
     } catch (error) {
       console.log(`Error fetching Ethereum USDC price: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -203,21 +197,15 @@ describe('Price Fetching', () => {
     
     // Test Base chain USDC with specific chain parameter
     try {
-      const baseUsdcResponse = await axios.get(`${baseUrl}/api/price`, {
-        params: {
-          token: BASE_TOKENS.USDC,
-          chain: 'evm',
-          specificChain: 'base'
-        }
-      });
+      const baseUsdcResponse = await client.getPrice(BASE_TOKENS.USDC, 'evm', 'base');
       
-      if (baseUsdcResponse.data.success) {
+      if (baseUsdcResponse.success) {
         // Allow for stablecoin price variations (0.8 to 1.2 range)
-        expect(baseUsdcResponse.data.price).toBeGreaterThan(0.8);
-        expect(baseUsdcResponse.data.price).toBeLessThan(1.2);
-        expect(baseUsdcResponse.data.chain).toBe('evm');
-        expect(baseUsdcResponse.data.specificChain).toBe('base');
-        console.log(`Base chain USDC price: $${baseUsdcResponse.data.price}`);
+        expect(baseUsdcResponse.price).toBeGreaterThan(0.8);
+        expect(baseUsdcResponse.price).toBeLessThan(1.2);
+        expect(baseUsdcResponse.chain).toBe('evm');
+        expect(baseUsdcResponse.specificChain).toBe('base');
+        console.log(`Base chain USDC price: $${baseUsdcResponse.price}`);
       }
     } catch (error) {
       console.log(`Error fetching Base USDC price: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -225,24 +213,21 @@ describe('Price Fetching', () => {
   });
   
   test('should use detailed token info endpoint correctly', async () => {
-    const baseUrl = getBaseUrl();
-    
     // Test token-info endpoint for Ethereum token
     try {
       const ethToken = ETHEREUM_TOKENS.ETH;
-      const tokenInfoResponse = await axios.get(`${baseUrl}/api/price/token-info?token=${ethToken}`);
+      const tokenInfoResponse = await client.getTokenInfo(ethToken);
       
-      expect(tokenInfoResponse.status).toBe(200);
-      expect(tokenInfoResponse.data.chain).toBe('evm');
+      expect(tokenInfoResponse.chain).toBe('evm');
       
-      if (tokenInfoResponse.data.success) {
-        expect(tokenInfoResponse.data.price).toBeGreaterThan(0);
-        if (tokenInfoResponse.data.specificChain) {
-          console.log(`ETH detected on chain: ${tokenInfoResponse.data.specificChain}`);
+      if (tokenInfoResponse.success) {
+        expect(tokenInfoResponse.price).toBeGreaterThan(0);
+        if (tokenInfoResponse.specificChain) {
+          console.log(`ETH detected on chain: ${tokenInfoResponse.specificChain}`);
         }
       }
       
-      console.log(`Token info for ETH:`, tokenInfoResponse.data);
+      console.log(`Token info for ETH:`, tokenInfoResponse);
     } catch (error) {
       console.log(`Error fetching token info for ETH: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
@@ -250,45 +235,36 @@ describe('Price Fetching', () => {
     // Test token-info with specific chain parameter
     try {
       const baseToken = BASE_TOKENS.ETH;
-      const tokenInfoResponse = await axios.get(`${baseUrl}/api/price/token-info`, {
-        params: {
-          token: baseToken,
-          chain: 'evm',
-          specificChain: 'base'
-        }
-      });
+      const tokenInfoResponse = await client.getTokenInfo(baseToken, 'evm', 'base');
       
-      expect(tokenInfoResponse.status).toBe(200);
-      expect(tokenInfoResponse.data.chain).toBe('evm');
-      expect(tokenInfoResponse.data.specificChain).toBe('base');
+      expect(tokenInfoResponse.chain).toBe('evm');
+      expect(tokenInfoResponse.specificChain).toBe('base');
       
-      if (tokenInfoResponse.data.success) {
-        expect(tokenInfoResponse.data.price).toBeGreaterThan(0);
+      if (tokenInfoResponse.success) {
+        expect(tokenInfoResponse.price).toBeGreaterThan(0);
       }
       
-      console.log(`Token info for Base ETH:`, tokenInfoResponse.data);
+      console.log(`Token info for Base ETH:`, tokenInfoResponse);
     } catch (error) {
       console.log(`Error fetching token info for Base ETH: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   });
   
   test('should detect chain from token format', async () => {
-    const baseUrl = getBaseUrl();
-    
     // Test Solana token detection
     const solAddress = config.tokens.sol;
-    const solResponse = await axios.get(`${baseUrl}/api/price?token=${solAddress}`);
-    expect(solResponse.data.chain).toBe('svm');
+    const solResponse = await client.getPrice(solAddress);
+    expect(solResponse.chain).toBe('svm');
     
     // Test Ethereum token detection
     const ethAddress = ETHEREUM_TOKENS.ETH;
-    const ethResponse = await axios.get(`${baseUrl}/api/price?token=${ethAddress}`);
-    expect(ethResponse.data.chain).toBe('evm');
+    const ethResponse = await client.getPrice(ethAddress);
+    expect(ethResponse.chain).toBe('evm');
     
     // Test Base token detection
     const baseAddress = BASE_TOKENS.ETH;
-    const baseResponse = await axios.get(`${baseUrl}/api/price?token=${baseAddress}`);
-    expect(baseResponse.data.chain).toBe('evm');
+    const baseResponse = await client.getPrice(baseAddress);
+    expect(baseResponse.chain).toBe('evm');
     
     console.log(`✅ All tokens correctly identified by chain type`);
   });

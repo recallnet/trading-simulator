@@ -242,6 +242,10 @@ Returns the trade history for your team.
 
 ### Price Information
 
+> **Important Update:** All price-related endpoints now require authentication. 
+> Please ensure all requests include the proper authentication headers as 
+> described in the Authentication section.
+
 #### Get Current Price
 
 Returns the current price for a specific token on either Solana or Ethereum blockchain.

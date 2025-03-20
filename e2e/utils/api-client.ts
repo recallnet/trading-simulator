@@ -57,15 +57,20 @@ export class ApiClient {
         // CRITICAL: Ensure path starts with a forward slash for signature generation
         // This must match the path format expected by the server
         const pathForSignature = path.startsWith('/') ? path : `/${path}`;
+        
+        // IMPORTANT: Strip query parameters for signature generation
+        // The server only uses the base path (without query parameters) for signature validation
+        const pathWithoutQuery = pathForSignature.split('?')[0];
+        
         const body = config.data ? JSON.stringify(config.data) : '{}';
         
-        const payload = method + pathForSignature + timestamp + body;
+        const payload = method + pathWithoutQuery + timestamp + body;
         const signature = this.calculateSignature(payload);
         
         console.log(`[ApiClient] Request details:`)
         console.log(`[ApiClient] Method: ${method}`)
         console.log(`[ApiClient] Path: ${path}`)
-        console.log(`[ApiClient] Path for signature: ${pathForSignature}`)
+        console.log(`[ApiClient] Path for signature: ${pathWithoutQuery}`)
         console.log(`[ApiClient] Timestamp: ${timestamp}`)
         console.log(`[ApiClient] Body: ${body}`)
         console.log(`[ApiClient] Payload: ${payload}`)
@@ -347,6 +352,54 @@ export class ApiClient {
       return response.data;
     } catch (error) {
       return this.handleApiError(error, 'get leaderboard');
+    }
+  }
+  
+  /**
+   * Get token price
+   * 
+   * @param token The token address
+   * @param chain Optional blockchain type (auto-detected if not provided)
+   * @param specificChain Optional specific chain for EVM tokens
+   * @returns A promise that resolves to the price response
+   */
+  async getPrice(token: string, chain?: string, specificChain?: string): Promise<any> {
+    try {
+      let path = `/api/price?token=${encodeURIComponent(token)}`;
+      if (chain) {
+        path += `&chain=${encodeURIComponent(chain)}`;
+      }
+      if (specificChain) {
+        path += `&specificChain=${encodeURIComponent(specificChain)}`;
+      }
+      const response = await this.axiosInstance.get(path);
+      return response.data;
+    } catch (error) {
+      return this.handleApiError(error, 'get price');
+    }
+  }
+
+  /**
+   * Get detailed token information
+   * 
+   * @param token The token address
+   * @param chain Optional blockchain type (auto-detected if not provided)
+   * @param specificChain Optional specific chain for EVM tokens
+   * @returns A promise that resolves to the token info response
+   */
+  async getTokenInfo(token: string, chain?: string, specificChain?: string): Promise<any> {
+    try {
+      let path = `/api/price/token-info?token=${encodeURIComponent(token)}`;
+      if (chain) {
+        path += `&chain=${encodeURIComponent(chain)}`;
+      }
+      if (specificChain) {
+        path += `&specificChain=${encodeURIComponent(specificChain)}`;
+      }
+      const response = await this.axiosInstance.get(path);
+      return response.data;
+    } catch (error) {
+      return this.handleApiError(error, 'get token info');
     }
   }
   

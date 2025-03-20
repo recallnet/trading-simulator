@@ -337,12 +337,11 @@ describe('Trading API', () => {
     
     // 1. Fetch the price for the arbitrary token
     console.log(`Fetching price for token: ${arbitraryTokenAddress}`);
-    const priceResponse = await axios.get(`${getBaseUrl()}/api/price?token=${arbitraryTokenAddress}`);
-    expect(priceResponse.status).toBe(200);
-    expect(priceResponse.data.success).toBe(true);
-    expect(priceResponse.data.price).toBeDefined();
+    const priceResponse = await teamClient.getPrice(arbitraryTokenAddress);
+    expect(priceResponse.success).toBe(true);
+    expect(priceResponse.price).toBeDefined();
     
-    const tokenPrice = parseFloat(priceResponse.data.price);
+    const tokenPrice = parseFloat(priceResponse.price);
     console.log(`Token price: ${tokenPrice} USDC`);
     expect(tokenPrice).toBeGreaterThan(0);
     
@@ -444,13 +443,12 @@ describe('Trading API', () => {
     
     // First check price to verify EVM tokens are working
     try {
-      const priceResponse = await axios.get(`${getBaseUrl()}/api/price?token=${ethTokenAddress}`);
-      expect(priceResponse.status).toBe(200);
+      const priceResponse = await teamClient.getPrice(ethTokenAddress);
       
       // If we get a successful response, verify the token is recognized as EVM
-      if (priceResponse.data.chain) {
-        expect(priceResponse.data.chain).toBe(BlockchainType.EVM);
-        console.log(`Confirmed ETH token is on ${priceResponse.data.chain} chain with price ${priceResponse.data.price}`);
+      if (priceResponse.chain) {
+        expect(priceResponse.chain).toBe(BlockchainType.EVM);
+        console.log(`Confirmed ETH token is on ${priceResponse.chain} chain with price ${priceResponse.price}`);
       }
     } catch (error) {
       console.error('Error getting ETH price, EVM tokens may not be supported:', error);

@@ -209,7 +209,10 @@ console.log('Signature:', signature);
 
 <!-- Note: The /api/price/provider endpoint is no longer available. 
 The system now uses the DexScreener provider through MultiChainProvider for all price fetching.
-Please use the main /api/price endpoint with optional chain and specificChain parameters. -->
+Please use the main /api/price endpoint with optional chain and specificChain parameters.
+
+IMPORTANT: All price-related endpoints now require authentication. Make sure your 
+requests include the proper authentication headers. -->
 
 ### 11. Execute a Trade (Solana to Solana)
 

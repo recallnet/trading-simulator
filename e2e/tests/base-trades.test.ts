@@ -3,6 +3,8 @@ import axios from 'axios';
 import { getBaseUrl } from '../utils/server';
 import config, { features } from '../../src/config';
 import { BlockchainType } from '../../src/types';
+import { PriceTracker } from '../../src/services/price-tracker.service';
+import { MultiChainProvider } from '../../src/services/providers/multi-chain.provider';
 
 // Log critical environment variables at test suite startup to verify which values are used
 console.log('\n========== BASE TRADES TEST ENVIRONMENT CHECK ==========');
@@ -86,22 +88,24 @@ describe('Base Chain Trading', () => {
     // Store token prices and expected amounts
     const tokenData = [];
     
+    // Initialize services for direct calls
+    const multiChainProvider = new MultiChainProvider();
+    const priceTracker = new PriceTracker();
+    
     // Get the price for each token
     for (const tokenAddress of BASE_TOKENS) {
-      // Get token price with explicit chain parameters to bypass chain detection
-      const priceResponse = await axios.get(
-        `${getBaseUrl()}/api/price?token=${tokenAddress}&chain=${BlockchainType.EVM}&specificChain=${BASE_CHAIN}`
-      );
-      expect(priceResponse.data.success).toBe(true);
+      // Get token price with explicit chain parameters to bypass chain detection using direct service call
+      const tokenPrice = await multiChainProvider.getPrice(tokenAddress, BlockchainType.EVM, BASE_CHAIN);
+      expect(tokenPrice).not.toBeNull();
       
-      const tokenPrice = parseFloat(priceResponse.data.price);
-      const expectedTokenAmount = spendPerToken / tokenPrice;
+      const price = tokenPrice !== null ? tokenPrice : 0;
+      const expectedTokenAmount = spendPerToken / price;
       
-      console.log(`Token ${tokenAddress} price: $${tokenPrice} - Expected to receive: ${expectedTokenAmount}`);
+      console.log(`Token ${tokenAddress} price: $${price} - Expected to receive: ${expectedTokenAmount}`);
       
       tokenData.push({
         address: tokenAddress,
-        price: tokenPrice,
+        price: price,
         expectedAmount: expectedTokenAmount
       });
     }
@@ -384,12 +388,11 @@ describe('Base Chain Trading', () => {
     // Choose a token to trade for
     const targetToken = BASE_TOKENS[0]; // Just use the first Base token
     
-    // Get token price to verify later
-    const priceResponse = await axios.get(
-      `${getBaseUrl()}/api/price?token=${targetToken}&chain=${BlockchainType.EVM}&specificChain=${BASE_CHAIN}`
-    );
-    expect(priceResponse.data.success).toBe(true);
-    const tokenPrice = parseFloat(priceResponse.data.price);
+    // Get token price to verify later using direct service call
+    const multiChainProvider = new MultiChainProvider();
+    const tokenPriceResponse = await multiChainProvider.getPrice(targetToken, BlockchainType.EVM, BASE_CHAIN);
+    expect(tokenPriceResponse).not.toBeNull();
+    const tokenPrice = tokenPriceResponse !== null ? tokenPriceResponse : 0;
     
     // Attempt to spend more than the initial balance
     const excessiveAmount = (initialBaseUsdcBalance * 1.5).toString(); // 150% of balance

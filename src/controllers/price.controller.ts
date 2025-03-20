@@ -16,11 +16,14 @@ export class PriceController {
    */
   static async getPrice(req: Request, res: Response, next: NextFunction) {
     try {
+      const teamId = req.teamId as string;
       const { token, chain: requestedChain, specificChain: requestedSpecificChain } = req.query;
       
       if (!token || typeof token !== 'string') {
         throw new ApiError(400, 'Token address is required');
       }
+      
+      console.log(`[PriceController] Getting price for token ${token} requested by team ${teamId}`);
       
       // Determine the blockchain type for this token, using the requested chain if provided
       let blockchainType: BlockchainType;
@@ -88,11 +91,14 @@ export class PriceController {
    */
   static async getTokenInfo(req: Request, res: Response, next: NextFunction) {
     try {
+      const teamId = req.teamId as string;
       const { token, chain: requestedChain, specificChain: requestedSpecificChain } = req.query;
       
       if (!token || typeof token !== 'string') {
         throw new ApiError(400, 'Token address is required');
       }
+      
+      console.log(`[PriceController] Getting token info for ${token} requested by team ${teamId}`);
       
       // Determine blockchain type using the requested chain if provided
       let blockchainType: BlockchainType;

@@ -620,6 +620,26 @@ Cross-chain trading can be disabled via server configuration (`ALLOW_CROSS_CHAIN
 - `POST /api/admin/competition/end` - End the current competition
 - `GET /api/admin/reports/performance` - Get performance reports
 
+## Authentication Requirements
+
+The Trading Simulator API has different authentication requirements depending on the endpoint:
+
+| Endpoint Category | Authentication Required | Authentication Method |
+|-------------------|-------------------------|----------------------|
+| Public Health/Info | No | None |
+| Authentication (`/api/auth/*`) | Varies | Username/Password or API Key/Secret |
+| Account Information (`/api/account/*`) | Yes | API Key + HMAC |
+| Trading Operations (`/api/trade/*`) | Yes | API Key + HMAC |
+| Price Information (`/api/price/*`) | Yes | API Key + HMAC |
+| Competition Information (`/api/competition/*`) | Yes | API Key + HMAC |
+| Admin Operations (`/api/admin/*`) | Yes | JWT Bearer Token |
+
+Authentication requirements summary:
+- **Public endpoints**: Health checks, API documentation
+- **Auth endpoints**: Login/validation (credentials in body)
+- **Team endpoints**: All account, trade, price, and competition endpoints (API Key + HMAC)
+- **Admin endpoints**: All admin operations (JWT Bearer Token)
+
 ## Security
 
 All protected API endpoints require:
@@ -634,8 +654,7 @@ Signature = HMAC-SHA256(requestMethod + path + timestamp + requestBody, apiSecre
 
 ### API Secret Encryption
 
-For enhanced security, API secrets are stored using a dual approach:
-- A bcrypt hash of the API secret for authentication
+For enhanced security, API secrets are stored using:
 - An AES-256-CBC encrypted version of the raw API secret for HMAC signature validation
 
 This approach ensures:

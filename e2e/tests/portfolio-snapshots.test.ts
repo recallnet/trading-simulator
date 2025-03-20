@@ -5,6 +5,7 @@ import config from '../../src/config';
 import { services } from '../../src/services';
 import { dbManager } from '../utils/db-manager';
 import { BlockchainType } from '../../src/types';
+import { PriceTracker } from '../../src/services/price-tracker.service';
 
 describe('Portfolio Snapshots', () => {
   // Reset database between tests
@@ -186,9 +187,11 @@ describe('Portfolio Snapshots', () => {
     const usdcTokenAddress = config.tokens.usdc;
     const initialUsdcBalance = parseFloat(initialBalanceResponse.balance[usdcTokenAddress]?.toString() || '0');
     
-    // Get token price
-    const priceResponse = await axios.get(`${getBaseUrl()}/api/price?token=${usdcTokenAddress}`);
-    const usdcPrice = parseFloat(priceResponse.data.price);
+    // Get token price using direct service call instead of API
+    const priceTracker = new PriceTracker();
+    const usdcPriceResponse = await priceTracker.getPrice(usdcTokenAddress);
+    expect(usdcPriceResponse).not.toBeNull();
+    const usdcPrice = usdcPriceResponse !== null ? usdcPriceResponse : 1; // Default to 1 if null
     
     // Get initial snapshot
     const initialSnapshotsResponse = await adminClient.request('get', `/api/admin/competition/${competitionId}/snapshots`);
@@ -247,7 +250,11 @@ describe('Portfolio Snapshots', () => {
     // Ensure we have a token priced in the database first by querying the price directly
     const usdcTokenAddress = config.tokens.usdc;
     console.log(`[Test] Getting price for token ${usdcTokenAddress} to ensure it exists in DB`);
-    await axios.get(`${getBaseUrl()}/api/price?token=${usdcTokenAddress}`);
+    
+    // Use direct service call instead of API
+    const priceTracker = new PriceTracker();
+    const price = await priceTracker.getPrice(usdcTokenAddress);
+    console.log(`[Test] Direct price lookup result: ${price}`);
     
     // Take the first snapshot - this should populate the database with prices
     console.log(`[Test] Taking first snapshot to populate price database`);

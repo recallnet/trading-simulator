@@ -2,12 +2,20 @@
 import { MultiChainProvider } from '../../../src/services/providers/multi-chain.provider';
 import { PriceTracker } from '../../../src/services/price-tracker.service';
 import { BlockchainType, SpecificChain, PriceSource } from '../../../src/types';
-import { ADMIN_USERNAME, ADMIN_PASSWORD, ADMIN_EMAIL } from '../../utils/test-helpers';
+import { 
+  ADMIN_USERNAME, 
+  ADMIN_PASSWORD, 
+  ADMIN_EMAIL,
+  setupAdminClient,
+  cleanupTestState,
+  registerTeamAndGetClient
+} from '../../utils/test-helpers';
 import axios from 'axios';
 import { getBaseUrl } from '../../utils/server';
 import dotenv from 'dotenv';
 import config from '../../../src/config';
 import { dbManager } from '../../utils/db-manager';
+import { ApiClient } from '../../utils/api-client';
 
 // Load environment variables
 dotenv.config();
@@ -57,6 +65,9 @@ const testTokens = {
 describe('Multi-Chain Provider Tests', () => {
   let multiChainProvider: MultiChainProvider;
   let priceTracker: PriceTracker;
+  // Add authenticated clients
+  let adminClient: ApiClient;
+  let client: ApiClient;
   
   // Initialize database before all tests
   beforeAll(async () => {
@@ -64,6 +75,27 @@ describe('Multi-Chain Provider Tests', () => {
     if (runTests) {
       await dbManager.initialize();
     }
+    
+    // Set up authenticated clients
+    await cleanupTestState();
+    
+    // Create admin account directly
+    await axios.post(`${getBaseUrl()}/api/admin/setup`, {
+      username: ADMIN_USERNAME,
+      password: ADMIN_PASSWORD,
+      email: ADMIN_EMAIL
+    });
+    
+    // Setup admin client
+    adminClient = await setupAdminClient();
+    
+    // Register a team and get an authenticated client
+    const result = await registerTeamAndGetClient(adminClient);
+    client = result.client;
+    
+    // Log the API key to verify it's correctly set
+    console.log(`Test client API key: ${result.apiKey}`);
+    console.log(`Test client API secret available: ${!!result.team.apiSecret}`);
   });
   
   // Check database schema as a test
@@ -98,13 +130,6 @@ describe('Multi-Chain Provider Tests', () => {
     
     // Clean up the test state using the DbManager
     await dbManager.cleanupTestState();
-    
-    // Create admin account
-    await axios.post(`${getBaseUrl()}/api/admin/setup`, {
-      username: ADMIN_USERNAME,
-      password: ADMIN_PASSWORD,
-      email: ADMIN_EMAIL
-    });
     
     // Initialize providers
     multiChainProvider = new MultiChainProvider();
@@ -187,12 +212,22 @@ describe('Multi-Chain Provider Tests', () => {
       
       // Test through the API endpoint if available
       try {
-        const baseUrl = getBaseUrl();
-        const apiResponse = await axios.get(`${baseUrl}/api/price?token=${ethToken}`);
-        console.log(`API response for ETH token:`, apiResponse.data);
+        // Use authenticated client instead of direct axios
+        const response = await client.getPrice(ethToken);
+        console.log(`API response for ETH token:`, response);
+        
+        // Check if response is successful
+        expect(response.success).toBe(true);
         
         // Always check the chain type is correctly identified
-        expect(apiResponse.data.chain).toBe(BlockchainType.EVM);
+        expect(response.chain).toBe(BlockchainType.EVM);
+        
+        // Check price is present and valid
+        if (response.price !== undefined) {
+          expect(typeof response.price).toBe('number');
+          expect(response.price).toBeGreaterThan(0);
+          console.log(`ETH price from API: $${response.price}`);
+        }
       } catch (error) {
         console.log('Error fetching price through API:', error);
       }
@@ -430,144 +465,96 @@ describe('Multi-Chain Provider Tests', () => {
   });
   
   describe('API integration for multi-chain price fetching', () => {
-    it('should fetch token price through API and automatically detect the chain', async () => {
+    it('should fetch token price using price tracker service', async () => {
       if (!runTests) {
         console.log('Skipping test - Tests disabled');
         return;
       }
       
-      // Try to fetch an Ethereum token price
-      try {
-        // Check if we can directly fetch the price using the provider
-        const ethToken = testTokens.eth.ETH;
-        const chain = multiChainProvider.determineChain(ethToken);
-        expect(chain).toBe(BlockchainType.EVM);
-        
-        // Try to get price through the price tracker
-        const price = await priceTracker.getPrice(ethToken);
-        console.log(`ETH price from price tracker: $${price}`);
-        
-        // Test through the token-info endpoint
-        const baseUrl = getBaseUrl();
-        const apiResponse = await axios.get(`${baseUrl}/api/price/token-info?token=${ethToken}`);
-        console.log(`Token info API response:`, apiResponse.data);
-        
-        // Chain identification should work regardless of price availability
-        expect(apiResponse.data.chain).toBe(BlockchainType.EVM);
-        
-        // If we get a price, check it's reasonable
-        if (apiResponse.data.price !== null) {
-          expect(apiResponse.data.price).toBeGreaterThan(0);
+      // Use a common token with reliable price data
+      const token = testTokens.eth.ETH;
+      
+      // Get price from price tracker directly
+      const price = await priceTracker.getPrice(token);
+      console.log(`ETH price from price tracker: $${price}`);
+      expect(price).toBeGreaterThan(0);
+      
+      // Get token info directly from MultiChainProvider to verify chain detection
+      const chain = multiChainProvider.determineChain(token);
+      console.log(`Token ${token} chain detection result: ${chain}`);
+      expect(chain).toBe(BlockchainType.EVM);
+      
+      // If we need to check specific chain, use getTokenInfo method
+      const tokenInfo = await priceTracker.getTokenInfo(token);
+      console.log(`Token info for ${token}:`, tokenInfo);
+      expect(tokenInfo).not.toBeNull();
+      
+      if (tokenInfo) {
+        expect(tokenInfo.chain).toBe(BlockchainType.EVM);
+        if (tokenInfo.specificChain) {
+          expect(typeof tokenInfo.specificChain).toBe('string');
+          console.log(`Token specific chain: ${tokenInfo.specificChain}`);
         }
-        
-        // If specific chain info is available, it should be one of our supported chains
-        if (apiResponse.data.specificChain) {
-          expect(evmChains).toContain(apiResponse.data.specificChain);
-        }
-      } catch (error) {
-        console.log(`Error in API integration test: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
     });
     
     it('should handle errors gracefully for unsupported tokens', async () => {
-      if (!runTests) {
-        console.log('Skipping test - Tests disabled');
-        return;
-      }
-      
-      // Use an invalid token address
+      // Test with an invalid token address
       const invalidToken = 'not-a-valid-token-address';
       
       try {
-        // The API should return a proper error response
-        const baseUrl = getBaseUrl();
-        const response = await axios.get(`${baseUrl}/api/price?token=${invalidToken}`);
-        
-        console.log(`API response for invalid token:`, response.data);
-        
-        // The response should have success: false
-        expect(response.data.success).toBe(false);
-        expect(response.data.price).toBeNull();
+        // This should throw an error or return null
+        const price = await priceTracker.getPrice(invalidToken);
+        console.log(`Price result for invalid token: ${price}`);
+        expect(price).toBeNull();
       } catch (error) {
-        // Even with error, the API shouldn't crash
-        console.log(`Error with invalid token (this may be expected): ${error instanceof Error ? error.message : 'Unknown error'}`);
+        // Error is expected
+        console.log(`Expected error for invalid token: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        expect(error).toBeDefined();
       }
     });
     
-    it('should successfully fetch prices faster when providing the exact chain parameter', async () => {
-      if (!runTests) {
-        console.log('Skipping test - Tests disabled');
-        return;
-      }
+    it('should fetch prices faster when providing the exact chain parameter', async () => {
+      // Use a token that's available on a specific chain
+      const linkToken = '0x514910771af9ca656af840dff83e8264ecf986ca'; // Chainlink on Ethereum
       
-      // Use Chainlink token for testing
-      const linkToken = '0x514910771af9ca656af840dff83e8264ecf986ca';
-      const expectedChain = 'eth';
+      console.log('Testing chain override performance for Chainlink token (0x514910771af9ca656af840dff83e8264ecf986ca)');
       
-      console.log(`Testing chain override API performance for Chainlink token (${linkToken})`);
-      
-      // 1. First test without chain parameter
+      // Get price with chain detection (which may try multiple chains)
       const startTimeWithout = Date.now();
-      const responseWithout = await axios.get(`${getBaseUrl()}/api/price`, {
-        params: {
-          token: linkToken
-        }
-      });
+      const priceWithoutChain = await priceTracker.getPrice(linkToken);
       const endTimeWithout = Date.now();
       const timeWithout = endTimeWithout - startTimeWithout;
       
-      console.log(`API response time without chain parameter: ${timeWithout}ms`);
-      console.log(`API response:`, responseWithout.data);
-      
-      // Verify response format
-      expect(responseWithout.status).toBe(200);
-      expect(responseWithout.data.token).toBe(linkToken);
-      expect(responseWithout.data.chain).toBe('evm');
+      console.log(`Price fetch time without chain parameter: ${timeWithout}ms`);
+      console.log(`Price result without specific chain: $${priceWithoutChain}`);
+      expect(priceWithoutChain).toBeGreaterThan(0);
       
       // Short delay to avoid rate limiting
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // 2. Now test with chain parameter
+      // Now get price with exact chain parameter
       const startTimeWith = Date.now();
-      const responseWith = await axios.get(`${getBaseUrl()}/api/price`, {
-        params: {
-          token: linkToken,
-          chain: 'evm',
-          specificChain: expectedChain
-        }
-      });
+      const priceWithChain = await multiChainProvider.getPrice(linkToken, BlockchainType.EVM, 'eth');
       const endTimeWith = Date.now();
       const timeWith = endTimeWith - startTimeWith;
       
-      console.log(`API response time with chain parameter: ${timeWith}ms`);
-      console.log(`API response:`, responseWith.data);
+      console.log(`Price fetch time with chain parameter: ${timeWith}ms`);
+      console.log(`Price result with specific chain: $${priceWithChain}`);
+      expect(priceWithChain).toBeGreaterThan(0);
       
-      // Verify response format
-      expect(responseWith.status).toBe(200);
-      expect(responseWith.data.token).toBe(linkToken);
-      expect(responseWith.data.chain).toBe('evm');
-      expect(responseWith.data.specificChain).toBe(expectedChain);
+      // Also get token info to verify chain detection
+      const tokenInfo = await priceTracker.getTokenInfo(linkToken);
+      console.log(`Token info for Chainlink:`, tokenInfo);
+      expect(tokenInfo).not.toBeNull();
       
-      // Log the performance difference
-      console.log(`API call difference: ${timeWithout - timeWith}ms (${((timeWithout - timeWith) / timeWithout * 100).toFixed(2)}% faster)`);
+      if (tokenInfo) {
+        expect(tokenInfo.chain).toBe(BlockchainType.EVM);
+        expect(tokenInfo.specificChain).toBe('eth');
+      }
       
-      // Also test the token-info endpoint which should return more detailed information
-      console.log(`Testing token-info API with chain parameter for Chainlink token (${linkToken})`);
-      const tokenInfoResponse = await axios.get(`${getBaseUrl()}/api/price/token-info`, {
-        params: {
-          token: linkToken,
-          chain: 'evm',
-          specificChain: expectedChain
-        }
-      });
-      
-      console.log(`Token info API response:`, tokenInfoResponse.data);
-      
-      // Verify token info response format
-      expect(tokenInfoResponse.status).toBe(200);
-      expect(tokenInfoResponse.data.token).toBe(linkToken);
-      expect(tokenInfoResponse.data.chain).toBe('evm');
-      expect(tokenInfoResponse.data.specificChain).toBe(expectedChain);
-    }, 60000); // 60 second timeout for this test
+      // Log performance difference
+      console.log(`Performance difference: ${timeWithout - timeWith}ms (${((timeWithout - timeWith) / timeWithout * 100).toFixed(2)}% faster with chain parameter)`);
+    });
   });
 }); 

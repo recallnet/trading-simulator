@@ -26,7 +26,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Define protected routes
-const protectedRoutes = ['/api/account', '/api/trade', '/api/competition'];
+const protectedRoutes = ['/api/account', '/api/trade', '/api/competition', '/api/price'];
 
 // Apply authentication middleware to protected routes FIRST
 // This ensures req.teamId is set before rate limiting
