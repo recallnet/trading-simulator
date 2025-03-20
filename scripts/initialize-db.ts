@@ -1,8 +1,8 @@
-import { DatabaseConnection } from "./connection";
+import { DatabaseConnection } from "../src/database/connection";
 import * as fs from "fs";
 import * as path from "path";
 import { Client } from "pg";
-import { config } from "../config";
+import { config } from "../src/config";
 
 async function ensureDatabaseExists(): Promise<void> {
   // Connect to default postgres database first
