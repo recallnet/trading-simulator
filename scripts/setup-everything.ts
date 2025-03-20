@@ -125,16 +125,12 @@ async function setupEverything() {
     console.log('\n📦 STEP 2: Initializing database...');
     await runCommand('npm', ['run', 'db:init']);
     
-    // Step 3: Run database migrations
-    console.log('\n📦 STEP 3: Running database migrations...');
-    await runCommand('npm', ['run', 'db:migrate']);
-    
     // Step 4: Build the application
-    console.log('\n📦 STEP 4: Building the application...');
+    console.log('\n📦 STEP 3: Building the application...');
     await runCommand('npm', ['run', 'build']);
     
     // Step 5: Start the server temporarily
-    console.log('\n📦 STEP 5: Starting server temporarily for admin setup...');
+    console.log('\n📦 STEP 4: Starting server temporarily for admin setup...');
     
     const server = spawn('npm', ['run', 'start'], {
       detached: true,

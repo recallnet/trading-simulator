@@ -163,7 +163,6 @@ The application uses a layered architecture:
    This command will:
    - Generate secure random values for security secrets (JWT_SECRET, API_KEY_SECRET, etc.)
    - Initialize the database schema with all necessary tables
-   - Apply all required migrations automatically
    - Build the application
    - Start a temporary server
    - Set up the admin account (with interactive prompts)
@@ -173,7 +172,6 @@ The application uses a layered architecture:
    ```
    npm run generate:secrets  # Generate security secrets
    npm run db:init           # Initialize the database with full schema
-   npm run db:migrate        # Run all migrations
    npm run build             # Build the application
    npm run start             # Start the server
    npm run setup:admin       # Set up the admin account (in a separate terminal)
@@ -275,11 +273,10 @@ npm run setup:all
 This command will:
 1. Generate all required security secrets
 2. Initialize the database
-3. Run all database migrations
-4. Build the application
-5. Start the server temporarily
-6. Set up the admin account (with a prompt for credentials)
-7. Provide final instructions
+3. Build the application
+4. Start the server temporarily
+5. Set up the admin account (with a prompt for credentials)
+6. Provide final instructions
 
 This is the easiest way to get the system up and running with minimal effort.
 
@@ -371,15 +368,7 @@ Initialize the database with:
 npm run db:init
 ```
 
-#### 5. Run Migrations
-
-Apply all database migrations:
-
-```bash
-npm run db:migrate
-```
-
-#### 6. Build the Application
+#### 5. Build the Application
 
 Build the TypeScript application:
 
@@ -387,7 +376,7 @@ Build the TypeScript application:
 npm run build
 ```
 
-#### 7. Start the Server
+#### 6. Start the Server
 
 Start the server:
 

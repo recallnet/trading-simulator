@@ -16,14 +16,12 @@ import { dropAllTables } from '../../scripts/drop-all-tables';
  * - Connection tracking and proper cleanup
  * - Complete database reset (drops all tables) before initialization
  * - Direct use of production schema initialization code for consistency
- * - No migrations needed - schema is always recreated from scratch
  */
 export class DbManager {
   private static instance: DbManager;
   private pool: Pool | null = null;
   private activeConnections = 0;
   private initialized = false;
-  private migrationApplied = new Set<string>();
   
   // Database configuration from environment variables
   private config = {
@@ -57,7 +55,6 @@ export class DbManager {
    * - Creates a fresh database if it doesn't exist
    * - Drops all existing tables (if any)
    * - Runs the initialization script using production code
-   * - No migrations needed - schema is recreated from scratch
    */
   public async initialize(): Promise<void> {
     if (this.initialized) {
@@ -140,13 +137,6 @@ export class DbManager {
       console.log('Database schema initialized successfully');
       this.initialized = true;
       
-      // NOTE: We don't need to apply migrations since we're dropping all tables and recreating
-      // the schema from scratch. Migrations are only needed when upgrading an existing database
-      // from one schema version to another.
-      // 
-      // If specific test-only schema changes are needed, they should be added directly to the
-      // test setup rather than as migrations.
-      
     } catch (error) {
       console.error('Failed to initialize database:', error);
       throw error;
@@ -176,7 +166,7 @@ export class DbManager {
 
   /**
    * Reset the database to a clean state
-   * - Truncates all tables (except migrations)
+   * - Truncates all tables 
    * - Resets sequences
    */
   public async resetDatabase(): Promise<void> {
@@ -196,10 +186,10 @@ export class DbManager {
       // Get all tables
       const tablesResult = await client.query(`
         SELECT tablename FROM pg_tables 
-        WHERE schemaname = 'public' AND tablename != 'migrations'
+        WHERE schemaname = 'public'
       `);
       
-      // Truncate all tables except migrations
+      // Truncate all tables 
       if (tablesResult.rows.length > 0) {
         const tables = tablesResult.rows.map(row => `"${row.tablename}"`).join(', ');
         if (tables) {
@@ -272,7 +262,6 @@ export class DbManager {
       this.pool = null;
       this.initialized = false;
       this.activeConnections = 0;
-      this.migrationApplied.clear();
       console.log('Database connection closed');
     }
   }

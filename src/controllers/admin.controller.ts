@@ -39,10 +39,6 @@ export class AdminController {
         throw new ApiError(400, 'Password must be at least 8 characters long');
       }
       
-      // Hash password
-      const saltRounds = 10;
-      const hashedPassword = await bcrypt.hash(password, saltRounds);
-      
       // Create admin record using team repository
       const admin = await repositories.teamRepository.create({
         id: uuidv4(),

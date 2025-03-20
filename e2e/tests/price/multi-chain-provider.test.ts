@@ -60,7 +60,7 @@ describe('Multi-Chain Provider Tests', () => {
   
   // Initialize database before all tests
   beforeAll(async () => {
-    // Initialize the database which includes migrations
+    // Initialize the database 
     if (runTests) {
       await dbManager.initialize();
     }

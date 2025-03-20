@@ -9,7 +9,6 @@ The `DbManager` is a singleton utility that provides a standardized way to manag
 - Ensures a single connection pool is shared across all tests
 - Tracks connections to prevent leaks
 - Provides proper initialization and teardown
-- Supports test-specific migrations
 - Ensures consistent cleanup between tests
 
 ## Basic Usage
@@ -82,32 +81,6 @@ await dbManager.resetDatabase();
 await dbManager.cleanupTestState();
 ```
 
-### Migrations
-
-For test-specific schema changes, use the migration system:
-
-```typescript
-// Apply a named migration
-await dbManager.applyMigration('add-my-column', async (client) => {
-  // Check if column exists
-  const result = await client.query(`
-    SELECT EXISTS (
-      SELECT 1
-      FROM information_schema.columns
-      WHERE table_name = 'my_table'
-      AND column_name = 'my_column'
-    ) as column_exists;
-  `);
-  
-  // Add it if it doesn't exist
-  if (!result.rows[0].column_exists) {
-    await client.query(`
-      ALTER TABLE my_table ADD COLUMN my_column VARCHAR(50);
-    `);
-  }
-});
-```
-
 ### Cleanup
 
 ```typescript
@@ -126,8 +99,6 @@ await dbManager.close();
 4. **Use transactions**: For multi-step operations, use transactions to maintain data consistency
    
 5. **Release clients**: Always release clients when using `getClient()`
-   
-6. **Add migrations to the manager**: Instead of modifying schema directly in tests, add migrations to the `applyTestMigrations` method in the `DbManager`
 
 ## Legacy Support
 
@@ -137,5 +108,3 @@ The `db-manager.ts` file also exports helper functions for backward compatibilit
 // Old API functions (backed by DbManager)
 import { initializeDb, getPool, closeDb, resetDb, cleanupTestState } from '../utils/db-manager';
 ```
-
-These are provided to ease migration but should eventually be replaced with direct `dbManager` usage. 
