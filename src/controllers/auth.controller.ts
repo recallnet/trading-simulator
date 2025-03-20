@@ -32,9 +32,18 @@ export class AuthController {
           throw new ApiError(401, 'Invalid username or password');
         }
         
-        // Verify password (stored in apiSecret field)
-        const passwordValid = await bcrypt.compare(password, admin.apiSecret);
-        if (!passwordValid) {
+        // Verify password using the decrypted value from apiSecretEncrypted
+        let isPasswordValid = false;
+        try {
+          if (admin.apiSecretEncrypted) {
+            const decryptedSecret = services.teamManager.decryptApiSecret(admin.apiSecretEncrypted);
+            isPasswordValid = password === decryptedSecret;
+          }
+        } catch (error) {
+          console.error('[AuthController] Error decrypting admin password:', error);
+        }
+        
+        if (!isPasswordValid) {
           throw new ApiError(401, 'Invalid username or password');
         }
         

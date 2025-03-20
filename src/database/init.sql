@@ -5,13 +5,13 @@ CREATE TABLE IF NOT EXISTS teams (
   email VARCHAR(100) NOT NULL,
   contact_person VARCHAR(100) NOT NULL,
   api_key VARCHAR(100) UNIQUE NOT NULL,
-  api_secret VARCHAR(100) NOT NULL,
-  api_secret_raw VARCHAR(255), -- Encrypted API secret for HMAC validation
+  api_secret_encrypted VARCHAR(255) NOT NULL, -- Encrypted API secret for HMAC validation
   is_admin BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Create team indexes
 CREATE INDEX IF NOT EXISTS idx_teams_api_key ON teams(api_key);
 CREATE INDEX IF NOT EXISTS idx_teams_is_admin ON teams(is_admin);
 
@@ -27,6 +27,7 @@ CREATE TABLE IF NOT EXISTS competitions (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Create competition indexes
 CREATE INDEX IF NOT EXISTS idx_competitions_status ON competitions(status);
 
 -- Competition Teams (junction table)
@@ -49,6 +50,7 @@ CREATE TABLE IF NOT EXISTS balances (
   UNIQUE(team_id, token_address)
 );
 
+-- Create balance indexes
 CREATE INDEX IF NOT EXISTS idx_balances_team_id ON balances(team_id);
 CREATE INDEX IF NOT EXISTS idx_balances_specific_chain ON balances(specific_chain);
 
@@ -71,6 +73,7 @@ CREATE TABLE IF NOT EXISTS trades (
   to_specific_chain VARCHAR(20) -- Specific chain for to_token (eth, polygon, base, etc.)
 );
 
+-- Create trade indexes
 CREATE INDEX IF NOT EXISTS idx_trades_team_id ON trades(team_id);
 CREATE INDEX IF NOT EXISTS idx_trades_competition_id ON trades(competition_id);
 CREATE INDEX IF NOT EXISTS idx_trades_timestamp ON trades(timestamp);
@@ -89,6 +92,7 @@ CREATE TABLE IF NOT EXISTS prices (
   specific_chain VARCHAR(20) -- New column to track specific chain (eth, polygon, base, etc.)
 );
 
+-- Create price indexes
 CREATE INDEX IF NOT EXISTS idx_prices_token ON prices(token);
 CREATE INDEX IF NOT EXISTS idx_prices_timestamp ON prices(timestamp);
 CREATE INDEX IF NOT EXISTS idx_prices_token_timestamp ON prices(token, timestamp);
@@ -106,6 +110,7 @@ CREATE TABLE IF NOT EXISTS portfolio_snapshots (
   total_value DECIMAL(30, 15) NOT NULL
 );
 
+-- Create portfolio snapshot indexes
 CREATE INDEX IF NOT EXISTS idx_portfolio_snapshots_team_competition ON portfolio_snapshots(team_id, competition_id);
 CREATE INDEX IF NOT EXISTS idx_portfolio_snapshots_timestamp ON portfolio_snapshots(timestamp);
 
@@ -120,6 +125,7 @@ CREATE TABLE IF NOT EXISTS portfolio_token_values (
   specific_chain VARCHAR(20) -- New column to track specific chain
 );
 
+-- Create portfolio token values indexes
 CREATE INDEX IF NOT EXISTS idx_portfolio_token_values_snapshot_id ON portfolio_token_values(portfolio_snapshot_id);
 CREATE INDEX IF NOT EXISTS idx_portfolio_token_values_specific_chain ON portfolio_token_values(specific_chain);
 
@@ -133,11 +139,14 @@ END;
 $$ LANGUAGE 'plpgsql';
 
 -- Add triggers for updated_at columns
+DROP TRIGGER IF EXISTS update_teams_updated_at ON teams;
 CREATE TRIGGER update_teams_updated_at BEFORE UPDATE ON teams
     FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_competitions_updated_at ON competitions;
 CREATE TRIGGER update_competitions_updated_at BEFORE UPDATE ON competitions
     FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_balances_updated_at ON balances;
 CREATE TRIGGER update_balances_updated_at BEFORE UPDATE ON balances
     FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column(); 

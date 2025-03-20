@@ -1,6 +1,5 @@
 import { v4 as uuidv4 } from 'uuid';
 import * as crypto from 'crypto';
-import * as bcrypt from 'bcrypt';
 import { Team, ApiAuth } from '../types';
 import { config } from '../config';
 import { repositories } from '../database';
@@ -33,9 +32,6 @@ export class TeamManager {
       const apiKey = this.generateApiKey();
       const apiSecret = this.generateApiSecret();
       
-      // Hash the API secret for authentication (not used for HMAC signatures)
-      const hashedSecret = bcrypt.hashSync(apiSecret, 10);
-      
       // Encrypt the API secret for storage (for HMAC signature validation)
       const encryptedSecret = this.encryptApiSecret(apiSecret);
       
@@ -46,9 +42,7 @@ export class TeamManager {
         email,
         contactPerson,
         apiKey,
-        // Store both the hashed secret and the encrypted raw secret
-        apiSecret: hashedSecret,
-        apiSecretRaw: encryptedSecret,  // Store encrypted secret for HMAC signatures
+        apiSecretEncrypted: encryptedSecret,
         createdAt: new Date(),
         updatedAt: new Date()
       };
@@ -68,8 +62,8 @@ export class TeamManager {
       // Return team with plain text secret (only time it's available)
       return {
         ...savedTeam,
-        apiSecret // Return plain text secret to client
-      };
+        apiSecret // Return plain text secret to client as a temporary field
+      } as Team & { apiSecret: string };
     } catch (error) {
       // Rethrow the error with detailed information if it's not already a specific error
       if (error instanceof Error) {
@@ -162,18 +156,20 @@ export class TeamManager {
         // Get the raw API secret for signature validation
         let secretForValidation;
         try {
-          if (team.apiSecretRaw) {
+          if (team.apiSecretEncrypted) {
             // Decrypt the stored encrypted secret
-            secretForValidation = this.decryptApiSecret(team.apiSecretRaw);
+            secretForValidation = this.decryptApiSecret(team.apiSecretEncrypted);
+            console.log(`[TeamManager] Using decrypted secret from database (first 4 chars): ${secretForValidation.substring(0, 4)}...`);
           } else {
             // Fallback to using the config HMAC secret
             // This should only happen during transition to the new system
-            console.log(`[TeamManager] No encrypted secret found, using fallback HMAC secret`);
+            console.log(`[TeamManager] No encrypted secret found, using fallback HMAC secret (first 4 chars): ${config.security.hmacSecret.substring(0, 4)}...`);
             secretForValidation = config.security.hmacSecret;
           }
         } catch (error) {
           console.error(`[TeamManager] Error decrypting API secret:`, error);
           // Fallback to global HMAC secret if decryption fails
+          console.log(`[TeamManager] Decryption failed, using fallback HMAC secret (first 4 chars): ${config.security.hmacSecret.substring(0, 4)}...`);
           secretForValidation = config.security.hmacSecret;
         }
         
@@ -234,26 +230,26 @@ export class TeamManager {
   }
 
   /**
-   * Encrypt an API secret for secure storage
+   * Encrypt an API secret using a consistent encryption method
    * @param secret The API secret to encrypt
    * @returns The encrypted secret
    */
-  private encryptApiSecret(secret: string): string {
+  encryptApiSecret(secret: string): string {
     try {
       const algorithm = 'aes-256-cbc';
       const iv = crypto.randomBytes(16);
       
-      // Use the master encryption key from config
-      // In production, this would come from a secure key management service
+      // IMPORTANT: Create a consistently-sized key from the master encryption key
+      // This ensures that regardless of the key length, we get a valid AES key
       const key = crypto.createHash('sha256')
-        .update(config.security.masterEncryptionKey)
+        .update(String(config.security.masterEncryptionKey))
         .digest();
       
       const cipher = crypto.createCipheriv(algorithm, key, iv);
       let encrypted = cipher.update(secret, 'utf8', 'hex');
       encrypted += cipher.final('hex');
       
-      // Return the IV and encrypted data together
+      // Return the IV and encrypted data together, clearly separated
       return `${iv.toString('hex')}:${encrypted}`;
     } catch (error) {
       console.error('[TeamManager] Error encrypting API secret:', error);
@@ -268,7 +264,7 @@ export class TeamManager {
    * @param encryptedSecret The encrypted API secret
    * @returns The original API secret
    */
-  private decryptApiSecret(encryptedSecret: string): string {
+  decryptApiSecret(encryptedSecret: string): string {
     try {
       // Handle unencrypted secrets (for backward compatibility or fallback)
       if (encryptedSecret.startsWith('UNENCRYPTED:')) {
@@ -285,9 +281,10 @@ export class TeamManager {
       const iv = Buffer.from(parts[0], 'hex');
       const encrypted = parts[1];
       
-      // Use the master encryption key from config
+      // IMPORTANT: Create a consistently-sized key from the master encryption key
+      // This must match exactly how the key was created during encryption
       const key = crypto.createHash('sha256')
-        .update(config.security.masterEncryptionKey)
+        .update(String(config.security.masterEncryptionKey))
         .digest();
       
       const decipher = crypto.createDecipheriv(algorithm, key, iv);

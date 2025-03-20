@@ -19,11 +19,9 @@ export class TeamRepository extends BaseRepository<Team> {
    */
   async create(team: Team, client?: PoolClient): Promise<Team> {
     try {
-      const snakeCaseTeam = this.toSnakeCase(team);
-      
       const query = `
         INSERT INTO teams (
-          id, name, email, contact_person, api_key, api_secret, is_admin, created_at, updated_at
+          id, name, email, contact_person, api_key, api_secret_encrypted, is_admin, created_at, updated_at
         ) VALUES (
           $1, $2, $3, $4, $5, $6, $7, $8, $9
         ) RETURNING *
@@ -35,7 +33,7 @@ export class TeamRepository extends BaseRepository<Team> {
         team.email,
         team.contactPerson,
         team.apiKey,
-        team.apiSecret,
+        team.apiSecretEncrypted,
         team.isAdmin || false,
         team.createdAt,
         team.updatedAt
@@ -93,7 +91,7 @@ export class TeamRepository extends BaseRepository<Team> {
           email = $2,
           contact_person = $3,
           api_key = $4,
-          api_secret = $5,
+          api_secret_encrypted = $5,
           is_admin = $6,
           updated_at = $7
         WHERE id = $8
@@ -105,7 +103,7 @@ export class TeamRepository extends BaseRepository<Team> {
         team.email,
         team.contactPerson,
         team.apiKey,
-        team.apiSecret,
+        team.apiSecretEncrypted,
         team.isAdmin || false,
         new Date(),
         team.id
@@ -190,7 +188,7 @@ export class TeamRepository extends BaseRepository<Team> {
       email: data.email,
       contactPerson: data.contactPerson,
       apiKey: data.apiKey,
-      apiSecret: data.apiSecret,
+      apiSecretEncrypted: data.apiSecretEncrypted,
       isAdmin: data.isAdmin || false,
       createdAt: new Date(data.createdAt),
       updatedAt: new Date(data.updatedAt)

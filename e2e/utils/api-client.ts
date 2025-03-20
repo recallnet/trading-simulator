@@ -1,6 +1,5 @@
 import axios, { AxiosInstance } from 'axios';
 import { createHmac } from 'crypto';
-import { getBaseUrl } from './server';
 
 /**
  * API client for testing the Solana Trading Simulator
@@ -54,14 +53,19 @@ export class ApiClient {
         const timestamp = new Date(Date.now() + 2 * 365 * 24 * 60 * 60 * 1000).toISOString(); // 2 years in the future
         const method = config.method?.toUpperCase() || 'GET';
         const path = config.url || '';
+        
+        // CRITICAL: Ensure path starts with a forward slash for signature generation
+        // This must match the path format expected by the server
+        const pathForSignature = path.startsWith('/') ? path : `/${path}`;
         const body = config.data ? JSON.stringify(config.data) : '{}';
         
-        const payload = method + path + timestamp + body;
+        const payload = method + pathForSignature + timestamp + body;
         const signature = this.calculateSignature(payload);
         
         console.log(`[ApiClient] Request details:`)
         console.log(`[ApiClient] Method: ${method}`)
         console.log(`[ApiClient] Path: ${path}`)
+        console.log(`[ApiClient] Path for signature: ${pathForSignature}`)
         console.log(`[ApiClient] Timestamp: ${timestamp}`)
         console.log(`[ApiClient] Body: ${body}`)
         console.log(`[ApiClient] Payload: ${payload}`)

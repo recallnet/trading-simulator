@@ -41,6 +41,39 @@ async function ensureDatabaseExists(): Promise<void> {
 }
 
 /**
+ * Split the SQL initialization file into sections by comments
+ * @param sql The full SQL string
+ */
+function splitSqlIntoSections(sql: string): string[] {
+  // Split into major sections: tables, indexes, functions
+  
+  // Find the function definition part
+  const functionsStartIndex = sql.indexOf('-- Function to update updated_at timestamp');
+  const tablesPart = functionsStartIndex !== -1 ? sql.substring(0, functionsStartIndex) : sql;
+  const functionsPart = functionsStartIndex !== -1 ? sql.substring(functionsStartIndex) : '';
+  
+  // Split tables by CREATE TABLE
+  const tables = tablesPart.split(/-- [A-Za-z]+ table/);
+  
+  const result: string[] = [];
+  
+  // Add each table section
+  for (let i = 1; i < tables.length; i++) {
+    const tableSection = tables[i].trim();
+    if (tableSection) {
+      result.push(`-- Table section ${i}\n${tableSection}`);
+    }
+  }
+  
+  // Add the functions and triggers section last
+  if (functionsPart) {
+    result.push(functionsPart);
+  }
+  
+  return result;
+}
+
+/**
  * Initialize the database
  * Creates tables and indices if they don't exist
  */
@@ -77,8 +110,20 @@ export async function initializeDatabase(): Promise<void> {
     const sqlFile = path.join(__dirname, "init.sql");
     const sql = fs.readFileSync(sqlFile, "utf8");
 
-    // Execute the SQL script as a whole
-    await db.query(sql);
+    // Split the SQL into sections for easier error isolation
+    const sqlSections = splitSqlIntoSections(sql);
+    
+    // Execute each section separately to better isolate errors
+    for (let i = 0; i < sqlSections.length; i++) {
+      try {
+        console.log(`[Database] Executing SQL section ${i+1} of ${sqlSections.length}...`);
+        await db.query(sqlSections[i]);
+      } catch (error) {
+        console.error(`[Database] Error executing SQL section ${i+1}:`, error);
+        console.error("SQL section content:", sqlSections[i].substring(0, 200) + "...");
+        throw error;
+      }
+    }
 
     console.log("[Database] Database schema initialized successfully");
   } catch (error) {

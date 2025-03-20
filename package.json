@@ -24,6 +24,7 @@
     "db:check": "ts-node scripts/check-db.ts",
     "db:clean": "NODE_ENV=development ts-node scripts/clean-db.ts",
     "db:reset": "npm run db:clean && npm run db:init",
+    "db:drop-all": "NODE_ENV=development ts-node scripts/drop-all-tables.ts",
     "db:migrate": "ts-node src/database/migrate.ts",
     "db:migrate:admin": "ts-node scripts/add-admin-field.ts",
     "generate:secrets": "ts-node scripts/generate-secrets.ts",

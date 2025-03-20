@@ -11,13 +11,15 @@ import * as crypto from 'crypto';
  * - API key: Your team's unique API key provided during registration
  * - API secret: Your team's secret key for request signing (keep this secure!)
  * - Base URL: The endpoint of the Trading Simulator server
+ * - Debug Mode (optional): Enable detailed logging for API requests
  * 
  * @example
  * // Basic setup
  * const client = new TradingSimulatorClient(
  *   "sk_7b550f528ba35cfb50b9de65b63e27e4",  // Your API key
  *   "a56229f71f5a2a42f93197fb32159916d1ff7796433c133d00b90097a0bbf12f",  // Your API secret 
- *   "https://trading-simulator.example.com"  // API base URL
+ *   "https://trading-simulator.example.com",  // API base URL
+ *   false  // Debug mode (optional, default: false)
  * );
  * 
  * // Get team balances
@@ -89,22 +91,26 @@ export class TradingSimulatorClient {
   private apiKey: string;
   private apiSecret: string;
   private baseUrl: string;
+  private debug: boolean;
 
   /**
    * Create a new instance of the Trading Simulator client
    * 
    * @param apiKey The API key for your team
    * @param apiSecret The API secret for your team
-   * @param baseUrl The base URL of the Trading Simulator API (default: http://localhost:3001)
+   * @param baseUrl The base URL of the Trading Simulator API (default: http://localhost:3000)
+   * @param debug Whether to enable debug logging (default: false)
    */
   constructor(
     apiKey: string,
     apiSecret: string,
-    baseUrl: string = 'http://localhost:3001'
+    baseUrl: string = 'http://localhost:3000',
+    debug: boolean = false
   ) {
     this.apiKey = apiKey;
     this.apiSecret = apiSecret;
     this.baseUrl = baseUrl;
+    this.debug = debug;
   }
 
   /**
@@ -115,19 +121,39 @@ export class TradingSimulatorClient {
    * @param body The request body (if any)
    * @returns An object containing the required headers
    */
-  private generateHeaders(method: string, path: string, body: string = '{}'): Record<string, string> {
-    // Use timestamp 2 years in the future for e2e tests (to avoid expiration)
-    // In production, use current timestamp: const timestamp = new Date().toISOString();
-    const timestamp = new Date(Date.now() + 2 * 365 * 24 * 60 * 60 * 1000).toISOString();
+  private generateHeaders(method: string, path: string, body: any = null): Record<string, string> {
+    // Use current timestamp for production use
+    const timestamp = new Date().toISOString();
     
-    // Important: Use '{}' for empty bodies to match the test utility implementation
-    const bodyString = body || '{}';
+    // IMPORTANT: Always use '{}' for empty bodies to match server-side signature validation
+    // The server expects empty requests to have an empty JSON object in signature calculation
+    const bodyString = body ? JSON.stringify(body) : '{}';
+    
+    // CRITICAL: Ensure path format matches server-side validation
+    // Server expects: method + path + timestamp + bodyString
+    // Path should include the leading slash
     const data = method + path + timestamp + bodyString;
+    
+    if (this.debug) {
+      console.log('[ApiClient] Request details:');
+      console.log('[ApiClient] Method:', method);
+      console.log('[ApiClient] Path:', path);
+      console.log('[ApiClient] Path for signature:', path);
+      console.log('[ApiClient] Timestamp:', timestamp);
+      console.log('[ApiClient] Body:', bodyString);
+      console.log('[ApiClient] Payload:', data);
+      console.log('[ApiClient] API Key:', this.apiKey);
+      console.log('[ApiClient] Secret Length:', this.apiSecret.length);
+    }
     
     const signature = crypto
       .createHmac('sha256', this.apiSecret)
       .update(data)
       .digest('hex');
+
+    if (this.debug) {
+      console.log('[ApiClient] Signature:', signature);
+    }
 
     return {
       'X-API-Key': this.apiKey,
@@ -148,14 +174,17 @@ export class TradingSimulatorClient {
   private async request<T>(method: string, path: string, body: any = null): Promise<T> {
     const url = `${this.baseUrl}${path}`;
     
-    // Important: Use '{}' for empty bodies to match test utility implementation
+    // Convert body to JSON string if it exists, otherwise use '{}'
+    // This is critical for signature validation to match server-side expectation
     const bodyString = body ? JSON.stringify(body) : '{}';
-    const headers = this.generateHeaders(method, path, bodyString);
+    
+    // Generate headers using the standardized format
+    const headers = this.generateHeaders(method, path, body);
     
     const options: RequestInit = {
       method,
       headers,
-      body: body ? bodyString : undefined  // Only include body if it exists
+      body: body ? bodyString : undefined  // Only include body in the actual request if it exists
     };
 
     try {
@@ -286,21 +315,6 @@ export class TradingSimulatorClient {
   }
 
   /**
-   * @deprecated The provider endpoint is no longer available
-   * This method has been deprecated as the system now uses only the DexScreener provider.
-   * Please use the getPrice() method instead with optional chain and specificChain parameters.
-   */
-  async getPriceFromProvider(
-    token: string, 
-    provider: string, 
-    chain?: BlockchainType,
-    specificChain?: SpecificChain
-  ): Promise<any> {
-    console.warn('This method is deprecated. Please use getPrice() instead.');
-    return this.getPrice(token, chain, specificChain);
-  }
-
-  /**
    * Execute a token trade on the trading simulator
    * 
    * This method allows you to trade between tokens on the same chain,
@@ -413,7 +427,8 @@ async function example() {
   const client = new TradingSimulatorClient(
     'your-api-key',
     'your-api-secret',
-    'http://localhost:3001'
+    'http://localhost:3000',
+    false // Set to true to enable debug logging for API requests
   );
 
   try {
@@ -478,6 +493,40 @@ async function example() {
     console.error('Error:', error);
   }
 }
+
+/**
+ * Troubleshooting Authentication
+ * 
+ * If you're experiencing authentication issues, you can enable debug mode by passing
+ * true as the fourth parameter to the TradingSimulatorClient constructor:
+ * 
+ * const client = new TradingSimulatorClient(
+ *   "your-api-key",
+ *   "your-api-secret",
+ *   "https://trading-simulator.example.com",
+ *   true  // Enable debug logging
+ * );
+ * 
+ * This will log detailed information about each request:
+ * - The request method, path, and body
+ * - The exact payload used for signature generation
+ * - The generated signature
+ * 
+ * Authentication Details:
+ * 
+ * The client uses HMAC-SHA256 signatures for authentication with these steps:
+ * 1. Concatenate: method + path + timestamp + bodyString
+ *    (e.g., "GET/api/account/balances2023-10-15T14:30:00.000Z{}")
+ * 2. Sign this data using your API secret
+ * 3. Send the signature in the X-Signature header
+ * 
+ * Common Authentication Issues:
+ * 
+ * - Path format: Ensure the path includes the leading slash
+ * - Empty bodies: For GET requests with no body, "{}" is used in signature calculation
+ * - Timestamp format: Must be a valid ISO string (new Date().toISOString())
+ * - API secret format: Must be the exact secret provided during team registration
+ */
 
 // Uncomment to run the example
 // example(); 

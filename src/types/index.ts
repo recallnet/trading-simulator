@@ -127,8 +127,7 @@ export interface Team {
   email: string;
   contactPerson: string;
   apiKey: string;
-  apiSecret: string;
-  apiSecretRaw?: string;  // Raw API secret for HMAC validation
+  apiSecretEncrypted?: string;  // Encrypted API secret for HMAC validation
   isAdmin?: boolean;
   createdAt: Date;
   updatedAt: Date;

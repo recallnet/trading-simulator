@@ -50,7 +50,7 @@ export class AdminController {
         email,
         contactPerson: 'System Administrator',
         apiKey: `admin-${uuidv4()}`, // Still use a prefix for clarity
-        apiSecret: hashedPassword, // Store password in apiSecret field
+        apiSecretEncrypted: services.teamManager.encryptApiSecret(password), // Store encrypted password for HMAC
         isAdmin: true,   // Set admin flag
         createdAt: new Date(),
         updatedAt: new Date()
@@ -106,7 +106,7 @@ export class AdminController {
         // Register the team
         const team = await services.teamManager.registerTeam(teamName, email, contactPerson);
         
-        // Return team with API credentials
+        // Format the response to include apiSecret for the client
         return res.status(201).json({
           success: true,
           team: {
@@ -116,7 +116,7 @@ export class AdminController {
             contactPerson: team.contactPerson,
             contact_person: team.contactPerson, // Add snake_case version for tests
             apiKey: team.apiKey,
-            apiSecret: team.apiSecret, // Only time the secret is returned in plain text
+            apiSecret: (team as any).apiSecret, // Type assertion since this is a temporary field not in the interface
             createdAt: team.createdAt
           }
         });

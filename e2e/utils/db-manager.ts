@@ -1,8 +1,9 @@
 import { Pool, PoolClient } from 'pg';
-import { spawnSync } from 'child_process';
 import path from 'path';
-import fs from 'fs';
 import { config } from 'dotenv';
+import { initializeDatabase } from '../../src/database'; // Import production initialization code
+// Import the function from drop-all-tables.ts
+import { dropAllTables } from '../../scripts/drop-all-tables';
 
 /**
  * Database Manager for E2E Tests
@@ -13,8 +14,9 @@ import { config } from 'dotenv';
  * Features:
  * - Single connection pool shared across all tests
  * - Connection tracking and proper cleanup
- * - Proper database initialization and teardown
- * - Support for test-specific migrations
+ * - Complete database reset (drops all tables) before initialization
+ * - Direct use of production schema initialization code for consistency
+ * - No migrations needed - schema is always recreated from scratch
  */
 export class DbManager {
   private static instance: DbManager;
@@ -53,8 +55,9 @@ export class DbManager {
   /**
    * Initialize the database for testing
    * - Creates a fresh database if it doesn't exist
-   * - Runs the initialization script
-   * - Applies base migrations
+   * - Drops all existing tables (if any)
+   * - Runs the initialization script using production code
+   * - No migrations needed - schema is recreated from scratch
    */
   public async initialize(): Promise<void> {
     if (this.initialized) {
@@ -62,7 +65,7 @@ export class DbManager {
       return;
     }
 
-    console.log('🗄️ Initializing test database...');
+    console.log('Starting database initialization...');
     
     try {
       // Connect to postgres first to check if our database exists
@@ -117,139 +120,36 @@ export class DbManager {
       await this.pool.query('SELECT 1');
       console.log(`Connected to database: ${this.config.database}`);
       
-      // Initialize the database schema by running the setup script
-      console.log('Initializing database schema...');
-      
-      const result = spawnSync('npx', ['ts-node', 'scripts/setup-db.ts'], {
-        env: {
-          ...process.env,
-          NODE_ENV: 'test',
-          DB_NAME: this.config.database
-        },
-        stdio: 'inherit'
-      });
-      
-      if (result.status !== 0) {
-        throw new Error(`Database schema initialization failed with code ${result.status}`);
+      // Drop all existing tables (if any) to ensure a clean slate
+      console.log('Dropping all existing tables to ensure a clean schema...');
+      try {
+        // Use the imported dropAllTables function with confirmationRequired=false
+        // so it doesn't prompt for confirmation in test environment
+        await dropAllTables(false);
+        console.log('All existing tables have been dropped successfully');
+      } catch (error) {
+        console.warn('Error dropping tables:', error);
+        console.log('Continuing with initialization...');
       }
+      
+      // Use the production database initialization code directly
+      // This ensures the schema is consistent with production
+      console.log('[Database] Initializing database schema...');
+      await initializeDatabase();
       
       console.log('Database schema initialized successfully');
       this.initialized = true;
       
-      // Apply standard test migrations
-      await this.applyTestMigrations();
+      // NOTE: We don't need to apply migrations since we're dropping all tables and recreating
+      // the schema from scratch. Migrations are only needed when upgrading an existing database
+      // from one schema version to another.
+      // 
+      // If specific test-only schema changes are needed, they should be added directly to the
+      // test setup rather than as migrations.
       
     } catch (error) {
       console.error('Failed to initialize database:', error);
       throw error;
-    }
-  }
-
-  /**
-   * Apply standard test migrations 
-   * These are migrations that are always needed for tests but might not be
-   * part of the production schema
-   */
-  private async applyTestMigrations(): Promise<void> {
-    console.log('Applying standard test migrations from migration files...');
-    
-    try {
-      // Get all migration files from the migrations directory
-      const migrationsDir = path.join(process.cwd(), 'src/database/migrations');
-      const migrationFiles = fs.readdirSync(migrationsDir)
-        .filter(file => file.endsWith('.sql'))
-        .sort(); // Sort to ensure migrations run in correct order
-
-      console.log(`Found ${migrationFiles.length} migration files to apply`);
-      
-      // Apply each migration
-      for (const file of migrationFiles) {
-        await this.applyMigrationFile(file, migrationsDir);
-      }
-      
-      console.log('All standard migrations applied successfully');
-    } catch (error) {
-      console.error('Error applying standard migrations:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Apply a specific migration file
-   * @param filename The migration filename to apply
-   * @param migrationsDir The directory containing the migration
-   */
-  private async applyMigrationFile(filename: string, migrationsDir: string): Promise<void> {
-    const migrationId = filename.replace('.sql', '');
-    
-    if (this.migrationApplied.has(migrationId)) {
-      console.log(`Migration '${filename}' already applied in this session, skipping...`);
-      return;
-    }
-    
-    console.log(`Applying migration: ${filename}`);
-    
-    // Read migration SQL
-    const migrationPath = path.join(migrationsDir, filename);
-    const migrationSql = fs.readFileSync(migrationPath, 'utf8');
-    
-    const client = await this.pool!.connect();
-    
-    try {
-      // Execute the migration within a transaction
-      await client.query('BEGIN');
-      
-      // Execute the entire SQL file as a single statement
-      // This properly handles PL/pgSQL blocks with dollar-quoted strings
-      await client.query(migrationSql);
-      
-      await client.query('COMMIT');
-      
-      // Mark as applied
-      this.migrationApplied.add(migrationId);
-      console.log(`Successfully applied migration: ${filename}`);
-    } catch (error) {
-      // Rollback on error
-      await client.query('ROLLBACK');
-      console.error(`Failed to apply migration '${filename}':`, error);
-      throw error;
-    } finally {
-      client.release();
-    }
-  }
-
-  /**
-   * Apply a named migration to the database
-   * Migrations are only applied once per DbManager instance
-   */
-  public async applyMigration(name: string, migrationFn: (client: PoolClient) => Promise<void>): Promise<void> {
-    if (!this.initialized) {
-      throw new Error('Database not initialized. Call initialize() first.');
-    }
-    
-    if (this.migrationApplied.has(name)) {
-      console.log(`Migration '${name}' already applied, skipping...`);
-      return;
-    }
-
-    const client = await this.pool!.connect();
-    
-    try {
-      // Execute the migration within a transaction
-      await client.query('BEGIN');
-      await migrationFn(client);
-      await client.query('COMMIT');
-      
-      // Mark as applied
-      this.migrationApplied.add(name);
-      console.log(`Migration '${name}' applied successfully`);
-    } catch (error) {
-      // Rollback on error
-      await client.query('ROLLBACK');
-      console.error(`Failed to apply migration '${name}':`, error);
-      throw error;
-    } finally {
-      client.release();
     }
   }
 
