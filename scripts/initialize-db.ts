@@ -107,7 +107,7 @@ export async function initializeDatabase(): Promise<void> {
     console.log("[Database] Tables not found, initializing database schema...");
 
     // Read SQL file
-    const sqlFile = path.join(__dirname, "init.sql");
+    const sqlFile = path.join(__dirname, "../src/database/init.sql");
     const sql = fs.readFileSync(sqlFile, "utf8");
 
     // Split the SQL into sections for easier error isolation

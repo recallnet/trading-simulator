@@ -120,32 +120,96 @@ export class AccountController {
     try {
       const teamId = req.teamId as string;
       
+      // First, check if there's an active competition
+      const activeCompetition = await repositories.competitionRepository.findActive();
+      
+      // Check if we have snapshot data (preferred method)
+      if (activeCompetition) {
+        // Try to get the latest snapshot for this team
+        const teamSnapshots = await repositories.competitionRepository.getTeamPortfolioSnapshots(
+          activeCompetition.id, 
+          teamId
+        );
+        
+        // If we have a snapshot, use it
+        if (teamSnapshots.length > 0) {
+          // Get the most recent snapshot
+          const latestSnapshot = teamSnapshots[teamSnapshots.length - 1];
+          
+          // Get the token values for this snapshot
+          const tokenValues = await repositories.competitionRepository.getPortfolioTokenValues(latestSnapshot.id);
+          
+          // Format the token values with additional information
+          const formattedTokens = tokenValues.map(tokenValue => {
+            // Use the price from the snapshot and only determine chain type
+            const chain = services.priceTracker.determineChain(tokenValue.tokenAddress);
+            
+            // For SVM tokens, the specificChain is always 'svm'
+            // For EVM tokens, we don't have specificChain without an API call, so we'll leave it undefined
+            const specificChain = chain === 'svm' ? 'svm' : undefined;
+            
+            return {
+              token: tokenValue.tokenAddress,
+              amount: tokenValue.amount,
+              price: tokenValue.price,
+              value: tokenValue.valueUsd,
+              chain,
+              specificChain
+            };
+          });
+          
+          // Return the snapshot information
+          return res.status(200).json({
+            success: true,
+            teamId,
+            totalValue: latestSnapshot.totalValue,
+            tokens: formattedTokens,
+            snapshotTime: latestSnapshot.timestamp,
+            source: 'snapshot' // Indicate this is from a snapshot
+          });
+        }
+        
+        // No snapshot, but we should initiate one for future requests
+        console.log(`[AccountController] No portfolio snapshots found for team ${teamId} in competition ${activeCompetition.id}`);
+        // Request a snapshot asynchronously (don't await)
+        services.competitionManager.takePortfolioSnapshots(activeCompetition.id).catch(error => {
+          console.error(`[AccountController] Error taking snapshot for team ${teamId}:`, error);
+        });
+      }
+      
+      // Fall back to calculating portfolio on-demand
+      console.log(`[AccountController] Using live calculation for portfolio of team ${teamId}`);
+      
       // Get the balances
       const balances = await services.balanceManager.getAllBalances(teamId);
-      
-      // Calculate portfolio value
-      const portfolioValue = await services.tradeSimulator.calculatePortfolioValue(teamId);
-      
-      // Get token prices and calculate individual values
+      let totalValue = 0;
       const tokenValues = [];
+      
+      // Calculate values with minimal API calls
       for (const balance of balances) {
-        const price = await services.priceTracker.getPrice(balance.token);
+        // Get price and token information using the existing service method
+        const tokenInfo = await services.priceTracker.getTokenInfo(balance.token);
+        const price = tokenInfo?.price || 0;
         const value = price ? balance.amount * price : 0;
+        totalValue += value;
         
         tokenValues.push({
           token: balance.token,
           amount: balance.amount,
-          price: price || 0,
-          value
+          price: price,
+          value,
+          chain: tokenInfo?.chain,
+          specificChain: tokenInfo?.specificChain
         });
       }
       
-      // Return the portfolio information
-      res.status(200).json({
+      // Return the calculated portfolio information
+      return res.status(200).json({
         success: true,
         teamId,
-        totalValue: portfolioValue,
-        tokens: tokenValues
+        totalValue,
+        tokens: tokenValues,
+        source: 'live-calculation' // Indicate this is a live calculation
       });
     } catch (error) {
       next(error);
