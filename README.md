@@ -640,6 +640,35 @@ Authentication requirements summary:
 - **Team endpoints**: All account, trade, price, and competition endpoints (API Key + HMAC)
 - **Admin endpoints**: All admin operations (JWT Bearer Token)
 
+## Competition and Team Workflow
+
+The Trading Simulator follows a specific workflow for team registration and competition participation:
+
+### Team Registration and Competition Lifecycle
+
+1. **Team Registration (Pre-Competition)**: 
+   - Admins can register teams at any time, even without an active competition
+   - Registered teams receive API keys and secrets that remain valid regardless of competition status
+   - Teams can authenticate and access API endpoints even when no competition is running
+
+2. **Balance Allocation**:
+   - **Without Active Competition**: Teams will have zero balances across all tokens and chains
+   - **With Active Competition**: Teams receive initial token balances when a competition starts
+   - Initial balances are determined by the configuration in the `.env` file (see [Initial Token Balances](#initial-token-balances))
+
+3. **Competition Start Effects**:
+   - When an admin starts a competition, all participating teams are assigned their initial balances
+   - Initial portfolio snapshots are taken to establish baseline performance
+   - Teams can begin trading with their allocated balances
+
+4. **Competition End Effects**:
+   - Final portfolio snapshots are taken to finalize team performance
+   - Trading is disabled for teams
+   - Balances are frozen for reporting purposes
+   - Leaderboards become final
+
+This workflow allows admins to set up teams in advance of competitions and ensures that balances are only available during active competitions. Teams can use this pre-competition period to test their API integration using endpoints that don't require balances, such as price information endpoints.
+
 ## Security
 
 All protected API endpoints require:
