@@ -176,6 +176,11 @@ export class PriceTracker {
     // For Solana tokens, return basic info
     if (chainType === BlockchainType.SVM) {
       const price = await this.getPrice(tokenAddress, chainType, specificChain);
+      // Make sure we store the specificChain for SVM tokens
+      if (price !== null) {
+        // Store the SVM chain info explicitly (getPrice may already do this, but we ensure it here)
+        await this.storePrice(tokenAddress, price, BlockchainType.SVM, 'svm');
+      }
       return {
         price,
         chain: BlockchainType.SVM,
@@ -194,6 +199,16 @@ export class PriceTracker {
         );
         
         if (tokenInfo) {
+          // Store the chain info in our database to avoid future API calls
+          if (tokenInfo.price !== null) {
+            await this.storePrice(
+              tokenAddress, 
+              tokenInfo.price, 
+              tokenInfo.chain, 
+              tokenInfo.specificChain || undefined
+            );
+          }
+          
           return {
             price: tokenInfo.price,
             chain: tokenInfo.chain,

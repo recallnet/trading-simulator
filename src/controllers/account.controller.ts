@@ -99,11 +99,59 @@ export class AccountController {
       // Get the balances
       const balances = await services.balanceManager.getAllBalances(teamId);
       
+      // Enhance balances with chain information
+      const enhancedBalances = await Promise.all(balances.map(async (balance) => {
+        // First check if we have chain information in our database
+        const latestPriceRecord = await repositories.priceRepository.getLatestPrice(balance.token);
+        
+        // If we have complete chain info in our database, use that
+        if (latestPriceRecord && latestPriceRecord.chain) {
+          // For SVM tokens, specificChain is always 'svm'
+          if (latestPriceRecord.chain === 'svm') {
+            return {
+              ...balance,
+              chain: latestPriceRecord.chain,
+              specificChain: 'svm'
+            };
+          }
+          
+          // For EVM tokens, if we have a specificChain, use it
+          if (latestPriceRecord.chain === 'evm' && latestPriceRecord.specificChain) {
+            return {
+              ...balance,
+              chain: latestPriceRecord.chain,
+              specificChain: latestPriceRecord.specificChain
+            };
+          }
+        }
+        
+        // If we don't have complete chain info, use getTokenInfo (which will update our database)
+        const tokenInfo = await services.priceTracker.getTokenInfo(balance.token);
+        
+        if (tokenInfo) {
+          return {
+            ...balance,
+            chain: tokenInfo.chain,
+            specificChain: tokenInfo.specificChain
+          };
+        }
+        
+        // As a last resort, determine chain type locally
+        const chain = services.priceTracker.determineChain(balance.token);
+        const specificChain = chain === 'svm' ? 'svm' : null;
+        
+        return {
+          ...balance,
+          chain,
+          specificChain
+        };
+      }));
+      
       // Return the balances
       res.status(200).json({
         success: true,
         teamId,
-        balances
+        balances: enhancedBalances
       });
     } catch (error) {
       next(error);
