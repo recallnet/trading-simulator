@@ -4,6 +4,7 @@ import { BalanceManager } from './balance-manager.service';
 import { PriceTracker } from './price-tracker.service';
 import { repositories } from '../database';
 import { config, features } from '../config';
+import { services } from './index';
 
 // Define an interface for chain options
 interface ChainOptions {
@@ -230,6 +231,13 @@ export class TradeSimulator {
                 New ${fromToken} Balance: ${await this.balanceManager.getBalance(teamId, fromToken)}
                 New ${toToken} Balance: ${await this.balanceManager.getBalance(teamId, toToken)}
             `);
+
+      // Trigger a portfolio snapshot after successful trade execution
+      // We run this asynchronously without awaiting to avoid delaying the trade response
+      services.competitionManager.takePortfolioSnapshots(competitionId).catch(error => {
+        console.error(`[TradeSimulator] Error taking portfolio snapshot after trade: ${error.message}`);
+      });
+      console.log(`[TradeSimulator] Portfolio snapshot triggered for competition ${competitionId} after trade`);
 
       return {
         success: true,
