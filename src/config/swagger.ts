@@ -141,6 +141,10 @@ For convenience, we provide an API client that handles this automatically. See \
               type: 'string',
               description: 'Team ID that executed the trade'
             },
+            competitionId: {
+              type: 'string',
+              description: 'ID of the competition this trade is part of'
+            },
             fromToken: {
               type: 'string',
               description: 'Token address that was sold'
@@ -150,21 +154,45 @@ For convenience, we provide an API client that handles this automatically. See \
               description: 'Token address that was bought'
             },
             fromAmount: {
-              type: 'string',
+              type: 'number',
               description: 'Amount of fromToken that was sold'
             },
             toAmount: {
-              type: 'string',
+              type: 'number',
               description: 'Amount of toToken that was received'
             },
-            executionPrice: {
-              type: 'string',
+            price: {
+              type: 'number',
               description: 'Price at which the trade was executed'
+            },
+            success: {
+              type: 'boolean',
+              description: 'Whether the trade was successfully completed'
+            },
+            error: {
+              type: 'string',
+              description: 'Error message if the trade failed'
             },
             timestamp: {
               type: 'string',
               format: 'date-time',
               description: 'Timestamp of when the trade was executed'
+            },
+            fromChain: {
+              type: 'string',
+              description: 'Blockchain type of the source token'
+            },
+            toChain: {
+              type: 'string',
+              description: 'Blockchain type of the destination token'
+            },
+            fromSpecificChain: {
+              type: 'string',
+              description: 'Specific chain for the source token'
+            },
+            toSpecificChain: {
+              type: 'string',
+              description: 'Specific chain for the destination token'
             }
           }
         },
@@ -175,6 +203,10 @@ For convenience, we provide an API client that handles this automatically. See \
               type: 'string',
               description: 'Token address'
             },
+            amount: {
+              type: 'number',
+              description: 'Token balance amount'
+            },
             chain: {
               type: 'string',
               description: 'Chain the token belongs to'
@@ -182,14 +214,6 @@ For convenience, we provide an API client that handles this automatically. See \
             specificChain: {
               type: 'string',
               description: 'Specific chain for EVM tokens'
-            },
-            balance: {
-              type: 'string',
-              description: 'Token balance'
-            },
-            value: {
-              type: 'string',
-              description: 'USD value of the token balance'
             }
           }
         }

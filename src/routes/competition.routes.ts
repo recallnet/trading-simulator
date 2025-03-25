@@ -63,6 +63,10 @@ const router = Router();
  *                     name:
  *                       type: string
  *                       description: Competition name
+ *                     description:
+ *                       type: string
+ *                       nullable: true
+ *                       description: Competition description
  *                     startDate:
  *                       type: string
  *                       format: date-time
@@ -70,11 +74,20 @@ const router = Router();
  *                     endDate:
  *                       type: string
  *                       format: date-time
+ *                       nullable: true
  *                       description: Competition end date
  *                     status:
  *                       type: string
- *                       enum: [pending, active, completed]
+ *                       enum: [PENDING, ACTIVE, COMPLETED]
  *                       description: Competition status
+ *                     createdAt:
+ *                       type: string
+ *                       format: date-time
+ *                       description: When the competition was created
+ *                     updatedAt:
+ *                       type: string
+ *                       format: date-time
+ *                       description: When the competition was last updated
  *                 leaderboard:
  *                   type: array
  *                   items:
@@ -163,6 +176,10 @@ router.get('/leaderboard', CompetitionController.getLeaderboard);
  *                     name:
  *                       type: string
  *                       description: Competition name
+ *                     description:
+ *                       type: string
+ *                       nullable: true
+ *                       description: Competition description
  *                     startDate:
  *                       type: string
  *                       format: date-time
@@ -170,11 +187,20 @@ router.get('/leaderboard', CompetitionController.getLeaderboard);
  *                     endDate:
  *                       type: string
  *                       format: date-time
+ *                       nullable: true
  *                       description: Competition end date
  *                     status:
  *                       type: string
- *                       enum: [pending, active, completed]
+ *                       enum: [PENDING, ACTIVE, COMPLETED]
  *                       description: Competition status
+ *                     createdAt:
+ *                       type: string
+ *                       format: date-time
+ *                       description: When the competition was created
+ *                     updatedAt:
+ *                       type: string
+ *                       format: date-time
+ *                       description: When the competition was last updated
  *                 message:
  *                   type: string
  *                   description: Additional information about the competition status

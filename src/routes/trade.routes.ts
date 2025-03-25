@@ -86,7 +86,57 @@ const router = Router();
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Trade'
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   description: Whether the trade was successfully executed
+ *                 transaction:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                       description: Unique trade ID
+ *                     teamId:
+ *                       type: string
+ *                       description: Team ID that executed the trade
+ *                     competitionId:
+ *                       type: string
+ *                       description: ID of the competition this trade is part of
+ *                     fromToken:
+ *                       type: string
+ *                       description: Token address that was sold
+ *                     toToken:
+ *                       type: string
+ *                       description: Token address that was bought
+ *                     fromAmount:
+ *                       type: number
+ *                       description: Amount of fromToken that was sold
+ *                     toAmount:
+ *                       type: number
+ *                       description: Amount of toToken that was received
+ *                     price:
+ *                       type: number
+ *                       description: Price at which the trade was executed
+ *                     success:
+ *                       type: boolean
+ *                       description: Whether the trade was successfully completed
+ *                     timestamp:
+ *                       type: string
+ *                       format: date-time
+ *                       description: Timestamp of when the trade was executed
+ *                     fromChain:
+ *                       type: string
+ *                       description: Blockchain type of the source token
+ *                     toChain:
+ *                       type: string
+ *                       description: Blockchain type of the destination token
+ *                     fromSpecificChain:
+ *                       type: string
+ *                       description: Specific chain for the source token
+ *                     toSpecificChain:
+ *                       type: string
+ *                       description: Specific chain for the destination token
  *       400:
  *         description: Invalid input parameters
  *         content:
@@ -200,18 +250,35 @@ router.post('/execute', TradeController.executeTrade);
  *                   type: string
  *                   description: Token address being bought
  *                 fromAmount:
- *                   type: string
+ *                   type: number
  *                   description: Amount of fromToken to be sold
  *                 toAmount:
- *                   type: string
+ *                   type: number
  *                   description: Estimated amount of toToken to be received
- *                 price:
- *                   type: string
- *                   description: Effective price for the trade
- *                 timestamp:
- *                   type: string
- *                   format: date-time
- *                   description: Timestamp of when the quote was generated
+ *                 exchangeRate:
+ *                   type: number
+ *                   description: Exchange rate between the tokens (toAmount / fromAmount)
+ *                 slippage:
+ *                   type: number
+ *                   description: Applied slippage percentage for this trade size
+ *                 prices:
+ *                   type: object
+ *                   properties:
+ *                     fromToken:
+ *                       type: number
+ *                       description: Price of the source token in USD
+ *                     toToken:
+ *                       type: number
+ *                       description: Price of the destination token in USD
+ *                 chains:
+ *                   type: object
+ *                   properties:
+ *                     fromChain:
+ *                       type: string
+ *                       description: Blockchain type of the source token
+ *                     toChain:
+ *                       type: string
+ *                       description: Blockchain type of the destination token
  *       400:
  *         description: Invalid input parameters
  *       401:

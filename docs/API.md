@@ -711,12 +711,19 @@ Get trade history for the authenticated team
     {
       "id": "string",
       "teamId": "string",
+      "competitionId": "string",
       "fromToken": "string",
       "toToken": "string",
-      "fromAmount": "string",
-      "toAmount": "string",
-      "executionPrice": "string",
-      "timestamp": "2019-08-24T14:15:22Z"
+      "fromAmount": 0,
+      "toAmount": 0,
+      "price": 0,
+      "success": true,
+      "error": "string",
+      "timestamp": "2019-08-24T14:15:22Z",
+      "fromChain": "string",
+      "toChain": "string",
+      "fromSpecificChain": "string",
+      "toSpecificChain": "string"
     }
   ]
 }
@@ -738,15 +745,22 @@ Status Code **200**
 |---|---|---|---|---|
 |» success|boolean|false|none|Operation success status|
 |» teamId|string|false|none|Team ID|
-|» trades|[[Trade](#schematrade)]|false|none|none|
+|» trades|[object]|false|none|none|
 |»» id|string|false|none|Unique trade ID|
 |»» teamId|string|false|none|Team ID that executed the trade|
+|»» competitionId|string|false|none|ID of the competition this trade is part of|
 |»» fromToken|string|false|none|Token address that was sold|
 |»» toToken|string|false|none|Token address that was bought|
-|»» fromAmount|string|false|none|Amount of fromToken that was sold|
-|»» toAmount|string|false|none|Amount of toToken that was received|
-|»» executionPrice|string|false|none|Price at which the trade was executed|
+|»» fromAmount|number|false|none|Amount of fromToken that was sold|
+|»» toAmount|number|false|none|Amount of toToken that was received|
+|»» price|number|false|none|Price at which the trade was executed|
+|»» success|boolean|false|none|Whether the trade was successfully completed|
+|»» error|string|false|none|Error message if the trade failed|
 |»» timestamp|string(date-time)|false|none|Timestamp of when the trade was executed|
+|»» fromChain|string|false|none|Blockchain type of the source token|
+|»» toChain|string|false|none|Blockchain type of the destination token|
+|»» fromSpecificChain|string|false|none|Specific chain for the source token|
+|»» toSpecificChain|string|false|none|Specific chain for the destination token|
 
 <aside class="warning">
 To perform this operation, you must be authenticated by means of one of the following methods:
@@ -837,14 +851,23 @@ Execute a trade between two tokens
 
 ```json
 {
-  "id": "string",
-  "teamId": "string",
-  "fromToken": "string",
-  "toToken": "string",
-  "fromAmount": "string",
-  "toAmount": "string",
-  "executionPrice": "string",
-  "timestamp": "2019-08-24T14:15:22Z"
+  "success": true,
+  "transaction": {
+    "id": "string",
+    "teamId": "string",
+    "competitionId": "string",
+    "fromToken": "string",
+    "toToken": "string",
+    "fromAmount": 0,
+    "toAmount": 0,
+    "price": 0,
+    "success": true,
+    "timestamp": "2019-08-24T14:15:22Z",
+    "fromChain": "string",
+    "toChain": "string",
+    "fromSpecificChain": "string",
+    "toSpecificChain": "string"
+  }
 }
 ```
 
@@ -852,11 +875,34 @@ Execute a trade between two tokens
 
 |Status|Meaning|Description|Schema|
 |---|---|---|---|
-|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|Trade executed successfully|[Trade](#schematrade)|
+|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|Trade executed successfully|Inline|
 |400|[Bad Request](https://tools.ietf.org/html/rfc7231#section-6.5.1)|Invalid input parameters|[Error](#schemaerror)|
 |401|[Unauthorized](https://tools.ietf.org/html/rfc7235#section-3.1)|Unauthorized - Missing or invalid authentication (API key, timestamp, or signature)|None|
 |403|[Forbidden](https://tools.ietf.org/html/rfc7231#section-6.5.3)|Forbidden - Competition not in progress or other restrictions|None|
 |500|[Internal Server Error](https://tools.ietf.org/html/rfc7231#section-6.6.1)|Server error|None|
+
+<h3 id="execute-a-trade-responseschema">Response Schema</h3>
+
+Status Code **200**
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|» success|boolean|false|none|Whether the trade was successfully executed|
+|» transaction|object|false|none|none|
+|»» id|string|false|none|Unique trade ID|
+|»» teamId|string|false|none|Team ID that executed the trade|
+|»» competitionId|string|false|none|ID of the competition this trade is part of|
+|»» fromToken|string|false|none|Token address that was sold|
+|»» toToken|string|false|none|Token address that was bought|
+|»» fromAmount|number|false|none|Amount of fromToken that was sold|
+|»» toAmount|number|false|none|Amount of toToken that was received|
+|»» price|number|false|none|Price at which the trade was executed|
+|»» success|boolean|false|none|Whether the trade was successfully completed|
+|»» timestamp|string(date-time)|false|none|Timestamp of when the trade was executed|
+|»» fromChain|string|false|none|Blockchain type of the source token|
+|»» toChain|string|false|none|Blockchain type of the destination token|
+|»» fromSpecificChain|string|false|none|Specific chain for the source token|
+|»» toSpecificChain|string|false|none|Specific chain for the destination token|
 
 <aside class="warning">
 To perform this operation, you must be authenticated by means of one of the following methods:
@@ -918,10 +964,18 @@ Get a quote for a potential trade between two tokens
 {
   "fromToken": "string",
   "toToken": "string",
-  "fromAmount": "string",
-  "toAmount": "string",
-  "price": "string",
-  "timestamp": "2019-08-24T14:15:22Z"
+  "fromAmount": 0,
+  "toAmount": 0,
+  "exchangeRate": 0,
+  "slippage": 0,
+  "prices": {
+    "fromToken": 0,
+    "toToken": 0
+  },
+  "chains": {
+    "fromChain": "string",
+    "toChain": "string"
+  }
 }
 ```
 
@@ -942,10 +996,16 @@ Status Code **200**
 |---|---|---|---|---|
 |» fromToken|string|false|none|Token address being sold|
 |» toToken|string|false|none|Token address being bought|
-|» fromAmount|string|false|none|Amount of fromToken to be sold|
-|» toAmount|string|false|none|Estimated amount of toToken to be received|
-|» price|string|false|none|Effective price for the trade|
-|» timestamp|string(date-time)|false|none|Timestamp of when the quote was generated|
+|» fromAmount|number|false|none|Amount of fromToken to be sold|
+|» toAmount|number|false|none|Estimated amount of toToken to be received|
+|» exchangeRate|number|false|none|Exchange rate between the tokens (toAmount / fromAmount)|
+|» slippage|number|false|none|Applied slippage percentage for this trade size|
+|» prices|object|false|none|none|
+|»» fromToken|number|false|none|Price of the source token in USD|
+|»» toToken|number|false|none|Price of the destination token in USD|
+|» chains|object|false|none|none|
+|»» fromChain|string|false|none|Blockchain type of the source token|
+|»» toChain|string|false|none|Blockchain type of the destination token|
 
 <aside class="warning">
 To perform this operation, you must be authenticated by means of one of the following methods:
@@ -1229,9 +1289,12 @@ Get the leaderboard for the active competition or a specific competition
   "competition": {
     "id": "string",
     "name": "string",
+    "description": "string",
     "startDate": "2019-08-24T14:15:22Z",
     "endDate": "2019-08-24T14:15:22Z",
-    "status": "pending"
+    "status": "PENDING",
+    "createdAt": "2019-08-24T14:15:22Z",
+    "updatedAt": "2019-08-24T14:15:22Z"
   },
   "leaderboard": [
     {
@@ -1265,9 +1328,12 @@ Status Code **200**
 |» competition|object|false|none|none|
 |»» id|string|false|none|Competition ID|
 |»» name|string|false|none|Competition name|
+|»» description|string¦null|false|none|Competition description|
 |»» startDate|string(date-time)|false|none|Competition start date|
-|»» endDate|string(date-time)|false|none|Competition end date|
+|»» endDate|string(date-time)¦null|false|none|Competition end date|
 |»» status|string|false|none|Competition status|
+|»» createdAt|string(date-time)|false|none|When the competition was created|
+|»» updatedAt|string(date-time)|false|none|When the competition was last updated|
 |» leaderboard|[object]|false|none|none|
 |»» rank|integer|false|none|Team rank on the leaderboard|
 |»» teamId|string|false|none|Team ID|
@@ -1278,9 +1344,9 @@ Status Code **200**
 
 |Property|Value|
 |---|---|
-|status|pending|
-|status|active|
-|status|completed|
+|status|PENDING|
+|status|ACTIVE|
+|status|COMPLETED|
 
 <aside class="warning">
 To perform this operation, you must be authenticated by means of one of the following methods:
@@ -1338,9 +1404,12 @@ Get the status of the active competition
   "competition": {
     "id": "string",
     "name": "string",
+    "description": "string",
     "startDate": "2019-08-24T14:15:22Z",
     "endDate": "2019-08-24T14:15:22Z",
-    "status": "pending"
+    "status": "PENDING",
+    "createdAt": "2019-08-24T14:15:22Z",
+    "updatedAt": "2019-08-24T14:15:22Z"
   },
   "message": "string"
 }
@@ -1365,18 +1434,21 @@ Status Code **200**
 |» competition|object¦null|false|none|none|
 |»» id|string|false|none|Competition ID|
 |»» name|string|false|none|Competition name|
+|»» description|string¦null|false|none|Competition description|
 |»» startDate|string(date-time)|false|none|Competition start date|
-|»» endDate|string(date-time)|false|none|Competition end date|
+|»» endDate|string(date-time)¦null|false|none|Competition end date|
 |»» status|string|false|none|Competition status|
+|»» createdAt|string(date-time)|false|none|When the competition was created|
+|»» updatedAt|string(date-time)|false|none|When the competition was last updated|
 |» message|string¦null|false|none|Additional information about the competition status|
 
 #### Enumerated Values
 
 |Property|Value|
 |---|---|
-|status|pending|
-|status|active|
-|status|completed|
+|status|PENDING|
+|status|ACTIVE|
+|status|COMPLETED|
 
 <aside class="warning">
 To perform this operation, you must be authenticated by means of one of the following methods:
@@ -2415,12 +2487,19 @@ This operation does not require authentication
 {
   "id": "string",
   "teamId": "string",
+  "competitionId": "string",
   "fromToken": "string",
   "toToken": "string",
-  "fromAmount": "string",
-  "toAmount": "string",
-  "executionPrice": "string",
-  "timestamp": "2019-08-24T14:15:22Z"
+  "fromAmount": 0,
+  "toAmount": 0,
+  "price": 0,
+  "success": true,
+  "error": "string",
+  "timestamp": "2019-08-24T14:15:22Z",
+  "fromChain": "string",
+  "toChain": "string",
+  "fromSpecificChain": "string",
+  "toSpecificChain": "string"
 }
 
 ```
@@ -2431,12 +2510,19 @@ This operation does not require authentication
 |---|---|---|---|---|
 |id|string|false|none|Unique trade ID|
 |teamId|string|false|none|Team ID that executed the trade|
+|competitionId|string|false|none|ID of the competition this trade is part of|
 |fromToken|string|false|none|Token address that was sold|
 |toToken|string|false|none|Token address that was bought|
-|fromAmount|string|false|none|Amount of fromToken that was sold|
-|toAmount|string|false|none|Amount of toToken that was received|
-|executionPrice|string|false|none|Price at which the trade was executed|
+|fromAmount|number|false|none|Amount of fromToken that was sold|
+|toAmount|number|false|none|Amount of toToken that was received|
+|price|number|false|none|Price at which the trade was executed|
+|success|boolean|false|none|Whether the trade was successfully completed|
+|error|string|false|none|Error message if the trade failed|
 |timestamp|string(date-time)|false|none|Timestamp of when the trade was executed|
+|fromChain|string|false|none|Blockchain type of the source token|
+|toChain|string|false|none|Blockchain type of the destination token|
+|fromSpecificChain|string|false|none|Specific chain for the source token|
+|toSpecificChain|string|false|none|Specific chain for the destination token|
 
 <h2 id="tocS_TokenBalance">TokenBalance</h2>
 <!-- backwards compatibility -->
@@ -2448,10 +2534,9 @@ This operation does not require authentication
 ```json
 {
   "token": "string",
+  "amount": 0,
   "chain": "string",
-  "specificChain": "string",
-  "balance": "string",
-  "value": "string"
+  "specificChain": "string"
 }
 
 ```
@@ -2461,8 +2546,7 @@ This operation does not require authentication
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
 |token|string|false|none|Token address|
+|amount|number|false|none|Token balance amount|
 |chain|string|false|none|Chain the token belongs to|
 |specificChain|string|false|none|Specific chain for EVM tokens|
-|balance|string|false|none|Token balance|
-|value|string|false|none|USD value of the token balance|
 

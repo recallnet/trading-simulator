@@ -383,7 +383,54 @@ router.get('/portfolio', AccountController.getPortfolio);
  *                 trades:
  *                   type: array
  *                   items:
- *                     $ref: '#/components/schemas/Trade'
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                         description: Unique trade ID
+ *                       teamId:
+ *                         type: string
+ *                         description: Team ID that executed the trade
+ *                       competitionId:
+ *                         type: string
+ *                         description: ID of the competition this trade is part of
+ *                       fromToken:
+ *                         type: string
+ *                         description: Token address that was sold
+ *                       toToken:
+ *                         type: string
+ *                         description: Token address that was bought
+ *                       fromAmount:
+ *                         type: number
+ *                         description: Amount of fromToken that was sold
+ *                       toAmount:
+ *                         type: number
+ *                         description: Amount of toToken that was received
+ *                       price:
+ *                         type: number
+ *                         description: Price at which the trade was executed
+ *                       success:
+ *                         type: boolean
+ *                         description: Whether the trade was successfully completed
+ *                       error:
+ *                         type: string
+ *                         description: Error message if the trade failed
+ *                       timestamp:
+ *                         type: string
+ *                         format: date-time
+ *                         description: Timestamp of when the trade was executed
+ *                       fromChain:
+ *                         type: string
+ *                         description: Blockchain type of the source token
+ *                       toChain:
+ *                         type: string
+ *                         description: Blockchain type of the destination token
+ *                       fromSpecificChain:
+ *                         type: string
+ *                         description: Specific chain for the source token
+ *                       toSpecificChain:
+ *                         type: string
+ *                         description: Specific chain for the destination token
  *       401:
  *         description: Unauthorized - Missing or invalid authentication (API key, timestamp, or signature)
  *       500:
