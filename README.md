@@ -501,8 +501,6 @@ The server will be available at http://localhost:3000 by default.
 
 #### 10. Admin Dashboard
 
-// ... existing code ...
-
 ## API Endpoints
 
 Before you can use the API, you need to register a team—and before registering a team, you need to be logged in as an admin.
@@ -678,8 +676,19 @@ All protected API endpoints require:
 
 Signature calculation:
 ```
-Signature = HMAC-SHA256(requestMethod + path + timestamp + requestBody, apiSecret)
+methodPath + path + timestamp + bodyString
 ```
+
+For example:
+```
+GET/api/account/balances2023-10-15T14:30:00.000Z{}
+```
+
+Important notes for signature calculation:
+- For GET requests with no body, use `{}` in the calculation
+- Use only the base path without query parameters
+- The path must include the leading slash
+- The timestamp must be in ISO format (e.g., `2023-03-15T17:30:45.123Z`)
 
 ### API Secret Encryption
 
@@ -718,20 +727,74 @@ For teams participating in trading competitions, we provide comprehensive API do
 
 ### Documentation Resources
 
-- **[API Documentation](docs/API_DOCUMENTATION.md)**: Detailed documentation of all API endpoints, authentication requirements, and response formats.
+- **[API Documentation](docs/API.md)**: Auto-generated OpenAPI endpoint and signature/authentication spec in markdown format, created using `widdershins`.
+- **[OpenAPI JSON](docs/openapi.json)**: Auto-generated OpenAPI spec in JSON format.
 - **[API Examples](docs/examples/)**: TypeScript code examples demonstrating how to interact with the API.
-- **[Postman Guide](docs/POSTMAN_GUIDE.md)**: Step-by-step instructions for setting up and using Postman with the Trading Simulator API.
+
+You can regenerate the documentation at any time using the built-in scripts:
+```bash
+# Generate both OpenAPI JSON and Markdown documentation
+npm run generate-docs
+
+# Generate only OpenAPI specification
+npm run generate-openapi
+
+# Generate only Markdown from existing OpenAPI spec
+npm run generate-markdown
+```
 
 ### Authentication
 
-All API requests require HMAC authentication with the following headers:
+All protected API endpoints require the following headers:
 
-- `X-API-Key`: Your team's API key
-- `X-Timestamp`: Current timestamp in ISO format
-- `X-Signature`: HMAC-SHA256 signature
+- `X-API-Key`: Your team's API key (provided during registration)
+- `X-Timestamp`: Current timestamp in ISO format (e.g., `2023-03-15T17:30:45.123Z`)
+- `X-Signature`: HMAC-SHA256 signature of the request data
 - `Content-Type`: `application/json`
 
-For details on generating the signature and examples in TypeScript, see the [API Documentation](docs/API_DOCUMENTATION.md).
+#### Calculating the Signature
+
+To calculate the signature:
+
+1. Concatenate: `METHOD + PATH + TIMESTAMP + BODY_STRING`
+   - Example: `GET/api/account/balances2023-10-15T14:30:00.000Z{}`
+   - For GET requests with no body, use `{}` in the signature calculation
+   - For POST requests, use the JSON string of your request body
+
+2. **IMPORTANT PATH HANDLING**:
+   - Use ONLY the base path without query parameters for signature calculation
+   - Example: For `/api/price?token=xyz`, use only `/api/price` in the signature
+   - The path should start with a leading slash
+
+3. Sign using HMAC-SHA256 with your API secret
+
+```javascript
+const crypto = require('crypto');
+
+// Your credentials
+const apiKey = 'sk_1b2c3d4e5f...';
+const apiSecret = 'a1b2c3d4e5f6...';
+
+// Request details
+const method = 'GET';
+const fullPath = '/api/account/balances?limit=10'; // Full path with query params
+const pathForSignature = fullPath.split('?')[0];  // Remove query params for signature
+const timestamp = new Date().toISOString();
+const body = {}; // Empty for GET requests
+
+// Calculate signature
+const data = method + pathForSignature + timestamp + JSON.stringify(body);
+const signature = crypto
+  .createHmac('sha256', apiSecret)
+  .update(data)
+  .digest('hex');
+
+console.log('X-API-Key:', apiKey);
+console.log('X-Timestamp:', timestamp);
+console.log('X-Signature:', signature);
+```
+
+For detailed implementation examples, see the examples in the `docs/examples` directory.
 
 ### Example Client
 
