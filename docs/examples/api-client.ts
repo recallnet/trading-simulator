@@ -258,12 +258,19 @@ export class TradingSimulatorClient {
     trades: Array<{
       id: string;
       teamId: string;
+      competitionId: string;
       fromToken: string;
       toToken: string;
-      fromAmount: string;
-      toAmount: string;
-      executionPrice: string;
+      fromAmount: number;
+      toAmount: number;
+      price: number;
+      success: boolean;
+      error?: string;
       timestamp: string;
+      fromChain: string;
+      toChain: string;
+      fromSpecificChain?: string;
+      toSpecificChain?: string;
     }>;
   }> {
     let query = '';
@@ -389,14 +396,23 @@ export class TradingSimulatorClient {
     fromSpecificChain?: SpecificChain;
     toSpecificChain?: SpecificChain;
   }): Promise<{
-    id: string;
-    teamId: string;
-    fromToken: string;
-    toToken: string;
-    fromAmount: string;
-    toAmount: string;
-    executionPrice: string;
-    timestamp: string;
+    success: boolean;
+    transaction: {
+      id: string;
+      teamId: string;
+      competitionId: string;
+      fromToken: string;
+      toToken: string;
+      fromAmount: number;
+      toAmount: number;
+      price: number;
+      success: boolean;
+      timestamp: string;
+      fromChain: string;
+      toChain: string;
+      fromSpecificChain?: string;
+      toSpecificChain?: string;
+    }
   }> {
     // Create the request payload
     const payload: any = {
@@ -442,10 +458,18 @@ export class TradingSimulatorClient {
   }): Promise<{
     fromToken: string;
     toToken: string;
-    fromAmount: string;
-    toAmount: string;
-    price: string;
-    timestamp: string;
+    fromAmount: number;
+    toAmount: number;
+    exchangeRate: number;
+    slippage: number;
+    prices: {
+      fromToken: number;
+      toToken: number;
+    };
+    chains: {
+      fromChain: string;
+      toChain: string;
+    };
   }> {
     // Build the query string
     let query = `?fromToken=${encodeURIComponent(params.fromToken)}&toToken=${encodeURIComponent(params.toToken)}&amount=${encodeURIComponent(params.amount)}`;
@@ -470,9 +494,12 @@ export class TradingSimulatorClient {
     competition?: {
       id: string;
       name: string;
+      description: string | null;
       startDate: string;
-      endDate: string;
-      status: string;
+      endDate: string | null;
+      status: "PENDING" | "ACTIVE" | "COMPLETED";
+      createdAt: string;
+      updatedAt: string;
     };
     message?: string;
   }> {
@@ -490,9 +517,12 @@ export class TradingSimulatorClient {
     competition: {
       id: string;
       name: string;
+      description: string | null;
       startDate: string;
-      endDate: string;
-      status: string;
+      endDate: string | null;
+      status: "PENDING" | "ACTIVE" | "COMPLETED";
+      createdAt: string;
+      updatedAt: string;
     };
     leaderboard: Array<{
       rank: number;
@@ -501,8 +531,11 @@ export class TradingSimulatorClient {
       portfolioValue: number;
     }>;
   }> {
-    const query = competitionId ? `?competitionId=${competitionId}` : '';
-    return this.request<any>('GET', `/api/competition/leaderboard${query}`);
+    const path = competitionId 
+      ? `/api/competition/leaderboard?competitionId=${competitionId}`
+      : '/api/competition/leaderboard';
+      
+    return this.request<any>('GET', path);
   }
 
   /**

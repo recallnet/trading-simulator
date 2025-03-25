@@ -136,25 +136,36 @@ async function executeTrade() {
     
     /* Expected response format:
     {
-      "id": "string",
-      "teamId": "string",
-      "fromToken": "string",
-      "toToken": "string",
-      "fromAmount": "string",
-      "toAmount": "string",
-      "executionPrice": "string",
-      "timestamp": "2019-08-24T14:15:22Z"
+      "success": true,
+      "transaction": {
+        "id": "string",
+        "teamId": "string",
+        "competitionId": "string",
+        "fromToken": "string",
+        "toToken": "string",
+        "fromAmount": 0,
+        "toAmount": 0,
+        "price": 0,
+        "success": true,
+        "timestamp": "2019-08-24T14:15:22Z",
+        "fromChain": "string",
+        "toChain": "string",
+        "fromSpecificChain": "string",
+        "toSpecificChain": "string"
+      }
     }
     */
     
     // Display trade details
-    if (result) {
+    if (result && result.success && result.transaction) {
       console.log(`\nTrade completed successfully:`);
-      console.log(`ID: ${result.id}`);
-      console.log(`Sold: ${result.fromAmount} tokens at address ${result.fromToken}`);
-      console.log(`Received: ${result.toAmount} tokens at address ${result.toToken}`);
-      console.log(`Execution price: ${result.executionPrice}`);
-      console.log(`Timestamp: ${result.timestamp}`);
+      console.log(`ID: ${result.transaction.id}`);
+      console.log(`Sold: ${result.transaction.fromAmount} tokens at address ${result.transaction.fromToken}`);
+      console.log(`Received: ${result.transaction.toAmount} tokens at address ${result.transaction.toToken}`);
+      console.log(`Execution price: ${result.transaction.price}`);
+      console.log(`Timestamp: ${result.transaction.timestamp}`);
+      console.log(`From chain: ${result.transaction.fromChain} (${result.transaction.fromSpecificChain || 'unspecified'})`);
+      console.log(`To chain: ${result.transaction.toChain} (${result.transaction.toSpecificChain || 'unspecified'})`);
     }
     
     return result;
