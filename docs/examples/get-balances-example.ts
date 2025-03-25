@@ -22,7 +22,10 @@ async function getBalances() {
     // Note: For testing purposes, you may use a timestamp 2 years in future to avoid expiration
     // const timestamp = new Date(Date.now() + 2 * 365 * 24 * 60 * 60 * 1000).toISOString();
     const timestamp = new Date().toISOString();
-    const data = method + path + timestamp + ''; // Empty string for body
+    
+    // IMPORTANT: For GET requests with no body, use '{}' in the signature calculation
+    // This matches the server-side signature validation
+    const data = method + path + timestamp + '{}';
     
     const signature = crypto
       .createHmac('sha256', apiSecret)
@@ -65,14 +68,25 @@ async function getBalances() {
     /* Expected response format:
     {
       "success": true,
+      "teamId": "string",
       "balances": [
         {
-          "token": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",  // USDC address
-          "amount": "100000.00"
+          "token": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", // USDC on Solana
+          "amount": 0,
+          "chain": "svm",
+          "specificChain": null
         },
         {
-          "token": "So11111111111111111111111111111111111111112",  // SOL address
-          "amount": "50.0"
+          "token": "So11111111111111111111111111111111111111112", // SOL
+          "amount": 0,
+          "chain": "svm",
+          "specificChain": null
+        },
+        {
+          "token": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", // USDC on Ethereum
+          "amount": 0,
+          "chain": "evm",
+          "specificChain": "eth"
         }
       ]
     }

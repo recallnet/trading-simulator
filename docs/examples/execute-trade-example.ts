@@ -87,9 +87,10 @@ async function executeTrade() {
     const bodyStr = JSON.stringify(tradeDetails);
     
     // Generate timestamp and signature
-    // Note: For testing purposes, you may use a timestamp 2 years in future to avoid expiration
-    // const timestamp = new Date(Date.now() + 2 * 365 * 24 * 60 * 60 * 1000).toISOString();
     const timestamp = new Date().toISOString();
+    
+    // IMPORTANT: For authentication, concatenate: method + path + timestamp + bodyStr
+    // This must match exactly what the server expects
     const data = method + path + timestamp + bodyStr;
     
     const signature = crypto
@@ -123,7 +124,7 @@ async function executeTrade() {
       let errorMessage;
       try {
         const errorBody = await response.json();
-        errorMessage = errorBody.message || errorBody.error?.message || 'Unknown error';
+        errorMessage = errorBody.message || errorBody.error || 'Unknown error';
       } catch (e) {
         errorMessage = await response.text();
       }
@@ -133,13 +134,27 @@ async function executeTrade() {
     const result = await response.json();
     console.log('Trade Result:', JSON.stringify(result, null, 2));
     
-    // Check chain information in the response
-    if (result.transaction) {
-      console.log(`Transaction executed on chains: From=${result.transaction.fromChain}, To=${result.transaction.toChain}`);
-      
-      // Display the actual exchange rate used by the server
-      const exchangeRate = result.transaction.toAmount / result.transaction.fromAmount;
-      console.log(`Exchange rate used by server: 1 ${result.transaction.fromToken} = ${exchangeRate.toFixed(6)} ${result.transaction.toToken}`);
+    /* Expected response format:
+    {
+      "id": "string",
+      "teamId": "string",
+      "fromToken": "string",
+      "toToken": "string",
+      "fromAmount": "string",
+      "toAmount": "string",
+      "executionPrice": "string",
+      "timestamp": "2019-08-24T14:15:22Z"
+    }
+    */
+    
+    // Display trade details
+    if (result) {
+      console.log(`\nTrade completed successfully:`);
+      console.log(`ID: ${result.id}`);
+      console.log(`Sold: ${result.fromAmount} tokens at address ${result.fromToken}`);
+      console.log(`Received: ${result.toAmount} tokens at address ${result.toToken}`);
+      console.log(`Execution price: ${result.executionPrice}`);
+      console.log(`Timestamp: ${result.timestamp}`);
     }
     
     return result;

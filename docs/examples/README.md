@@ -216,19 +216,57 @@ For specific use cases, you may want to make requests directly to the API withou
 
 ## Authentication
 
-All requests to the API require authentication using the HMAC method:
+All requests to the protected API endpoints require authentication using three headers:
 
-1. Generate a timestamp in ISO format
-2. Create a string by concatenating: HTTP method + path + timestamp + body
-3. Calculate an HMAC-SHA256 signature using your API secret
-4. Include the following headers in your request:
-   - `X-API-Key`: Your API key
-   - `X-Timestamp`: The timestamp
-   - `X-Signature`: The calculated signature
-   - `Content-Type`: `application/json`
+1. **X-API-Key**: Your team's API key (provided during registration)
+2. **X-Timestamp**: Current timestamp in ISO format (e.g., `2023-03-15T17:30:45.123Z`)
+3. **X-Signature**: HMAC-SHA256 signature of the request data
 
-See the examples for detailed implementation.
+### Calculating the Signature
+
+To calculate the signature:
+
+1. Concatenate: `METHOD + PATH + TIMESTAMP + BODY_STRING`
+   - Example: `GET/api/account/balances2023-10-15T14:30:00.000Z{}`
+   - For GET requests with no body, use `{}` in the signature calculation
+   - For POST requests, use the JSON string of your request body
+
+2. **IMPORTANT PATH HANDLING**:
+   - Use ONLY the base path without query parameters for signature calculation
+   - Example: For `/api/price?token=xyz`, use only `/api/price` in the signature
+   - The path should start with a leading slash
+
+3. Sign using HMAC-SHA256 with your API secret
+
+```javascript
+const crypto = require('crypto');
+
+// Your credentials
+const apiKey = 'sk_1b2c3d4e5f...';
+const apiSecret = 'a1b2c3d4e5f6...';
+
+// Request details
+const method = 'GET';
+const path = '/api/account/balances';
+const timestamp = new Date().toISOString();
+const body = {}; // Empty for GET requests
+
+// Calculate signature
+const data = method + path + timestamp + JSON.stringify(body);
+const signature = crypto
+  .createHmac('sha256', apiSecret)
+  .update(data)
+  .digest('hex');
+
+console.log('X-API-Key:', apiKey);
+console.log('X-Timestamp:', timestamp);
+console.log('X-Signature:', signature);
+```
 
 ## Further Documentation
 
-For comprehensive API documentation, see the main [API_DOCUMENTATION.md](../API_DOCUMENTATION.md) file. 
+For comprehensive API documentation, see:
+
+1. The generated OpenAPI specification at `../openapi.json`
+2. The Markdown API documentation at `../API.md`
+3. The Swagger UI available at `http://localhost:3000/api/docs` when the server is running 
