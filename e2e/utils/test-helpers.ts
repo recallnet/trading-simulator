@@ -18,31 +18,9 @@ let isDatabaseInitialized = false;
  * This is useful for creating a client that doesn't have predefined API credentials
  */
 export function createTestClient(baseUrl?: string): ApiClient {
-  const randomKey = `sk_test_${generateRandomString(32)}`;
-  const randomSecret = generateRandomString(64);
-  return new ApiClient(randomKey, randomSecret, baseUrl);
-}
-
-/**
- * Create and setup an admin API client
- */
-export async function setupAdminClient(): Promise<ApiClient> {
-  // Ensure database is initialized using DbManager
-  await ensureDatabaseInitialized();
-  
-  const client = createTestClient();
-  
-  // Use fixed admin credentials that match setup-admin.ts
-  const username = ADMIN_USERNAME;
-  const password = ADMIN_PASSWORD;
-  
-  // Login as admin
-  const loginSuccess = await client.loginAsAdmin(username, password);
-  if (!loginSuccess) {
-    throw new Error(`Failed to login as admin with username: ${username}`);
-  }
-  
-  return client;
+  // Generate a random key with ts_live_ prefix instead of sk_test_
+  const randomKey = `ts_live_${generateRandomString(32)}`;
+  return new ApiClient(randomKey, baseUrl);
 }
 
 /**
@@ -68,8 +46,8 @@ export async function registerTeamAndGetClient(
     throw new Error('Failed to register team');
   }
   
-  // Create a client with the team's API credentials
-  const client = new ApiClient(result.team.apiKey, result.team.apiSecret);
+  // Create a client with the team's API key
+  const client = new ApiClient(result.team.apiKey);
   
   return { client, team: result.team, apiKey: result.team.apiKey };
 }

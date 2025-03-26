@@ -37,6 +37,12 @@ export class AdminController {
       if (password.length < 8) {
         throw new ApiError(400, 'Password must be at least 8 characters long');
       }
+
+      // Generate API key (same as for regular teams)
+      const apiKey = services.teamManager.generateApiKey();
+    
+      // Encrypt API key for storage
+      const encryptedApiKey = services.teamManager.encryptApiKey(apiKey);
       
       // Create admin record using team repository
       const admin = await repositories.teamRepository.create({
@@ -44,8 +50,7 @@ export class AdminController {
         name: username,  // Use username as team name for admin
         email,
         contactPerson: 'System Administrator',
-        apiKey: `admin-${uuidv4()}`, // Still use a prefix for clarity
-        apiSecretEncrypted: services.teamManager.encryptApiSecret(password), // Store encrypted password for HMAC
+        apiKey: encryptedApiKey, 
         isAdmin: true,   // Set admin flag
         createdAt: new Date(),
         updatedAt: new Date()
@@ -59,7 +64,8 @@ export class AdminController {
           id: admin.id,
           username: admin.name,
           email: admin.email,
-          createdAt: admin.createdAt
+          createdAt: admin.createdAt,
+          apiKey
         }
       });
     } catch (error) {
@@ -101,7 +107,7 @@ export class AdminController {
         // Register the team
         const team = await services.teamManager.registerTeam(teamName, email, contactPerson);
         
-        // Format the response to include apiSecret for the client
+        // Format the response to include api key for the client
         return res.status(201).json({
           success: true,
           team: {
@@ -111,7 +117,6 @@ export class AdminController {
             contactPerson: team.contactPerson,
             contact_person: team.contactPerson, // Add snake_case version for tests
             apiKey: team.apiKey,
-            apiSecret: (team as any).apiSecret, // Type assertion since this is a temporary field not in the interface
             createdAt: team.createdAt
           }
         });

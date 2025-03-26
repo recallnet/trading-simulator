@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { AdminController } from '../controllers/admin.controller';
 import { adminAuthMiddleware } from '../middleware/admin-auth.middleware';
+import { services } from '../services';
 
 const router = Router();
 
@@ -76,8 +77,8 @@ const router = Router();
  */
 router.post('/setup', AdminController.setupAdmin);
 
-// Apply admin auth middleware to protected routes
-router.use(adminAuthMiddleware);
+// Apply admin auth middleware to protected routes - pass the teamManager instance
+router.use(adminAuthMiddleware(services.teamManager));
 
 /**
  * @openapi

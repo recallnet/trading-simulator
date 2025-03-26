@@ -5,7 +5,7 @@
  * multiple blockchains (Solana and Ethereum).
  */
 
-import { TradingSimulatorClient, BlockchainType, SpecificChain, COMMON_TOKENS, TOKEN_CHAINS } from './api-client';
+import { TradingSimulatorClient, BlockchainType, SpecificChain, COMMON_TOKENS } from './api-client';
 
 // Token addresses for different chains
 const TOKENS = {
@@ -21,9 +21,8 @@ const TOKENS = {
   TOSHI: COMMON_TOKENS.EVM.TOSHI
 };
 
-// Replace with your team's credentials
+// Replace with your team's API key
 const apiKey = 'your-api-key';
-const apiSecret = 'your-api-secret';
 const baseUrl = 'http://localhost:3001';
 
 // Function to help log section headers
@@ -72,22 +71,30 @@ async function getMultiChainPortfolio(client: TradingSimulatorClient) {
   logSection('Example 2: Portfolio Across Chains');
 
   // Get all balances (across all chains)
-  const balances = await client.getBalances();
-  console.log('All Balances:');
+  const balances = await client.getBalance();
+  console.log('All Balances:', JSON.stringify(balances, null, 2));
   
-  // Group balances by chain
-  const solanaBalances = balances.balances.filter((b: any) => b.chain === BlockchainType.SVM);
-  const ethereumBalances = balances.balances.filter((b: any) => b.chain === BlockchainType.EVM);
-  
-  console.log('\nSolana Balances:');
-  solanaBalances.forEach((balance: any) => {
-    console.log(`  ${balance.token}: ${balance.amount}`);
-  });
-  
-  console.log('\nEthereum Balances:');
-  ethereumBalances.forEach((balance: any) => {
-    console.log(`  ${balance.token}: ${balance.amount}`);
-  });
+  // In the new format, balances are stored in the balance object with token addresses as keys
+  if (balances.balance) {
+    // Group balances by chain - first we need to determine the chain for each token
+    const solanaTokens = Object.keys(balances.balance).filter(token => 
+      client.detectChain(token) === BlockchainType.SVM
+    );
+    
+    const ethereumTokens = Object.keys(balances.balance).filter(token => 
+      client.detectChain(token) === BlockchainType.EVM
+    );
+    
+    console.log('\nSolana Balances:');
+    solanaTokens.forEach(token => {
+      console.log(`  ${token}: ${balances.balance[token]}`);
+    });
+    
+    console.log('\nEthereum Balances:');
+    ethereumTokens.forEach(token => {
+      console.log(`  ${token}: ${balances.balance[token]}`);
+    });
+  }
 }
 
 /**
@@ -184,7 +191,7 @@ async function getFilteredTradeHistory(client: TradingSimulatorClient) {
 
   // Get Solana trades
   console.log('Getting Solana trade history...');
-  const solanaTrades = await client.getTrades({
+  const solanaTrades = await client.getTradeHistory({
     chain: BlockchainType.SVM,
     limit: 5
   });
@@ -196,7 +203,7 @@ async function getFilteredTradeHistory(client: TradingSimulatorClient) {
 
   // Get Ethereum trades
   console.log('\nGetting Ethereum trade history...');
-  const ethereumTrades = await client.getTrades({
+  const ethereumTrades = await client.getTradeHistory({
     chain: BlockchainType.EVM,
     limit: 5
   });
@@ -304,7 +311,7 @@ async function getTokenInfoWithChainOverride(client: TradingSimulatorClient) {
 async function runAllExamples() {
   try {
     // Create Trading Simulator client
-    const client = new TradingSimulatorClient(apiKey, apiSecret, baseUrl);
+    const client = new TradingSimulatorClient(apiKey, baseUrl, false);
     console.log('Trading Simulator client initialized');
 
     // Run examples

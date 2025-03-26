@@ -1,25 +1,33 @@
-import { setupAdminClient, registerTeamAndGetClient, startTestCompetition, cleanupTestState, wait, ADMIN_USERNAME, ADMIN_PASSWORD, ADMIN_EMAIL } from '../utils/test-helpers';
+import { createTestClient, registerTeamAndGetClient, startTestCompetition, cleanupTestState, wait, ADMIN_USERNAME, ADMIN_PASSWORD, ADMIN_EMAIL } from '../utils/test-helpers';
 import axios from 'axios';
 import { getBaseUrl } from '../utils/server';
 import config from '../../src/config';
-import { BlockchainType, SpecificChain } from '../../src/types';
+import { BlockchainType } from '../../src/types';
 
 describe('Trading API', () => {
+  let adminApiKey: string;
+
   // Clean up test state before each test
   beforeEach(async () => {
     await cleanupTestState();
     
     // Create admin account directly using the setup endpoint
-    await axios.post(`${getBaseUrl()}/api/admin/setup`, {
+    const response = await axios.post(`${getBaseUrl()}/api/admin/setup`, {
       username: ADMIN_USERNAME,
       password: ADMIN_PASSWORD,
       email: ADMIN_EMAIL
     });
+    
+    // Store the admin API key for authentication
+    adminApiKey = response.data.admin.apiKey;
+    expect(adminApiKey).toBeDefined();
+    console.log(`Admin API key created: ${adminApiKey.substring(0, 8)}...`);
   });
   
   test('team can execute a trade and verify balance updates', async () => {
     // Setup admin client
-    const adminClient = await setupAdminClient();
+    const adminClient = createTestClient();
+    await adminClient.loginAsAdmin(adminApiKey);
     
     // Register team and get client
     const { client: teamClient, team } = await registerTeamAndGetClient(adminClient, 'Trading Team');
@@ -144,7 +152,8 @@ describe('Trading API', () => {
   
   test('team can execute a trade with an arbitrary token address', async () => {
     // Setup admin client
-    const adminClient = await setupAdminClient();
+    const adminClient = createTestClient();
+    await adminClient.loginAsAdmin(adminApiKey);
     
     // Register team and get client
     const { client: teamClient, team } = await registerTeamAndGetClient(adminClient, 'Arbitrary Token Team');
@@ -226,7 +235,8 @@ describe('Trading API', () => {
   
   test('team cannot execute invalid trades', async () => {
     // Setup admin client
-    const adminClient = await setupAdminClient();
+    const adminClient = createTestClient();
+    await adminClient.loginAsAdmin(adminApiKey);
     
     // Register team and get client
     const { client: teamClient, team } = await registerTeamAndGetClient(adminClient, 'Invalid Trading Team');
@@ -305,7 +315,8 @@ describe('Trading API', () => {
   
   test('team can fetch price and execute a calculated trade', async () => {
     // Setup admin client
-    const adminClient = await setupAdminClient();
+    const adminClient = createTestClient();
+    await adminClient.loginAsAdmin(adminApiKey);
     
     // Register team and get client
     const { client: teamClient, team } = await registerTeamAndGetClient(adminClient, 'Price Calculation Team');
@@ -410,7 +421,8 @@ describe('Trading API', () => {
     }
     
     // Setup admin client
-    const adminClient = await setupAdminClient();
+    const adminClient = createTestClient();
+    await adminClient.loginAsAdmin(adminApiKey);
     
     // Register team and get client
     const { client: teamClient, team } = await registerTeamAndGetClient(adminClient, 'Ethereum Token Team');
@@ -513,7 +525,8 @@ describe('Trading API', () => {
 
   test('team can execute trades with explicit chain parameters', async () => {
     // Setup admin client
-    const adminClient = await setupAdminClient();
+    const adminClient = createTestClient();
+    await adminClient.loginAsAdmin(adminApiKey);
     
     // Register team and get client
     const { client: teamClient, team } = await registerTeamAndGetClient(adminClient, 'Chain-Specific Trading Team');

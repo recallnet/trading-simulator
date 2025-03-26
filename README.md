@@ -91,14 +91,13 @@ The application uses a layered architecture:
 
 - **Middleware**: Request processing and security
   - `AuthMiddleware`: API key validation for team endpoints
-  - `AdminAuthMiddleware`: JWT-based admin authentication
+  - `AdminAuthMiddleware`: API key-based admin authentication
   - `RateLimiterMiddleware`: Request throttling and protection
   - `ErrorHandler`: Consistent error response formatting
 
 - **Controllers**: API endpoint handlers
   - `AccountController`: Balance and portfolio information
   - `AdminController`: Admin operations for competition management
-  - `AuthController`: Authentication operations
   - `CompetitionController`: Competition status and leaderboards
   - `PriceController`: Price information access
   - `TradeController`: Trade execution and quotes
@@ -117,7 +116,7 @@ The application uses a layered architecture:
 - **Backend**: Node.js with TypeScript and Express
 - **Database**: PostgreSQL 
 - **Caching**: In-memory caching with future Redis integration planned
-- **API Security**: HMAC authentication for API requests
+- **API Security**: Bearer token authentication for API requests
 - **Rate Limiting**: Tiered rate limits based on endpoint sensitivity
 - **Price Data**: Integration with DexScreener API for multi-chain price data
 
@@ -161,7 +160,7 @@ The application uses a layered architecture:
    npm run setup:all
    ```
    This command will:
-   - Generate secure random values for security secrets (JWT_SECRET, API_KEY_SECRET, etc.)
+   - Generate secure random values for security secrets (MASTER_ENCRYPTION_KEY)
    - Initialize the database schema with all necessary tables
    - Build the application
    - Start a temporary server
@@ -355,10 +354,8 @@ npm run generate:secrets
 ```
 
 This will create the following secrets:
-- `JWT_SECRET`: Used for admin authentication
-- `API_KEY_SECRET`: Used for team API key generation
-- `HMAC_SECRET`: Used for request signing
-- `MASTER_ENCRYPTION_KEY`: Used for encrypting API secrets
+- `MASTER_ENCRYPTION_KEY`: Used for encrypting API keys
+- `ADMIN_API_KEY`: Used for admin authentication (if not already set up)
 
 #### 4. Database Initialization
 
@@ -415,9 +412,9 @@ We provide several utility scripts to manage teams directly from the command lin
   
   This script will:
   - Prompt for team name, email, and contact person
-  - Generate a secure API key and secret
+  - Generate a secure API key
   - Register the team in the system
-  - Display the credentials (only time the API secret is shown in plain text)
+  - Display the credentials (keep this API key secure)
 
 - **List all teams**:
   ```
@@ -501,225 +498,37 @@ The server will be available at http://localhost:3000 by default.
 
 #### 10. Admin Dashboard
 
-## API Endpoints
-
-Before you can use the API, you need to register a team—and before registering a team, you need to be logged in as an admin.
-
-### Authentication
-
-- `POST /api/auth/login` - Login with API key and secret
-- `POST /api/auth/validate` - Validate API credentials
-
-For example, after you run the setup script and the server is running, you can login as an admin with the values that you provided:
-
-```
-curl -X POST http://localhost:3000/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{
-    "username": "admin",
-    "password": "your-password"
-  }'
-```
-
-This will return a JWT token that you can use to authenticate your requests:
-
-```
-{
-  "success": true,
-  "token": "ey...",
-  "admin": {
-    "id": "20e3e1b1-970b-4745-9ad4-c7e48bae69f4",
-    "username": "admin",
-    "email": "admin@example.com"
-  },
-  "message": "Admin authentication successful"
-}
-```
-
-Then, the admin can register a team with the following request, where `$AUTH_TOKEN` is the JWT `token` from above:
-
-```
-curl -X POST http://localhost:3000/api/admin/teams/register \                              
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $AUTH_TOKEN" \
-  -d '{                       
-        "teamName": "TestTeam",
-        "email": "test@example.com",
-        "contactPerson": "Test User"
-      }'
-```
-
-This will return a team ID that you can use to authenticate your requests:
-
-```
-{
-  "success": true,
-  "team": {
-    "id": "0fe984a2-598e-4261-b888-56a0eed4d4e0",
-    "name": "TestTeam",
-    "email": "test@example.com",
-    "contactPerson": "Test User",
-    "contact_person": "Test User",
-    "apiKey": "sk_7b550f528ba35cfb50b9de65b63e27e4",
-    "apiSecret": "a56229f71f5a2a42f93197fb32159916d1ff7796433c133d00b90097a0bbf12f",
-    "createdAt": "2025-03-19T03:30:40.328Z"
-  }
-}
-```
-
-Now, a team can use the `apiKey` and `apiSecret` to authenticate their requests on non-admin endpoints.
-
-### Account Management
-
-- `GET /api/account/balances` - Get current balances across all chains
-- `GET /api/account/portfolio` - Get portfolio value and composition
-- `GET /api/account/trades` - Get trade history
-
-### Trading Operations
-
-The trading simulator provides API endpoints for executing trades and getting quotes:
-
-#### Execute a Trade
-```
-POST /api/trade/execute
-```
-
-Example request body for a trade on Base chain (USDC to TOSHI):
-```json
-{
-  "fromToken": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", // USDC on Base
-  "toToken": "0x0b3e328455c4059EEb9e3f84b5543F74E24e7E1b", // TOSHI on Base
-  "amount": "100.00", // Amount of fromToken to trade
-  "fromChain": "evm", // Blockchain type for source token (evm)
-  "toChain": "evm", // Blockchain type for destination token (evm) 
-  "fromSpecificChain": "base", // Specific chain for source token (Base)
-  "toSpecificChain": "base" // Specific chain for destination token (Base)
-}
-```
-
-**Note**: All pricing is determined automatically by the server based on current market data. The server calculates the appropriate exchange rate for trades based on token prices from its pricing providers.
-
-Cross-chain trading can be disabled via server configuration (`ALLOW_CROSS_CHAIN_TRADING=false`). When disabled, the server will validate that both tokens are on the same blockchain and reject trades that attempt to trade between different chains.
-
-### Price Information
-- `GET /api/price` - Get current price for a token across chains (supports chain override)
-- `GET /api/price/token-info` - Get detailed token information including specific chain (supports chain override)
-- `GET /api/price/provider` - Get price from a specific provider (supports chain override)
-- `GET /api/price/history` - Get price history with timeframe configuration
-
-### Competition Information
-- `GET /api/competition/leaderboard` - Get competition leaderboard
-- `GET /api/competition/status` - Get current competition status
-- `GET /api/competition/rules` - Get competition rules
-
-### Admin Operations
-- `POST /api/admin/teams/register` - Register a new team
-- `POST /api/admin/competition/start` - Start a new competition
-- `POST /api/admin/competition/end` - End the current competition
-- `GET /api/admin/reports/performance` - Get performance reports
-
-## Authentication Requirements
-
-The Trading Simulator API has different authentication requirements depending on the endpoint:
-
-| Endpoint Category | Authentication Required | Authentication Method |
-|-------------------|-------------------------|----------------------|
-| Public Health/Info | No | None |
-| Authentication (`/api/auth/*`) | Varies | Username/Password or API Key/Secret |
-| Account Information (`/api/account/*`) | Yes | API Key + HMAC |
-| Trading Operations (`/api/trade/*`) | Yes | API Key + HMAC |
-| Price Information (`/api/price/*`) | Yes | API Key + HMAC |
-| Competition Information (`/api/competition/*`) | Yes | API Key + HMAC |
-| Admin Operations (`/api/admin/*`) | Yes | JWT Bearer Token |
-
-Authentication requirements summary:
-- **Public endpoints**: Health checks, API documentation
-- **Auth endpoints**: Login/validation (credentials in body)
-- **Team endpoints**: All account, trade, price, and competition endpoints (API Key + HMAC)
-- **Admin endpoints**: All admin operations (JWT Bearer Token)
-
-## Competition and Team Workflow
-
-The Trading Simulator follows a specific workflow for team registration and competition participation:
-
-### Team Registration and Competition Lifecycle
-
-1. **Team Registration (Pre-Competition)**: 
-   - Admins can register teams at any time, even without an active competition
-   - Registered teams receive API keys and secrets that remain valid regardless of competition status
-   - Teams can authenticate and access API endpoints even when no competition is running
-
-2. **Balance Allocation**:
-   - **Without Active Competition**: Teams will have zero balances across all tokens and chains
-   - **With Active Competition**: Teams receive initial token balances when a competition starts
-   - Initial balances are determined by the configuration in the `.env` file (see [Initial Token Balances](#initial-token-balances))
-
-3. **Competition Start Effects**:
-   - When an admin starts a competition, all participating teams are assigned their initial balances
-   - Initial portfolio snapshots are taken to establish baseline performance
-   - Teams can begin trading with their allocated balances
-
-4. **Competition End Effects**:
-   - Final portfolio snapshots are taken to finalize team performance
-   - Trading is disabled for teams
-   - Balances are frozen for reporting purposes
-   - Leaderboards become final
-
-This workflow allows admins to set up teams in advance of competitions and ensures that balances are only available during active competitions. Teams can use this pre-competition period to test their API integration using endpoints that don't require balances, such as price information endpoints.
-
 ## Security
 
-All protected API endpoints require:
-- API Key in request header (`X-API-Key`)
-- Request timestamp in header (`X-Timestamp`)
-- HMAC signature in header (`X-Signature`)
+All protected API endpoints require an API Key in the Authorization header:
 
-Signature calculation:
 ```
-methodPath + path + timestamp + bodyString
+Authorization: Bearer your-api-key
 ```
 
-For example:
-```
-GET/api/account/balances2023-10-15T14:30:00.000Z{}
-```
+### API Authentication
 
-Important notes for signature calculation:
-- For GET requests with no body, use `{}` in the calculation
-- Use only the base path without query parameters
-- The path must include the leading slash
-- The timestamp must be in ISO format (e.g., `2023-03-15T17:30:45.123Z`)
-
-### API Secret Encryption
-
-For enhanced security, API secrets are stored using:
-- An AES-256-CBC encrypted version of the raw API secret for HMAC signature validation
+For enhanced security, the API implements:
+- Bearer token authentication with unique API keys for each team
+- API keys in the format `ts_live_[hexstring]_[hexstring]`
+- Admin-specific API keys for administrative operations
+- Encrypted storage of API keys using AES-256-CBC encryption
 
 This approach ensures:
-1. The original API secret is never stored in plaintext in the database
-2. The server can still validate HMAC signatures without compromising security
-3. Even if database contents are exposed, the API secrets remain protected
+1. All API requests are properly authenticated
+2. Each team has its own unique API key
+3. API keys are never stored in plaintext in the database
+4. Even if database contents are exposed, the API keys remain protected by the master encryption key
 
 The encryption uses:
 - AES-256-CBC encryption algorithm
-- A unique initialization vector (IV) for each encrypted secret
+- A unique initialization vector (IV) for each encrypted key
 - A master encryption key from environment variables (`MASTER_ENCRYPTION_KEY`)
 
 For production deployments, it's recommended to:
 - Use a hardware security module (HSM) or key management service (KMS) for the master encryption key
 - Rotate the master encryption key periodically
 - Implement proper key management procedures
-
-### Rate Limiting
-
-The application implements tiered rate limiting:
-- 100 requests per minute for trade operations
-- 300 requests per minute for price queries
-- 30 requests per minute for balance/portfolio checks
-- 3,000 requests per minute across all endpoints
-- 10,000 requests per hour per team
-
-These values can be customized in the `.env` file.
 
 ## API Documentation
 
@@ -745,56 +554,12 @@ npm run generate-markdown
 
 ### Authentication
 
-All protected API endpoints require the following headers:
+All API requests require Bearer token authentication with the following header:
 
-- `X-API-Key`: Your team's API key (provided during registration)
-- `X-Timestamp`: Current timestamp in ISO format (e.g., `2023-03-15T17:30:45.123Z`)
-- `X-Signature`: HMAC-SHA256 signature of the request data
+- `Authorization`: Bearer your-api-key
 - `Content-Type`: `application/json`
 
-#### Calculating the Signature
-
-To calculate the signature:
-
-1. Concatenate: `METHOD + PATH + TIMESTAMP + BODY_STRING`
-   - Example: `GET/api/account/balances2023-10-15T14:30:00.000Z{}`
-   - For GET requests with no body, use `{}` in the signature calculation
-   - For POST requests, use the JSON string of your request body
-
-2. **IMPORTANT PATH HANDLING**:
-   - Use ONLY the base path without query parameters for signature calculation
-   - Example: For `/api/price?token=xyz`, use only `/api/price` in the signature
-   - The path should start with a leading slash
-
-3. Sign using HMAC-SHA256 with your API secret
-
-```javascript
-const crypto = require('crypto');
-
-// Your credentials
-const apiKey = 'sk_1b2c3d4e5f...';
-const apiSecret = 'a1b2c3d4e5f6...';
-
-// Request details
-const method = 'GET';
-const fullPath = '/api/account/balances?limit=10'; // Full path with query params
-const pathForSignature = fullPath.split('?')[0];  // Remove query params for signature
-const timestamp = new Date().toISOString();
-const body = {}; // Empty for GET requests
-
-// Calculate signature
-const data = method + pathForSignature + timestamp + JSON.stringify(body);
-const signature = crypto
-  .createHmac('sha256', apiSecret)
-  .update(data)
-  .digest('hex');
-
-console.log('X-API-Key:', apiKey);
-console.log('X-Timestamp:', timestamp);
-console.log('X-Signature:', signature);
-```
-
-For detailed implementation examples, see the examples in the `docs/examples` directory.
+For details and examples in TypeScript, see the [API Documentation](docs/API_DOCUMENTATION.md).
 
 ### Example Client
 
@@ -803,10 +568,8 @@ We provide a [TypeScript client class](docs/examples/api-client.ts) that handles
 ```typescript
 import { TradingSimulatorClient, BlockchainType, SpecificChain } from './api-client';
 
-const client = new TradingSimulatorClient(
-  'your-api-key',
-  'your-api-secret'
-);
+// Create client with your API key
+const client = new TradingSimulatorClient('your-api-key');
 
 // Get account balances
 const balances = await client.getBalances();
@@ -838,41 +601,7 @@ const arbPrice = await client.getPrice(
 console.log('ARB Price (with chain override):', arbPrice);
 ```
 
-### Performance Comparison
-
-Using chain override can significantly improve API response times:
-
-| Method | Response Time | Notes |
-|--------|---------------|-------|
-| Without chain override | 1-3 seconds | System checks multiple chains sequentially |
-| With chain override | 50-100ms | Direct API call to specified chain |
-| Performance improvement | 10-20x faster | Recommended for production use |
-
-### Running the Examples
-
-To run the provided examples:
-
-1. Install dependencies:
-   ```bash
-   cd docs/examples
-   npm install typescript ts-node @types/node
-   ```
-
-2. Update the examples with your team's API credentials.
-
-3. Run an example:
-   ```bash
-   npx ts-node get-balances-example.ts
-   ```
-
-For advanced examples including chain override performance testing:
-   ```bash
-   npx ts-node multi-chain-examples.ts
-   ```
-
-For more information, see the [examples README](docs/examples/README.md).
-
-## Environment Variables Reference
+### Environment Variables Reference
 
 Below is a comprehensive list of all environment variables available in `.env.example` that can be configured in your `.env` file. This reference indicates whether each variable is required or optional, its default value (if any), and a description of its purpose.
 
@@ -891,12 +620,8 @@ Below is a comprehensive list of all environment variables available in `.env.ex
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `JWT_SECRET` | Optional | Auto-generated | Secret key for JWT token generation and validation |
-| `API_KEY_SECRET` | Optional | Auto-generated | Secret for API key generation |
-| `HMAC_SECRET` | Optional | Auto-generated | Secret used for HMAC signature calculation fallback |
-| `MASTER_ENCRYPTION_KEY` | Optional | Auto-generated | Master key for API secret encryption |
-| `ADMIN_USERNAME` | Optional | Input during setup | Default admin username if not provided during setup |
-| `ADMIN_PASSWORD` | Optional | None | Default admin password (not recommended for production) |
+| `MASTER_ENCRYPTION_KEY` | Optional | Auto-generated | Master key for API key encryption |
+| `ADMIN_API_KEY` | Optional | Auto-generated | Default admin API key if not created during setup |
 
 ### Server Configuration
 
@@ -1201,7 +926,7 @@ When executing trades with explicit chain parameters, the system's behavior will
   "toToken": "0x0b3e328455c4059EEb9e3f84b5543F74E24e7E1b",   // TOSHI on Base
   "amount": "50",
   "fromChain": "evm",
-  "toChain": "evm",
+  "toChain": "evm",  // Same as fromChain, will be accepted
   "fromSpecificChain": "base",
   "toSpecificChain": "base"
 }

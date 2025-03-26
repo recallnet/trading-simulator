@@ -13,7 +13,10 @@ function generateSecureSecret(): string {
  * Generate a more human-readable admin API key
  */
 function generateAdminApiKey(): string {
-  return `master_${crypto.randomBytes(16).toString('hex')}`;
+  // Format: ts_live_[hexstring]_[hexstring]
+  const segment1 = crypto.randomBytes(8).toString('hex');  // 16 chars
+  const segment2 = crypto.randomBytes(8).toString('hex');  // 16 chars
+  return `ts_live_${segment1}_${segment2}`;
 }
 
 /**
@@ -44,25 +47,15 @@ async function generateSecrets(): Promise<void> {
   }
   
   // Generate secrets
-  const jwtSecret = generateSecureSecret();
-  const apiKeySecret = generateSecureSecret();
-  const hmacSecret = generateSecureSecret();
   const masterEncryptionKey = generateSecureSecret();
   const adminApiKey = generateAdminApiKey();
-  const adminApiSecret = generateSecureSecret();
   
   // Replace placeholder values
   const placeholderPatterns = [
-    /JWT_SECRET=.*$/m,
-    /API_KEY_SECRET=.*$/m,
-    /HMAC_SECRET=.*$/m,
     /MASTER_ENCRYPTION_KEY=.*$/m
   ];
   
   const replacements = [
-    `JWT_SECRET=${jwtSecret}`,
-    `API_KEY_SECRET=${apiKeySecret}`,
-    `HMAC_SECRET=${hmacSecret}`,
     `MASTER_ENCRYPTION_KEY=${masterEncryptionKey}`
   ];
   
@@ -89,14 +82,25 @@ async function generateSecrets(): Promise<void> {
     }
   });
   
+  // Remove deprecated secrets
+  if (!isNewFile) {
+    const deprecatedVars = [
+      'JWT_SECRET=',
+      'API_KEY_SECRET=',
+      'HMAC_SECRET='
+    ];
+    
+    for (const varName of deprecatedVars) {
+      const regex = new RegExp(`\\n${varName}.*`, 'g');
+      newEnvContent = newEnvContent.replace(regex, '');
+    }
+  }
+  
   // Write updated content back to .env file
   fs.writeFileSync(envPath, newEnvContent);
   
   console.log('Secrets generated and updated in .env file:');
   console.log('----------------------------------------');
-  console.log(`JWT_SECRET=${jwtSecret}`);
-  console.log(`API_KEY_SECRET=${apiKeySecret}`);
-  console.log(`HMAC_SECRET=${hmacSecret}`);
   console.log(`MASTER_ENCRYPTION_KEY=${masterEncryptionKey}`);
   console.log('----------------------------------------');
   console.log('These values have been written to your .env file.');
@@ -114,11 +118,10 @@ async function generateSecrets(): Promise<void> {
     password: "<your-strong-password>",
     email: "admin@example.com"
   }, null, 2));
-  console.log('\nAlternatively, you can use these generated credentials for API access:');
-  console.log(`API Key: ${adminApiKey}`);
-  console.log(`API Secret: ${adminApiSecret}`);
+  console.log('\nAlternatively, you can use this generated API key for admin API access:');
+  console.log(`Admin API Key: ${adminApiKey}`);
   console.log('----------------------------------------');
-  console.log('\nIMPORTANT: Store these admin credentials securely. This is the only time they will be displayed.');
+  console.log('\nIMPORTANT: Store this admin API key securely. This is the only time it will be displayed.');
   console.log('Once you have your admin account set up, you can use it to register teams and manage competitions.');
 }
 

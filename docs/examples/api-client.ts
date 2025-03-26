@@ -1,15 +1,12 @@
-import * as crypto from 'crypto';
-
 /**
  * Trading Simulator API Client
  * 
- * This client handles authentication, request signing, and provides methods for interacting
+ * This client handles authentication and provides methods for interacting
  * with the Trading Simulator API. It's designed primarily for teams participating in trading
  * competitions to execute trades, check balances, and view competition status.
  * 
  * Required configuration:
  * - API key: Your team's unique API key provided during registration
- * - API secret: Your team's secret key for request signing (keep this secure!)
  * - Base URL: The endpoint of the Trading Simulator server
  * - Debug Mode (optional): Enable detailed logging for API requests
  * 
@@ -17,13 +14,12 @@ import * as crypto from 'crypto';
  * // Basic setup
  * const client = new TradingSimulatorClient(
  *   "sk_7b550f528ba35cfb50b9de65b63e27e4",  // Your API key
- *   "a56229f71f5a2a42f93197fb32159916d1ff7796433c133d00b90097a0bbf12f",  // Your API secret 
  *   "https://trading-simulator.example.com",  // API base URL
  *   false  // Debug mode (optional, default: false)
  * );
  * 
  * // Get team balances
- * const balances = await client.getBalances();
+ * const balances = await client.getBalance();
  * 
  * // Execute a trade on Base chain (within-chain trade)
  * const tradeResult = await client.executeTrade({
@@ -89,7 +85,6 @@ export const TOKEN_CHAINS: Record<string, SpecificChain> = {
 
 export class TradingSimulatorClient {
   private apiKey: string;
-  private apiSecret: string;
   private baseUrl: string;
   private debug: boolean;
 
@@ -97,18 +92,15 @@ export class TradingSimulatorClient {
    * Create a new instance of the Trading Simulator client
    * 
    * @param apiKey The API key for your team
-   * @param apiSecret The API secret for your team
    * @param baseUrl The base URL of the Trading Simulator API (default: http://localhost:3000)
    * @param debug Whether to enable debug logging (default: false)
    */
   constructor(
     apiKey: string,
-    apiSecret: string,
     baseUrl: string = 'http://localhost:3000',
     debug: boolean = false
   ) {
     this.apiKey = apiKey;
-    this.apiSecret = apiSecret;
     this.baseUrl = baseUrl;
     this.debug = debug;
   }
@@ -116,51 +108,21 @@ export class TradingSimulatorClient {
   /**
    * Generate the required headers for API authentication
    * 
-   * @param method The HTTP method (GET, POST, etc.)
-   * @param path The API endpoint path (e.g., /api/account/balances)
-   * @param body The request body (if any)
    * @returns An object containing the required headers
    */
-  private generateHeaders(method: string, path: string, body: any = null): Record<string, string> {
-    // Use current timestamp for production use
-    const timestamp = new Date().toISOString();
-    
-    // IMPORTANT: Always use '{}' for empty bodies to match server-side signature validation
-    // The server expects empty requests to have an empty JSON object in signature calculation
-    const bodyString = body ? JSON.stringify(body) : '{}';
-    
-    // CRITICAL: Ensure path format matches server-side validation
-    // Server expects: method + path + timestamp + bodyString
-    // Path should include the leading slash
-    const data = method + path + timestamp + bodyString;
-    
-    if (this.debug) {
-      console.log('[ApiClient] Request details:');
-      console.log('[ApiClient] Method:', method);
-      console.log('[ApiClient] Path:', path);
-      console.log('[ApiClient] Path for signature:', path);
-      console.log('[ApiClient] Timestamp:', timestamp);
-      console.log('[ApiClient] Body:', bodyString);
-      console.log('[ApiClient] Payload:', data);
-      console.log('[ApiClient] API Key:', this.apiKey);
-      console.log('[ApiClient] Secret Length:', this.apiSecret.length);
-    }
-    
-    const signature = crypto
-      .createHmac('sha256', this.apiSecret)
-      .update(data)
-      .digest('hex');
-
-    if (this.debug) {
-      console.log('[ApiClient] Signature:', signature);
-    }
-
-    return {
-      'X-API-Key': this.apiKey,
-      'X-Timestamp': timestamp,
-      'X-Signature': signature,
+  private generateHeaders(): Record<string, string> {
+    const headers: Record<string, string> = {
+      'Authorization': `Bearer ${this.apiKey}`,
       'Content-Type': 'application/json'
     };
+
+    if (this.debug) {
+      console.log('[ApiClient] Request headers:');
+      console.log('[ApiClient] Authorization: Bearer xxxxx... (masked)');
+      console.log('[ApiClient] Content-Type:', headers['Content-Type']);
+    }
+
+    return headers;
   }
 
   /**
@@ -171,28 +133,34 @@ export class TradingSimulatorClient {
    * @param body The request body (if any)
    * @returns A promise that resolves to the API response
    */
-  private async request<T>(method: string, path: string, body: any = null): Promise<T> {
+  public async request<T>(method: string, path: string, body: any = null): Promise<T> {
     const url = `${this.baseUrl}${path}`;
     
-    // Convert body to JSON string if it exists, otherwise use '{}'
-    // This is critical for signature validation to match server-side expectation
-    const bodyString = body ? JSON.stringify(body) : '{}';
+    // Convert body to JSON string if it exists
+    const bodyString = body ? JSON.stringify(body) : undefined;
     
-    // Generate headers using the standardized format
-    const headers = this.generateHeaders(method, path, body);
+    // Generate headers with Bearer token authentication
+    const headers = this.generateHeaders();
     
     const options: RequestInit = {
       method,
       headers,
-      body: body ? bodyString : undefined  // Only include body in the actual request if it exists
+      body: bodyString
     };
+
+    if (this.debug) {
+      console.log('[ApiClient] Request details:');
+      console.log('[ApiClient] Method:', method);
+      console.log('[ApiClient] URL:', url);
+      console.log('[ApiClient] Body:', body ? JSON.stringify(body, null, 2) : 'none');
+    }
 
     try {
       const response = await fetch(url, options);
       const data = await response.json();
       
       if (!response.ok) {
-        throw new Error(data.error || 'API request failed');
+        throw new Error(data.error?.message || data.message || 'API request failed');
       }
       
       return data as T;
@@ -216,6 +184,18 @@ export class TradingSimulatorClient {
     // Solana addresses are base58 encoded, typically around 44 characters
     // This is a simplified detection, could be more robust
     return BlockchainType.SVM;
+  }
+
+  /**
+   * Log in as an admin user
+   * 
+   * @param apiKey The admin API key
+   * @returns A promise that resolves to the login response
+   */
+  async loginAsAdmin(apiKey: string): Promise<any> {
+    // Store the admin API key for future requests
+    this.apiKey = apiKey;
+    return { success: true };
   }
 
   /**
@@ -247,7 +227,7 @@ export class TradingSimulatorClient {
    * @param options Optional filtering parameters
    * @returns A promise that resolves to the trade history response
    */
-  async getTrades(options?: {
+  async getTradeHistory(options?: {
     limit?: number;
     offset?: number;
     token?: string;
@@ -607,7 +587,6 @@ export class TradingSimulatorClient {
 async function example() {
   const client = new TradingSimulatorClient(
     'your-api-key',
-    'your-api-secret',
     'http://localhost:3000',
     false // Set to true to enable debug logging for API requests
   );
@@ -662,7 +641,7 @@ async function example() {
     console.log('Trade Quote:', quote);
 
     // Get trade history (filtered by chain)
-    const solTrades = await client.getTrades({ chain: BlockchainType.SVM });
+    const solTrades = await client.getTradeHistory({ chain: BlockchainType.SVM });
     console.log('Solana Trade History:', solTrades);
 
     // Get competition status
@@ -679,37 +658,32 @@ async function example() {
 }
 
 /**
- * Troubleshooting Authentication
+ * Authentication Information
+ * 
+ * This client uses Bearer token authentication. The token is passed in the Authorization header:
+ * 
+ * Authorization: Bearer your-api-key
+ * 
+ * Troubleshooting Authentication:
  * 
  * If you're experiencing authentication issues, you can enable debug mode by passing
- * true as the fourth parameter to the TradingSimulatorClient constructor:
+ * true as the third parameter to the TradingSimulatorClient constructor:
  * 
  * const client = new TradingSimulatorClient(
  *   "your-api-key",
- *   "your-api-secret",
  *   "https://trading-simulator.example.com",
  *   true  // Enable debug logging
  * );
  * 
- * This will log detailed information about each request:
- * - The request method, path, and body
- * - The exact payload used for signature generation
- * - The generated signature
- * 
- * Authentication Details:
- * 
- * The client uses HMAC-SHA256 signatures for authentication with these steps:
- * 1. Concatenate: method + path + timestamp + bodyString
- *    (e.g., "GET/api/account/balances2023-10-15T14:30:00.000Z{}")
- * 2. Sign this data using your API secret
- * 3. Send the signature in the X-Signature header
+ * This will log detailed information about each request, including:
+ * - The request method, URL, and body
+ * - The authorization header being used (partially masked for security)
  * 
  * Common Authentication Issues:
  * 
- * - Path format: Ensure the path includes the leading slash
- * - Empty bodies: For GET requests with no body, "{}" is used in signature calculation
- * - Timestamp format: Must be a valid ISO string (new Date().toISOString())
- * - API secret format: Must be the exact secret provided during team registration
+ * - Invalid API key: Make sure you're using the exact API key provided during team registration
+ * - API key format: The key should be provided exactly as is without any modifications
+ * - Expired API key: Contact the competition organizers if you believe your key has expired
  */
 
 // Uncomment to run the example
