@@ -38,8 +38,8 @@ The application follows an MVC (Model-View-Controller) architecture with a robus
 - ✅ Chain override feature for high-performance price lookups
 - ✅ Portfolio snapshots with configurable intervals and price freshness optimization
 - ✅ Multiple price providers (DexScreener, Noves, Jupiter, Raydium, Serum)
-- ⏳ Testing (75% complete - E2E testing comprehensive, unit testing in progress)
-- ⏳ Documentation (in progress)
+- ✅ Testing (Complete - E2E testing comprehensive)
+- ✅ Documentation 
 - ⏳ Integration with front-end (planned)
 
 ## Technical Architecture
@@ -78,11 +78,11 @@ The application uses a layered architecture:
   - `PriceTracker`: Multi-source price data fetching with chain detection
   - `MultiChainProvider`: Aggregates price data for all chains
   - `DexScreenerProvider`: EVM and SVM chain price data via DexScreener API
-  - `NovesProvider`: Advanced EVM chain price data 
-  - `RaydiumProvider`: Solana token price data from Raydium
-  - `SerumProvider`: Solana token price data from Serum markets
-  - `JupiterProvider`: Solana token price data from Jupiter API
-  - `SolanaProvider`: Basic SOL token information
+  - `NovesProvider`: Advanced EVM chain price data (disabled)
+  - `RaydiumProvider`: Solana token price data from Raydium (disabled)
+  - `SerumProvider`: Solana token price data from Serum markets (disabled)
+  - `JupiterProvider`: Solana token price data from Jupiter API (disabled)
+  - `SolanaProvider`: Basic SOL token information (disabled)
   - `BalanceManager`: Team balance tracking across multiple chains
   - `TradeSimulator`: Trade execution and processing with chain-specific logic
   - `CompetitionManager`: Competition lifecycle management
@@ -183,66 +183,6 @@ The application uses a layered architecture:
 
 The server will be available at http://localhost:3000 by default.
 
-## Chain Override Feature
-
-Our new chain override feature significantly improves API response times when fetching token prices on EVM chains. This is the **recommended way** to use the API for price checking:
-
-### What is Chain Override?
-
-For EVM tokens, the system needs to determine which specific chain a token exists on (e.g., Ethereum, Polygon, Base). By default, this requires checking multiple chains sequentially, which can take 1-3 seconds.
-
-With chain override, you can specify the exact chain for a token, resulting in:
-- **Without chain override**: 1-3 seconds response time (checking multiple chains)
-- **With chain override**: 50-100ms response time (direct API call to specified chain)
-
-That's a 10-20x performance improvement!
-
-### How to Use Chain Override
-
-When making API requests for token prices, include the `specificChain` parameter:
-
-```
-GET /api/price?token=0x514910771af9ca656af840dff83e8264ecf986ca&specificChain=eth
-```
-
-Or, when using our TypeScript client:
-
-```typescript
-// Get price for Chainlink (LINK) token WITH chain override
-const linkPrice = await client.getPrice(
-  '0x514910771af9ca656af840dff83e8264ecf986ca',    // LINK token
-  BlockchainType.EVM,                               // Blockchain type
-  SpecificChain.ETH                                 // Specific chain (Ethereum)
-);
-```
-
-### Supported Chains
-
-The following chains can be specified:
-- `eth` - Ethereum Mainnet
-- `polygon` - Polygon Network
-- `bsc` - Binance Smart Chain
-- `arbitrum` - Arbitrum One
-- `base` - Base
-- `optimism` - Optimism
-- `avalanche` - Avalanche C-Chain
-- `linea` - Linea
-- `svm` - Solana (for SVM tokens)
-
-### Best Practice
-
-For optimal performance, maintain a mapping of tokens to their specific chains in your application:
-
-```typescript
-const TOKEN_CHAINS = {
-  // EVM tokens with their specific chains
-  '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2': 'eth',    // WETH on Ethereum
-  '0x514910771af9ca656af840dff83e8264ecf986ca': 'eth',    // LINK on Ethereum
-  '0x912CE59144191C1204E64559FE8253a0e49E6548': 'arbitrum', // ARB on Arbitrum
-  '0x532f27101965dd16442E59d40670FaF5eBB142E4': 'base',   // TOSHI on Base
-};
-```
-
 ## Admin Setup Guide
 
 As the administrator of this application, you'll need to properly configure the system before teams can use it. This guide covers how to set up the system quickly and efficiently.
@@ -279,131 +219,11 @@ This command will:
 
 This is the easiest way to get the system up and running with minimal effort.
 
-### Manual Setup 
+**Alternatively, you can manually run the setup step-by-step - instructions included at the bottom of this document**
 
-If you prefer to set up each component separately, you can follow these steps:
+#### Team Management
 
-#### 1. Environment Configuration
-
-The application uses environment variables for configuration. Create a `.env` file in the root directory based on `.env.example`:
-
-```bash
-cp .env.example .env
-```
-
-Then edit the file to configure your environment. Key configuration options include:
-- `EVM_CHAINS`: Comma-separated list of supported EVM chains (defaults to eth,polygon,bsc,arbitrum,base,optimism,avalanche,linea)
-- `ALLOW_MOCK_PRICE_HISTORY`: Whether to allow mock price history data generation (defaults to true in development, false in production)
-- `ALLOW_CROSS_CHAIN_TRADING`: Whether to allow trades between different chains (defaults to false for security, set to true to enable cross-chain trading)
-- `DATABASE_URL`: PostgreSQL connection string
-- `PORT`: The port to run the server on (defaults to 3000)
-
-#### 2. Configuring Initial Token Balances
-
-By default, all token balances start at zero. You can configure initial balances for different tokens across multiple blockchains using the following environment variables in your `.env` file:
-
-**Multi-Chain Configuration**
-
-For granular control, you can set balances by blockchain type:
-
-```
-# Solana Virtual Machine (SVM) Balances
-INITIAL_SVM_SOL_BALANCE=10    # Initial SOL balance on Solana
-INITIAL_SVM_USDC_BALANCE=5000 # Initial USDC balance on Solana
-INITIAL_SVM_USDT_BALANCE=0    # Initial USDT balance on Solana
-
-# Ethereum Virtual Machine (EVM) Balances - applies to all EVM chains
-INITIAL_EVM_ETH_BALANCE=1     # Initial ETH balance for all EVM chains
-INITIAL_EVM_USDC_BALANCE=5000 # Initial USDC balance for all EVM chains
-INITIAL_EVM_USDT_BALANCE=0    # Initial USDT balance for all EVM chains
-```
-
-**Chain-Specific Configuration**
-
-For even more precise control, you can override balances for specific chains:
-
-```
-# Ethereum Mainnet specific balances
-INITIAL_ETH_ETH_BALANCE=2     # ETH on Ethereum Mainnet specifically
-INITIAL_ETH_USDC_BALANCE=3000 # USDC on Ethereum Mainnet specifically
-
-# Polygon specific balances
-INITIAL_POLYGON_MATIC_BALANCE=50  # MATIC on Polygon
-INITIAL_POLYGON_USDC_BALANCE=4000 # USDC on Polygon
-
-# Base specific balances
-INITIAL_BASE_ETH_BALANCE=3        # ETH on Base
-INITIAL_BASE_USDC_BALANCE=3500    # USDC on Base
-```
-
-**Balance Hierarchy and Overrides**
-
-The system uses the following precedence for balances:
-1. Specific chain balances (e.g., `INITIAL_ETH_USDC_BALANCE`)
-2. General blockchain type balances (e.g., `INITIAL_EVM_USDC_BALANCE`)
-3. Zero (default)
-
-This allows fine-grained control over initial token balances across different blockchains.
-
-#### 3. Security Secret Generation
-
-Generate all required security secrets with:
-
-```bash
-npm run generate:secrets
-```
-
-This will create the following secrets:
-- `MASTER_ENCRYPTION_KEY`: Used for encrypting API keys
-- `ADMIN_API_KEY`: Used for admin authentication (if not already set up)
-
-#### 4. Database Initialization
-
-Initialize the database with:
-
-```bash
-npm run db:init
-```
-
-#### 5. Build the Application
-
-Build the TypeScript application:
-
-```bash
-npm run build
-```
-
-#### 6. Start the Server
-
-Start the server:
-
-```bash
-npm run start
-```
-
-For development with hot reloading:
-
-```bash
-npm run dev
-```
-
-The server will be available at http://localhost:3000 by default.
-
-#### 8. Set Up Admin Account
-
-In a separate terminal, set up the admin account:
-
-```bash
-npm run setup:admin
-```
-
-This will prompt you to enter admin credentials or will generate them for you.
-
-#### 9. Admin Utility Scripts
-
-We provide several utility scripts to manage teams directly from the command line:
-
-##### Team Management
+When registering a team or creating a competition, the server **does not** need to be running.
 
 - **Register a new team**:
   ```
@@ -439,7 +259,7 @@ We provide several utility scripts to manage teams directly from the command lin
   - Confirm the deletion
   - Remove the team from the system
 
-##### Competition Management
+#### Competition Management
 
 - **Setup a competition**:
   ```
@@ -495,8 +315,6 @@ npm run dev
 ```
 
 The server will be available at http://localhost:3000 by default.
-
-#### 10. Admin Dashboard
 
 ## Security
 
@@ -599,6 +417,66 @@ const arbPrice = await client.getPrice(
   SpecificChain.ARBITRUM                           // Specific chain (Arbitrum)
 );
 console.log('ARB Price (with chain override):', arbPrice);
+```
+
+## Chain Override Feature
+
+Our new chain override feature significantly improves API response times when fetching token prices on EVM chains. This is the **recommended way** to use the API for price checking:
+
+### What is Chain Override?
+
+For EVM tokens, the system needs to determine which specific chain a token exists on (e.g., Ethereum, Polygon, Base). By default, this requires checking multiple chains sequentially, which can take 1-3 seconds.
+
+With chain override, you can specify the exact chain for a token, resulting in:
+- **Without chain override**: 1-3 seconds response time (checking multiple chains)
+- **With chain override**: 50-100ms response time (direct API call to specified chain)
+
+That's a 10-20x performance improvement!
+
+### How to Use Chain Override
+
+When making API requests for token prices, include the `specificChain` parameter:
+
+```
+GET /api/price?token=0x514910771af9ca656af840dff83e8264ecf986ca&specificChain=eth
+```
+
+Or, when using our TypeScript client:
+
+```typescript
+// Get price for Chainlink (LINK) token WITH chain override
+const linkPrice = await client.getPrice(
+  '0x514910771af9ca656af840dff83e8264ecf986ca',    // LINK token
+  BlockchainType.EVM,                               // Blockchain type
+  SpecificChain.ETH                                 // Specific chain (Ethereum)
+);
+```
+
+### Supported Chains
+
+The following chains can be specified:
+- `eth` - Ethereum Mainnet
+- `polygon` - Polygon Network
+- `bsc` - Binance Smart Chain
+- `arbitrum` - Arbitrum One
+- `base` - Base
+- `optimism` - Optimism
+- `avalanche` - Avalanche C-Chain
+- `linea` - Linea
+- `svm` - Solana (for SVM tokens)
+
+### Best Practice
+
+For optimal performance, maintain a mapping of tokens to their specific chains in your application:
+
+```typescript
+const TOKEN_CHAINS = {
+  // EVM tokens with their specific chains
+  '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2': 'eth',    // WETH on Ethereum
+  '0x514910771af9ca656af840dff83e8264ecf986ca': 'eth',    // LINK on Ethereum
+  '0x912CE59144191C1204E64559FE8253a0e49E6548': 'arbitrum', // ARB on Arbitrum
+  '0x532f27101965dd16442E59d40670FaF5eBB142E4': 'base',   // TOSHI on Base
+};
 ```
 
 ### Environment Variables Reference
@@ -958,3 +836,123 @@ When executing trades with explicit chain parameters, the system's behavior will
 ```
 
 This approach allows you to control whether trades can cross between different blockchains, while still using explicit chain parameters to avoid chain detection overhead. 
+
+### Manual Setup 
+
+If you prefer to set up each component separately, you can follow these steps:
+
+#### 1. Environment Configuration
+
+The application uses environment variables for configuration. Create a `.env` file in the root directory based on `.env.example`:
+
+```bash
+cp .env.example .env
+```
+
+Then edit the file to configure your environment. Key configuration options include:
+- `EVM_CHAINS`: Comma-separated list of supported EVM chains (defaults to eth,polygon,bsc,arbitrum,base,optimism,avalanche,linea)
+- `ALLOW_MOCK_PRICE_HISTORY`: Whether to allow mock price history data generation (defaults to true in development, false in production)
+- `ALLOW_CROSS_CHAIN_TRADING`: Whether to allow trades between different chains (defaults to false for security, set to true to enable cross-chain trading)
+- `DATABASE_URL`: PostgreSQL connection string
+- `PORT`: The port to run the server on (defaults to 3000)
+
+#### 2. Configuring Initial Token Balances
+
+By default, all token balances start at zero. You can configure initial balances for different tokens across multiple blockchains using the following environment variables in your `.env` file:
+
+**Multi-Chain Configuration**
+
+For granular control, you can set balances by blockchain type:
+
+```
+# Solana Virtual Machine (SVM) Balances
+INITIAL_SVM_SOL_BALANCE=10    # Initial SOL balance on Solana
+INITIAL_SVM_USDC_BALANCE=5000 # Initial USDC balance on Solana
+INITIAL_SVM_USDT_BALANCE=0    # Initial USDT balance on Solana
+
+# Ethereum Virtual Machine (EVM) Balances - applies to all EVM chains
+INITIAL_EVM_ETH_BALANCE=1     # Initial ETH balance for all EVM chains
+INITIAL_EVM_USDC_BALANCE=5000 # Initial USDC balance for all EVM chains
+INITIAL_EVM_USDT_BALANCE=0    # Initial USDT balance for all EVM chains
+```
+
+**Chain-Specific Configuration**
+
+For even more precise control, you can override balances for specific chains:
+
+```
+# Ethereum Mainnet specific balances
+INITIAL_ETH_ETH_BALANCE=2     # ETH on Ethereum Mainnet specifically
+INITIAL_ETH_USDC_BALANCE=3000 # USDC on Ethereum Mainnet specifically
+
+# Polygon specific balances
+INITIAL_POLYGON_MATIC_BALANCE=50  # MATIC on Polygon
+INITIAL_POLYGON_USDC_BALANCE=4000 # USDC on Polygon
+
+# Base specific balances
+INITIAL_BASE_ETH_BALANCE=3        # ETH on Base
+INITIAL_BASE_USDC_BALANCE=3500    # USDC on Base
+```
+
+**Balance Hierarchy and Overrides**
+
+The system uses the following precedence for balances:
+1. Specific chain balances (e.g., `INITIAL_ETH_USDC_BALANCE`)
+2. General blockchain type balances (e.g., `INITIAL_EVM_USDC_BALANCE`)
+3. Zero (default)
+
+This allows fine-grained control over initial token balances across different blockchains.
+
+#### 3. Security Secret Generation
+
+Generate all required security secrets with:
+
+```bash
+npm run generate:secrets
+```
+
+This will create the following secrets:
+- `MASTER_ENCRYPTION_KEY`: Used for encrypting API keys
+- `ADMIN_API_KEY`: Used for admin authentication (if not already set up)
+
+#### 4. Database Initialization
+
+Initialize the database with:
+
+```bash
+npm run db:init
+```
+
+#### 5. Build the Application
+
+Build the TypeScript application:
+
+```bash
+npm run build
+```
+
+#### 6. Start the Server
+
+Start the server:
+
+```bash
+npm run start
+```
+
+For development with hot reloading:
+
+```bash
+npm run dev
+```
+
+The server will be available at http://localhost:3000 by default.
+
+#### 8. Set Up Admin Account
+
+In a separate terminal, set up the admin account:
+
+```bash
+npm run setup:admin
+```
+
+This will prompt you to enter admin credentials or will generate them for you.
