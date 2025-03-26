@@ -3,6 +3,11 @@ import { PriceRecord, DatabaseRow } from '../types';
 import { SpecificChain } from '../../types';
 
 /**
+ * Type for SQL query parameters
+ */
+type SqlParams = (string | number | Date | null | undefined)[];
+
+/**
  * Repository for price data storage and retrieval
  */
 export class PriceRepository extends BaseRepository<PriceRecord> {
@@ -25,7 +30,7 @@ export class PriceRepository extends BaseRepository<PriceRecord> {
       const specificChainColumnExists = await this.checkIfColumnExists('prices', 'specific_chain');
       
       let query: string;
-      let values: any[];
+      let values: SqlParams;
       
       if (specificChainColumnExists && priceData.specificChain) {
         // Full support for chain and specific_chain columns
@@ -118,7 +123,7 @@ export class PriceRepository extends BaseRepository<PriceRecord> {
       const specificChainColumnExists = await this.checkIfColumnExists('prices', 'specific_chain');
       
       let query: string;
-      let values: any[];
+      let values: SqlParams;
       
       if (specificChainColumnExists && specificChain) {
         // If we have specific chain column and a specific chain is requested
@@ -177,7 +182,7 @@ export class PriceRepository extends BaseRepository<PriceRecord> {
       const specificChainColumnExists = await this.checkIfColumnExists('prices', 'specific_chain');
       
       let query: string;
-      let values: any[];
+      let values: SqlParams;
       
       if (specificChainColumnExists && specificChain) {
         // If we have specific chain column and a specific chain is requested
@@ -233,7 +238,7 @@ export class PriceRepository extends BaseRepository<PriceRecord> {
       const specificChainColumnExists = await this.checkIfColumnExists('prices', 'specific_chain');
       
       let query: string;
-      let values: any[];
+      let values: SqlParams;
       
       if (specificChainColumnExists && specificChain) {
         query = `
@@ -281,7 +286,7 @@ export class PriceRepository extends BaseRepository<PriceRecord> {
       const specificChainColumnExists = await this.checkIfColumnExists('prices', 'specific_chain');
       
       let query: string;
-      let values: any[];
+      let values: SqlParams;
       
       // Then get the earliest price in the specified time period
       if (specificChainColumnExists && specificChain) {
