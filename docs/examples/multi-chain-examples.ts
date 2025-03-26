@@ -52,7 +52,7 @@ const TOKENS = {
 
 // Replace with your team's API key
 const apiKey = 'your-api-key';
-const baseUrl = 'http://localhost:3001';
+const baseUrl = 'http://localhost:3000';
 
 // Function to help log section headers
 function logSection(title: string): void {

@@ -30,7 +30,7 @@ interface TradeDetails {
 
 // Replace with your team's API key
 const apiKey = 'your-api-key';
-const baseUrl = 'http://localhost:3001';
+const baseUrl = 'http://localhost:3000';
 
 // Create a client instance
 const client = new TradingSimulatorClient(apiKey, baseUrl, true); // Enable debug mode

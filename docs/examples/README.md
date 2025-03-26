@@ -185,7 +185,7 @@ import { TradingSimulatorClient, BlockchainType, SpecificChain, COMMON_TOKENS } 
 // Create a client instance
 const client = new TradingSimulatorClient(
   'your-api-key',
-  'http://localhost:3001', // Use the correct API URL
+  'http://localhost:3000', // Use the correct API URL
   false // Debug mode (optional)
 );
 
