@@ -10,6 +10,70 @@ import { BlockchainType, SpecificChain } from '../types';
 export class PriceController {
   /**
    * Get price for a token
+   * 
+   * @openapi
+   * /api/price:
+   *   get:
+   *     tags:
+   *       - Price
+   *     summary: Get token price
+   *     description: Get the current price for a specific token. Can optionally specify chain type and specific chain for disambiguation.
+   *     security:
+   *       - BearerAuth: []
+   *     parameters:
+   *       - in: query
+   *         name: token
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: Token address or identifier
+   *       - in: query
+   *         name: chain
+   *         required: false
+   *         schema:
+   *           type: string
+   *           enum: [evm, svm]
+   *         description: Blockchain type (evm or svm)
+   *       - in: query
+   *         name: specificChain
+   *         required: false
+   *         schema:
+   *           type: string
+   *           enum: [eth, polygon, bsc, arbitrum, optimism, avalanche, base, linea, zksync, scroll, mantle, svm]
+   *         description: Specific blockchain for EVM tokens (eth, polygon, etc.)
+   *     responses:
+   *       200:
+   *         description: Token price retrieved successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 success:
+   *                   type: boolean
+   *                   description: Whether price retrieval was successful
+   *                 price:
+   *                   type: number
+   *                   nullable: true
+   *                   description: Current token price in USD
+   *                 token:
+   *                   type: string
+   *                   description: Token address or identifier
+   *                 chain:
+   *                   type: string
+   *                   enum: [evm, svm]
+   *                   description: Blockchain type
+   *                 specificChain:
+   *                   type: string
+   *                   nullable: true
+   *                   description: Specific chain for EVM tokens
+   *       400:
+   *         description: Missing or invalid token address
+   *       401:
+   *         description: Authentication required
+   *       500:
+   *         description: Server error
+   *
    * @param req Express request
    * @param res Express response
    * @param next Express next function
@@ -85,6 +149,71 @@ export class PriceController {
   
   /**
    * Get detailed token information including specific chain (for EVM tokens)
+   * 
+   * @openapi
+   * /api/price/token-info:
+   *   get:
+   *     tags:
+   *       - Price
+   *     summary: Get detailed token information
+   *     description: Get detailed token information including price and specific chain information
+   *     security:
+   *       - BearerAuth: []
+   *     parameters:
+   *       - in: query
+   *         name: token
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: Token address or identifier
+   *       - in: query
+   *         name: chain
+   *         required: false
+   *         schema:
+   *           type: string
+   *           enum: [evm, svm]
+   *         description: Blockchain type (evm or svm)
+   *       - in: query
+   *         name: specificChain
+   *         required: false
+   *         schema:
+   *           type: string
+   *           enum: [eth, polygon, bsc, arbitrum, optimism, avalanche, base, linea, zksync, scroll, mantle, svm]
+   *         description: Specific blockchain for EVM tokens (eth, polygon, etc.)
+   *     responses:
+   *       200:
+   *         description: Token information retrieved successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 success:
+   *                   type: boolean
+   *                   description: Whether token information retrieval was successful
+   *                 price:
+   *                   type: number
+   *                   nullable: true
+   *                   description: Current token price in USD
+   *                 token:
+   *                   type: string
+   *                   description: Token address or identifier
+   *                 chain:
+   *                   type: string
+   *                   enum: [evm, svm]
+   *                   description: Blockchain type
+   *                 specificChain:
+   *                   type: string
+   *                   nullable: true
+   *                   description: Specific chain for EVM tokens
+   *                   example: eth
+   *       400:
+   *         description: Missing or invalid token address
+   *       401:
+   *         description: Authentication required
+   *       500:
+   *         description: Server error
+   *
    * @param req Express request
    * @param res Express response
    * @param next Express next function 
