@@ -1,4 +1,4 @@
-import { TradingSimulatorClient } from './api-client';
+import { TradingSimulatorClient, BalancesResponse } from './api-client';
 
 /**
  * Example: Get Team Balances
@@ -13,7 +13,7 @@ const baseUrl = 'http://localhost:3001';
 // Create a client instance
 const client = new TradingSimulatorClient(apiKey, baseUrl, true); // Enable debug mode
 
-async function getBalances() {
+async function getBalances(): Promise<BalancesResponse> {
   try {
     console.log('Getting team balances...');
     
@@ -24,10 +24,12 @@ async function getBalances() {
     
     // Process the balances for easier viewing
     console.log('\nToken Balances:');
-    if (balanceResponse.balances) {
-      Object.entries(balanceResponse.balances).forEach(([token, amount]) => {
-        console.log(`- ${token}: ${amount}`);
+    if (balanceResponse.balances && balanceResponse.balances.length > 0) {
+      balanceResponse.balances.forEach(balance => {
+        console.log(`- ${balance.token}: ${balance.amount} (Chain: ${balance.chain}${balance.specificChain ? `, ${balance.specificChain}` : ''})`);
       });
+    } else {
+      console.log('No balances found');
     }
     
     /* Expected response format:

@@ -83,6 +83,151 @@ export const TOKEN_CHAINS: Record<string, SpecificChain> = {
   [COMMON_TOKENS.SVM.USDC]: SpecificChain.SVM
 };
 
+// API Response Interfaces
+export interface ApiResponse {
+  success: boolean;
+}
+
+export interface BalancesResponse extends ApiResponse {
+  teamId: string;
+  balances: Array<{
+    token: string;
+    amount: number;
+    chain: BlockchainType;
+    specificChain: SpecificChain | null;
+  }>;
+}
+
+export interface TradeHistoryResponse extends ApiResponse {
+  teamId: string;
+  trades: Array<{
+    id: string;
+    teamId: string;
+    competitionId: string;
+    fromToken: string;
+    toToken: string;
+    fromAmount: number;
+    toAmount: number;
+    price: number;
+    success: boolean;
+    error?: string;
+    timestamp: string;
+    fromChain: BlockchainType;
+    toChain: BlockchainType;
+    fromSpecificChain?: SpecificChain;
+    toSpecificChain?: SpecificChain;
+  }>;
+}
+
+export interface PriceResponse extends ApiResponse {
+  price: number;
+  token: string;
+  chain: BlockchainType;
+  specificChain?: SpecificChain;
+}
+
+export interface TokenInfoResponse extends PriceResponse {
+  name: string;
+  symbol: string;
+  decimals: number;
+}
+
+export interface TradeResponse extends ApiResponse {
+  transaction: {
+    id: string;
+    teamId: string;
+    competitionId: string;
+    fromToken: string;
+    toToken: string;
+    fromAmount: number;
+    toAmount: number;
+    price: number;
+    success: boolean;
+    timestamp: string;
+    fromChain: BlockchainType;
+    toChain: BlockchainType;
+    fromSpecificChain?: SpecificChain;
+    toSpecificChain?: SpecificChain;
+  }
+}
+
+export interface QuoteResponse extends ApiResponse {
+  fromToken: string;
+  toToken: string;
+  fromAmount: number;
+  toAmount: number;
+  exchangeRate: number;
+  slippage: number;
+  prices: {
+    fromToken: number;
+    toToken: number;
+  };
+  chains: {
+    fromChain: BlockchainType;
+    toChain: BlockchainType;
+  };
+}
+
+export interface CompetitionStatusResponse extends ApiResponse {
+  active: boolean;
+  competition?: {
+    id: string;
+    name: string;
+    description: string | null;
+    startDate: string;
+    endDate: string | null;
+    status: "PENDING" | "ACTIVE" | "COMPLETED";
+    createdAt: string;
+    updatedAt: string;
+  };
+  message?: string;
+}
+
+export interface LeaderboardResponse extends ApiResponse {
+  competition: {
+    id: string;
+    name: string;
+    description: string | null;
+    startDate: string;
+    endDate: string | null;
+    status: "PENDING" | "ACTIVE" | "COMPLETED";
+    createdAt: string;
+    updatedAt: string;
+  };
+  leaderboard: Array<{
+    rank: number;
+    teamId: string;
+    teamName: string;
+    portfolioValue: number;
+  }>;
+}
+
+export interface ProfileResponse extends ApiResponse {
+  team: {
+    id: string;
+    name: string;
+    email: string;
+    contact_person: string;
+    createdAt: string;
+    updatedAt: string;
+  };
+}
+
+export interface PortfolioResponse extends ApiResponse {
+  teamId: string;
+  totalValue: number;
+  tokens: Array<{
+    token: string;
+    amount: number;
+    price: number;
+    value: number;
+    chain: BlockchainType;
+    specificChain: SpecificChain | null;
+  }>;
+  snapshotTime: string;
+  source: string;
+}
+
 export class TradingSimulatorClient {
   private apiKey: string;
   private baseUrl: string;
@@ -192,7 +337,7 @@ export class TradingSimulatorClient {
    * @param apiKey The admin API key
    * @returns A promise that resolves to the login response
    */
-  async loginAsAdmin(apiKey: string): Promise<any> {
+  async loginAsAdmin(apiKey: string): Promise<ApiResponse> {
     // Store the admin API key for future requests
     this.apiKey = apiKey;
     return { success: true };
@@ -208,17 +353,8 @@ export class TradingSimulatorClient {
    * console.log('My ETH balance on Base:', balances.balances.find(b => b.token === '0x4200000000000000000000000000000000000006')?.amount);
    * console.log('My USDC balance on Base:', balances.balances.find(b => b.token === '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913')?.amount);
    */
-  async getBalances(): Promise<{
-    success: boolean;
-    teamId: string;
-    balances: Array<{
-      token: string;
-      amount: number;
-      chain: string;
-      specificChain: string | null;
-    }>;
-  }> {
-    return this.request<any>('GET', '/api/account/balances');
+  async getBalances(): Promise<BalancesResponse> {
+    return this.request<BalancesResponse>('GET', '/api/account/balances');
   }
 
   /**
@@ -232,27 +368,7 @@ export class TradingSimulatorClient {
     offset?: number;
     token?: string;
     chain?: BlockchainType;
-  }): Promise<{
-    success: boolean;
-    teamId: string;
-    trades: Array<{
-      id: string;
-      teamId: string;
-      competitionId: string;
-      fromToken: string;
-      toToken: string;
-      fromAmount: number;
-      toAmount: number;
-      price: number;
-      success: boolean;
-      error?: string;
-      timestamp: string;
-      fromChain: string;
-      toChain: string;
-      fromSpecificChain?: string;
-      toSpecificChain?: string;
-    }>;
-  }> {
+  }): Promise<TradeHistoryResponse> {
     let query = '';
     
     if (options) {
@@ -264,7 +380,7 @@ export class TradingSimulatorClient {
       query = `?${params.toString()}`;
     }
     
-    return this.request<any>('GET', `/api/account/trades${query}`);
+    return this.request<TradeHistoryResponse>('GET', `/api/account/trades${query}`);
   }
 
   /**
@@ -279,13 +395,7 @@ export class TradingSimulatorClient {
     token: string, 
     chain?: BlockchainType,
     specificChain?: SpecificChain
-  ): Promise<{
-    success: boolean;
-    price: number;
-    token: string;
-    chain: string;
-    specificChain?: string;
-  }> {
+  ): Promise<PriceResponse> {
     let query = `?token=${encodeURIComponent(token)}`;
     
     // Add chain parameter if explicitly provided
@@ -298,7 +408,7 @@ export class TradingSimulatorClient {
       query += `&specificChain=${specificChain}`;
     }
     
-    return this.request<any>('GET', `/api/price${query}`);
+    return this.request<PriceResponse>('GET', `/api/price${query}`);
   }
 
   /**
@@ -313,13 +423,7 @@ export class TradingSimulatorClient {
     token: string,
     chain?: BlockchainType,
     specificChain?: SpecificChain
-  ): Promise<{
-    success: boolean;
-    price: number;
-    token: string;
-    chain: string;
-    specificChain?: string;
-  }> {
+  ): Promise<TokenInfoResponse> {
     let query = `?token=${encodeURIComponent(token)}`;
     
     // Add chain parameter if explicitly provided
@@ -332,7 +436,7 @@ export class TradingSimulatorClient {
       query += `&specificChain=${specificChain}`;
     }
     
-    return this.request<any>('GET', `/api/price/token-info${query}`);
+    return this.request<TokenInfoResponse>('GET', `/api/price/token-info${query}`);
   }
 
   /**
@@ -375,25 +479,7 @@ export class TradingSimulatorClient {
     toChain?: BlockchainType;
     fromSpecificChain?: SpecificChain;
     toSpecificChain?: SpecificChain;
-  }): Promise<{
-    success: boolean;
-    transaction: {
-      id: string;
-      teamId: string;
-      competitionId: string;
-      fromToken: string;
-      toToken: string;
-      fromAmount: number;
-      toAmount: number;
-      price: number;
-      success: boolean;
-      timestamp: string;
-      fromChain: string;
-      toChain: string;
-      fromSpecificChain?: string;
-      toSpecificChain?: string;
-    }
-  }> {
+  }): Promise<TradeResponse> {
     // Create the request payload
     const payload: any = {
       fromToken: params.fromToken,
@@ -418,7 +504,7 @@ export class TradingSimulatorClient {
     }
     
     // Make the API request
-    return this.request<any>('POST', '/api/trade/execute', payload);
+    return this.request<TradeResponse>('POST', '/api/trade/execute', payload);
   }
 
   /**
@@ -435,22 +521,7 @@ export class TradingSimulatorClient {
     toChain?: BlockchainType;
     fromSpecificChain?: SpecificChain;
     toSpecificChain?: SpecificChain;
-  }): Promise<{
-    fromToken: string;
-    toToken: string;
-    fromAmount: number;
-    toAmount: number;
-    exchangeRate: number;
-    slippage: number;
-    prices: {
-      fromToken: number;
-      toToken: number;
-    };
-    chains: {
-      fromChain: string;
-      toChain: string;
-    };
-  }> {
+  }): Promise<QuoteResponse> {
     // Build the query string
     let query = `?fromToken=${encodeURIComponent(params.fromToken)}&toToken=${encodeURIComponent(params.toToken)}&amount=${encodeURIComponent(params.amount)}`;
     
@@ -460,7 +531,7 @@ export class TradingSimulatorClient {
     if (params.fromSpecificChain) query += `&fromSpecificChain=${params.fromSpecificChain}`;
     if (params.toSpecificChain) query += `&toSpecificChain=${params.toSpecificChain}`;
     
-    return this.request<any>('GET', `/api/trade/quote${query}`);
+    return this.request<QuoteResponse>('GET', `/api/trade/quote${query}`);
   }
 
   /**
@@ -468,22 +539,8 @@ export class TradingSimulatorClient {
    * 
    * @returns A promise that resolves to the competition status response
    */
-  async getCompetitionStatus(): Promise<{
-    success: boolean;
-    active: boolean;
-    competition?: {
-      id: string;
-      name: string;
-      description: string | null;
-      startDate: string;
-      endDate: string | null;
-      status: "PENDING" | "ACTIVE" | "COMPLETED";
-      createdAt: string;
-      updatedAt: string;
-    };
-    message?: string;
-  }> {
-    return this.request<any>('GET', '/api/competition/status');
+  async getCompetitionStatus(): Promise<CompetitionStatusResponse> {
+    return this.request<CompetitionStatusResponse>('GET', '/api/competition/status');
   }
 
   /**
@@ -492,30 +549,12 @@ export class TradingSimulatorClient {
    * @param competitionId Optional ID of a specific competition (uses active competition by default)
    * @returns A promise that resolves to the leaderboard response
    */
-  async getLeaderboard(competitionId?: string): Promise<{
-    success: boolean;
-    competition: {
-      id: string;
-      name: string;
-      description: string | null;
-      startDate: string;
-      endDate: string | null;
-      status: "PENDING" | "ACTIVE" | "COMPLETED";
-      createdAt: string;
-      updatedAt: string;
-    };
-    leaderboard: Array<{
-      rank: number;
-      teamId: string;
-      teamName: string;
-      portfolioValue: number;
-    }>;
-  }> {
+  async getLeaderboard(competitionId?: string): Promise<LeaderboardResponse> {
     const path = competitionId 
       ? `/api/competition/leaderboard?competitionId=${competitionId}`
       : '/api/competition/leaderboard';
       
-    return this.request<any>('GET', path);
+    return this.request<LeaderboardResponse>('GET', path);
   }
 
   /**
@@ -523,18 +562,8 @@ export class TradingSimulatorClient {
    * 
    * @returns A promise that resolves to the team profile
    */
-  async getProfile(): Promise<{
-    success: boolean;
-    team: {
-      id: string;
-      name: string;
-      email: string;
-      contact_person: string;
-      createdAt: string;
-      updatedAt: string;
-    };
-  }> {
-    return this.request<any>('GET', '/api/account/profile');
+  async getProfile(): Promise<ProfileResponse> {
+    return this.request<ProfileResponse>('GET', '/api/account/profile');
   }
 
   /**
@@ -545,18 +574,8 @@ export class TradingSimulatorClient {
    */
   async updateProfile(profileData: {
     contactPerson?: string;
-  }): Promise<{
-    success: boolean;
-    team: {
-      id: string;
-      name: string;
-      email: string;
-      contact_person: string;
-      createdAt: string;
-      updatedAt: string;
-    };
-  }> {
-    return this.request<any>('PUT', '/api/account/profile', profileData);
+  }): Promise<ProfileResponse> {
+    return this.request<ProfileResponse>('PUT', '/api/account/profile', profileData);
   }
 
   /**
@@ -564,22 +583,8 @@ export class TradingSimulatorClient {
    * 
    * @returns A promise that resolves to the portfolio information
    */
-  async getPortfolio(): Promise<{
-    success: boolean;
-    teamId: string;
-    totalValue: number;
-    tokens: Array<{
-      token: string;
-      amount: number;
-      price: number;
-      value: number;
-      chain: string;
-      specificChain: string | null;
-    }>;
-    snapshotTime: string;
-    source: string;
-  }> {
-    return this.request<any>('GET', '/api/account/portfolio');
+  async getPortfolio(): Promise<PortfolioResponse> {
+    return this.request<PortfolioResponse>('GET', '/api/account/portfolio');
   }
 }
 

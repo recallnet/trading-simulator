@@ -5,7 +5,36 @@
  * multiple blockchains (Solana and Ethereum).
  */
 
-import { TradingSimulatorClient, BlockchainType, SpecificChain, COMMON_TOKENS } from './api-client';
+import { 
+  TradingSimulatorClient, 
+  BlockchainType, 
+  SpecificChain, 
+  COMMON_TOKENS,
+  PriceResponse,
+  BalancesResponse,
+  TradeResponse,
+  TokenInfoResponse,
+  TradeHistoryResponse
+} from './api-client';
+
+// Define the interfaces that aren't explicitly exported from api-client.ts
+interface TradeDetails {
+  fromToken: string;
+  toToken: string;
+  amount: string;
+  slippageTolerance?: string;
+  fromChain?: BlockchainType;
+  toChain?: BlockchainType;
+  fromSpecificChain?: SpecificChain;
+  toSpecificChain?: SpecificChain;
+}
+
+interface TradeHistoryParams {
+  limit?: number;
+  offset?: number;
+  token?: string;
+  chain?: BlockchainType;
+}
 
 // Token addresses for different chains
 const TOKENS = {
@@ -26,7 +55,7 @@ const apiKey = 'your-api-key';
 const baseUrl = 'http://localhost:3001';
 
 // Function to help log section headers
-function logSection(title: string) {
+function logSection(title: string): void {
   console.log('\n' + '='.repeat(50));
   console.log(`  ${title}`);
   console.log('='.repeat(50) + '\n');
@@ -35,64 +64,65 @@ function logSection(title: string) {
 /**
  * Example 1: Get prices for tokens on different chains
  */
-async function getMultiChainPrices(client: TradingSimulatorClient) {
+async function getMultiChainPrices(client: TradingSimulatorClient): Promise<void> {
   logSection('Example 1: Get Multi-Chain Prices');
 
   // Get Solana token prices
   console.log('Getting Solana token prices...');
-  const solPrice = await client.getPrice(TOKENS.SOL);
+  const solPrice: PriceResponse = await client.getPrice(TOKENS.SOL);
   console.log(`SOL Price: $${solPrice.price} (Chain: ${solPrice.chain})`);
   
-  const usdcSolPrice = await client.getPrice(TOKENS.USDC_SOL);
+  const usdcSolPrice: PriceResponse = await client.getPrice(TOKENS.USDC_SOL);
   console.log(`USDC (Solana) Price: $${usdcSolPrice.price} (Chain: ${usdcSolPrice.chain})`);
 
   // Get Ethereum token prices
   console.log('\nGetting Ethereum token prices...');
-  const ethPrice = await client.getPrice(TOKENS.ETH);
+  const ethPrice: PriceResponse = await client.getPrice(TOKENS.ETH);
   console.log(`ETH Price: $${ethPrice.price} (Chain: ${ethPrice.chain})`);
   
-  const usdcEthPrice = await client.getPrice(TOKENS.USDC_ETH);
+  const usdcEthPrice: PriceResponse = await client.getPrice(TOKENS.USDC_ETH);
   console.log(`USDC (Ethereum) Price: $${usdcEthPrice.price} (Chain: ${usdcEthPrice.chain})`);
 
   // Get prices directly using the standard endpoint
   // Note: The system now uses DexScreener for all price lookups
   console.log('\nGetting prices from DexScreener provider...');
-  const solDexPrice = await client.getPrice(TOKENS.SOL, BlockchainType.SVM);
+  const solDexPrice: PriceResponse = await client.getPrice(TOKENS.SOL, BlockchainType.SVM);
   console.log(`SOL Price from DexScreener: $${solDexPrice.price} (Chain: ${solDexPrice.chain})`);
   
-  const ethDexPrice = await client.getPrice(TOKENS.ETH, BlockchainType.EVM);
+  const ethDexPrice: PriceResponse = await client.getPrice(TOKENS.ETH, BlockchainType.EVM);
   console.log(`ETH Price from DexScreener: $${ethDexPrice.price} (Chain: ${ethDexPrice.chain})`);
 }
 
 /**
  * Example 2: Filter balances and portfolio by chain
  */
-async function getMultiChainPortfolio(client: TradingSimulatorClient) {
+async function getMultiChainPortfolio(client: TradingSimulatorClient): Promise<void> {
   logSection('Example 2: Portfolio Across Chains');
 
   // Get all balances (across all chains)
-  const balances = await client.getBalance();
+  const balances: BalancesResponse = await client.getBalances();
   console.log('All Balances:', JSON.stringify(balances, null, 2));
   
-  // In the new format, balances are stored in the balance object with token addresses as keys
-  if (balances.balance) {
-    // Group balances by chain - first we need to determine the chain for each token
-    const solanaTokens = Object.keys(balances.balance).filter(token => 
-      client.detectChain(token) === BlockchainType.SVM
+  // Group balances by chain
+  if (balances.balances && balances.balances.length > 0) {
+    // Filter for Solana tokens
+    const solanaBalances = balances.balances.filter(
+      balance => balance.chain === BlockchainType.SVM
     );
     
-    const ethereumTokens = Object.keys(balances.balance).filter(token => 
-      client.detectChain(token) === BlockchainType.EVM
+    // Filter for Ethereum tokens
+    const ethereumBalances = balances.balances.filter(
+      balance => balance.chain === BlockchainType.EVM
     );
     
     console.log('\nSolana Balances:');
-    solanaTokens.forEach(token => {
-      console.log(`  ${token}: ${balances.balance[token]}`);
+    solanaBalances.forEach(balance => {
+      console.log(`  ${balance.token}: ${balance.amount}`);
     });
     
     console.log('\nEthereum Balances:');
-    ethereumTokens.forEach(token => {
-      console.log(`  ${token}: ${balances.balance[token]}`);
+    ethereumBalances.forEach(balance => {
+      console.log(`  ${balance.token}: ${balance.amount}`);
     });
   }
 }
@@ -100,20 +130,22 @@ async function getMultiChainPortfolio(client: TradingSimulatorClient) {
 /**
  * Example 3: Execute trades on different chains
  */
-async function executeMultiChainTrades(client: TradingSimulatorClient) {
+async function executeMultiChainTrades(client: TradingSimulatorClient): Promise<void> {
   logSection('Example 3: Execute Trades on Different Chains');
 
   // 1. Buy SOL with USDC on Solana
   console.log('Executing Solana trade: Buy SOL with USDC...');
   try {
-    const solTrade = await client.executeTrade({
+    const solanaTradeDetails: TradeDetails = {
       fromToken: TOKENS.USDC_SOL,
       toToken: TOKENS.SOL,
       amount: '10.00', // 10 USDC
       slippageTolerance: '0.5',
       fromChain: BlockchainType.SVM,
       toChain: BlockchainType.SVM
-    });
+    };
+    
+    const solTrade: TradeResponse = await client.executeTrade(solanaTradeDetails);
     console.log('Solana Trade Result:', JSON.stringify(solTrade, null, 2));
   } catch (error) {
     console.error('Error executing Solana trade:', error);
@@ -122,7 +154,7 @@ async function executeMultiChainTrades(client: TradingSimulatorClient) {
   // 2. Buy ETH with USDC on Ethereum
   console.log('\nExecuting Ethereum trade: Buy ETH with USDC...');
   try {
-    const ethTrade = await client.executeTrade({
+    const ethereumTradeDetails: TradeDetails = {
       fromToken: TOKENS.USDC_ETH,
       toToken: TOKENS.ETH,
       amount: '10.00', // 10 USDC
@@ -131,7 +163,9 @@ async function executeMultiChainTrades(client: TradingSimulatorClient) {
       toChain: BlockchainType.EVM,
       fromSpecificChain: SpecificChain.ETH,
       toSpecificChain: SpecificChain.ETH
-    });
+    };
+    
+    const ethTrade: TradeResponse = await client.executeTrade(ethereumTradeDetails);
     console.log('Ethereum Trade Result:', JSON.stringify(ethTrade, null, 2));
   } catch (error) {
     console.error('Error executing Ethereum trade:', error);
@@ -141,13 +175,13 @@ async function executeMultiChainTrades(client: TradingSimulatorClient) {
 /**
  * Example 4: Execute cross-chain trades
  */
-async function executeCrossChainTrades(client: TradingSimulatorClient) {
+async function executeCrossChainTrades(client: TradingSimulatorClient): Promise<void> {
   logSection('Example 4: Execute Cross-Chain Trades');
 
   // 1. Trade Solana USDC to Ethereum ETH
   console.log('Executing cross-chain trade: Solana USDC to Ethereum ETH...');
   try {
-    const crossTrade1 = await client.executeTrade({
+    const crossChainTradeDetails1: TradeDetails = {
       fromToken: TOKENS.USDC_SOL,
       toToken: TOKENS.ETH,
       amount: '50.00',
@@ -156,7 +190,9 @@ async function executeCrossChainTrades(client: TradingSimulatorClient) {
       toChain: BlockchainType.EVM,
       fromSpecificChain: SpecificChain.SVM,
       toSpecificChain: SpecificChain.ETH
-    });
+    };
+    
+    const crossTrade1: TradeResponse = await client.executeTrade(crossChainTradeDetails1);
     console.log('Cross-Chain Trade Result:', JSON.stringify(crossTrade1, null, 2));
     console.log(`From chain: ${crossTrade1.transaction.fromChain}, To chain: ${crossTrade1.transaction.toChain}`);
   } catch (error) {
@@ -166,7 +202,7 @@ async function executeCrossChainTrades(client: TradingSimulatorClient) {
   // 2. Trade Ethereum USDC to Solana SOL
   console.log('\nExecuting cross-chain trade: Ethereum USDC to Solana SOL...');
   try {
-    const crossTrade2 = await client.executeTrade({
+    const crossChainTradeDetails2: TradeDetails = {
       fromToken: TOKENS.USDC_ETH,
       toToken: TOKENS.SOL,
       amount: '50.00',
@@ -175,7 +211,9 @@ async function executeCrossChainTrades(client: TradingSimulatorClient) {
       toChain: BlockchainType.SVM,
       fromSpecificChain: SpecificChain.ETH,
       toSpecificChain: SpecificChain.SVM
-    });
+    };
+    
+    const crossTrade2: TradeResponse = await client.executeTrade(crossChainTradeDetails2);
     console.log('Cross-Chain Trade Result:', JSON.stringify(crossTrade2, null, 2));
     console.log(`From chain: ${crossTrade2.transaction.fromChain}, To chain: ${crossTrade2.transaction.toChain}`);
   } catch (error) {
@@ -186,15 +224,17 @@ async function executeCrossChainTrades(client: TradingSimulatorClient) {
 /**
  * Example 5: Get filtered trade history by chain
  */
-async function getFilteredTradeHistory(client: TradingSimulatorClient) {
+async function getFilteredTradeHistory(client: TradingSimulatorClient): Promise<void> {
   logSection('Example 5: Filtered Trade History');
 
   // Get Solana trades
   console.log('Getting Solana trade history...');
-  const solanaTrades = await client.getTradeHistory({
+  const solanaParams: TradeHistoryParams = {
     chain: BlockchainType.SVM,
     limit: 5
-  });
+  };
+  
+  const solanaTrades: TradeHistoryResponse = await client.getTradeHistory(solanaParams);
   console.log(`Found ${solanaTrades.trades.length} Solana trades`);
   
   if (solanaTrades.trades.length > 0) {
@@ -203,10 +243,12 @@ async function getFilteredTradeHistory(client: TradingSimulatorClient) {
 
   // Get Ethereum trades
   console.log('\nGetting Ethereum trade history...');
-  const ethereumTrades = await client.getTradeHistory({
+  const ethereumParams: TradeHistoryParams = {
     chain: BlockchainType.EVM,
     limit: 5
-  });
+  };
+  
+  const ethereumTrades: TradeHistoryResponse = await client.getTradeHistory(ethereumParams);
   console.log(`Found ${ethereumTrades.trades.length} Ethereum trades`);
   
   if (ethereumTrades.trades.length > 0) {
@@ -217,11 +259,17 @@ async function getFilteredTradeHistory(client: TradingSimulatorClient) {
 /**
  * Example 6: Using chain override for faster price lookups
  */
-async function getChainOverridePrices(client: TradingSimulatorClient) {
+async function getChainOverridePrices(client: TradingSimulatorClient): Promise<void> {
   logSection('Example 6: Chain Override for Faster Price Lookups');
 
   // Tokens we'll test with
-  const testTokens = [
+  interface TokenTestInfo {
+    name: string;
+    address: string;
+    chain: SpecificChain;
+  }
+  
+  const testTokens: TokenTestInfo[] = [
     { name: 'Chainlink (LINK)', address: TOKENS.LINK, chain: SpecificChain.ETH },
     { name: 'Arbitrum (ARB)', address: TOKENS.ARB, chain: SpecificChain.ARBITRUM },
     { name: 'TOSHI', address: TOKENS.TOSHI, chain: SpecificChain.BASE }
@@ -233,7 +281,7 @@ async function getChainOverridePrices(client: TradingSimulatorClient) {
     // First, get price without chain override (slower)
     console.log('Getting price WITHOUT chain override...');
     const startTime1 = Date.now();
-    const priceNoOverride = await client.getPrice(token.address, BlockchainType.EVM);
+    const priceNoOverride: PriceResponse = await client.getPrice(token.address, BlockchainType.EVM);
     const duration1 = Date.now() - startTime1;
     console.log(`Price: $${priceNoOverride.price}`);
     console.log(`Time taken: ${duration1}ms`);
@@ -245,7 +293,7 @@ async function getChainOverridePrices(client: TradingSimulatorClient) {
     // Now, get price WITH chain override (faster)
     console.log('\nGetting price WITH chain override...');
     const startTime2 = Date.now();
-    const priceWithOverride = await client.getPrice(
+    const priceWithOverride: PriceResponse = await client.getPrice(
       token.address, 
       BlockchainType.EVM,
       token.chain
@@ -269,13 +317,13 @@ async function getChainOverridePrices(client: TradingSimulatorClient) {
 /**
  * Example 7: Get detailed token info with chain override
  */
-async function getTokenInfoWithChainOverride(client: TradingSimulatorClient) {
+async function getTokenInfoWithChainOverride(client: TradingSimulatorClient): Promise<void> {
   logSection('Example 7: Token Info with Chain Override');
 
   // First get token info without chain override
   console.log('Getting detailed token info for Chainlink (LINK) WITHOUT chain override...');
   const startTime1 = Date.now();
-  const tokenInfoNoOverride = await client.getTokenInfo(TOKENS.LINK);
+  const tokenInfoNoOverride: TokenInfoResponse = await client.getTokenInfo(TOKENS.LINK);
   const duration1 = Date.now() - startTime1;
   
   console.log(`Token info: ${JSON.stringify(tokenInfoNoOverride, null, 2)}`);
@@ -287,7 +335,7 @@ async function getTokenInfoWithChainOverride(client: TradingSimulatorClient) {
   // Now with chain override
   console.log('\nGetting detailed token info for Chainlink (LINK) WITH chain override...');
   const startTime2 = Date.now();
-  const tokenInfoWithOverride = await client.getTokenInfo(
+  const tokenInfoWithOverride: TokenInfoResponse = await client.getTokenInfo(
     TOKENS.LINK,
     BlockchainType.EVM,
     SpecificChain.ETH
@@ -308,7 +356,7 @@ async function getTokenInfoWithChainOverride(client: TradingSimulatorClient) {
 /**
  * Main function to run all examples
  */
-async function runAllExamples() {
+async function runAllExamples(): Promise<void> {
   try {
     // Create Trading Simulator client
     const client = new TradingSimulatorClient(apiKey, baseUrl, false);

@@ -1,4 +1,22 @@
-import { TradingSimulatorClient, BlockchainType, SpecificChain, COMMON_TOKENS } from './api-client';
+import { 
+  TradingSimulatorClient, 
+  BlockchainType, 
+  SpecificChain, 
+  COMMON_TOKENS,
+  TradeResponse
+} from './api-client';
+
+// Define the TradeDetails interface based on the api-client.ts parameters
+interface TradeDetails {
+  fromToken: string;
+  toToken: string;
+  amount: string;
+  slippageTolerance?: string;
+  fromChain?: BlockchainType;
+  toChain?: BlockchainType;
+  fromSpecificChain?: SpecificChain;
+  toSpecificChain?: SpecificChain;
+}
 
 /**
  * Example: Execute a Trade
@@ -29,7 +47,7 @@ const ETH_ADDRESS = COMMON_TOKENS.EVM.ETH;
 const tradeType = process.argv[2] || 'solana'; // Options: 'solana', 'ethereum', 'cross-chain'
 
 // Trade details based on selected type
-let tradeDetails;
+let tradeDetails: TradeDetails;
 
 switch (tradeType) {
   case 'ethereum':
@@ -79,7 +97,7 @@ switch (tradeType) {
     break;
 }
 
-async function executeTrade() {
+async function executeTrade(): Promise<TradeResponse> {
   try {
     console.log('Executing trade...');
     console.log('Trade details:', JSON.stringify(tradeDetails, null, 2));

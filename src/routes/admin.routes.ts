@@ -87,10 +87,8 @@ router.use(adminAuthMiddleware(services.teamManager));
  *     tags:
  *       - Admin
  *     summary: Register a new team
- *     description: Create a new team account with API credentials
+ *     description: Admin-only endpoint to register a new team. Admins create team accounts and distribute the generated API keys to team members. Teams cannot register themselves.
  *     security:
- *       - ApiKeyAuth: []
- *       - ApiSecretAuth: []
  *       - BearerAuth: []
  *     requestBody:
  *       required: true
@@ -147,10 +145,8 @@ router.use(adminAuthMiddleware(services.teamManager));
  *                       description: Contact person name (snake_case version)
  *                     apiKey:
  *                       type: string
- *                       description: API key for authentication
- *                     apiSecret:
- *                       type: string
- *                       description: API secret for authentication
+ *                       description: API key for the team to use with Bearer authentication. Admin should securely provide this to the team.
+ *                       example: ts_live_abc123def456_ghi789jkl012
  *                     createdAt:
  *                       type: string
  *                       format: date-time
@@ -173,8 +169,6 @@ router.post('/teams/register', AdminController.registerTeam);
  *     summary: List all teams
  *     description: Get a list of all non-admin teams
  *     security:
- *       - ApiKeyAuth: []
- *       - ApiSecretAuth: []
  *       - BearerAuth: []
  *     responses:
  *       200:
@@ -228,8 +222,6 @@ router.get('/teams', AdminController.listAllTeams);
  *     summary: Delete a team
  *     description: Permanently delete a team and all associated data
  *     security:
- *       - ApiKeyAuth: []
- *       - ApiSecretAuth: []
  *       - BearerAuth: []
  *     parameters:
  *       - in: path
@@ -274,8 +266,6 @@ router.delete('/teams/:teamId', AdminController.deleteTeam);
  *     summary: Start a competition
  *     description: Create and start a new trading competition with specified teams
  *     security:
- *       - ApiKeyAuth: []
- *       - ApiSecretAuth: []
  *       - BearerAuth: []
  *     requestBody:
  *       required: true
@@ -359,8 +349,6 @@ router.post('/competition/start', AdminController.startCompetition);
  *     summary: End a competition
  *     description: End an active competition and finalize the results
  *     security:
- *       - ApiKeyAuth: []
- *       - ApiSecretAuth: []
  *       - BearerAuth: []
  *     requestBody:
  *       required: true
@@ -440,8 +428,6 @@ router.post('/competition/end', AdminController.endCompetition);
  *     summary: Get competition snapshots
  *     description: Get portfolio snapshots for a competition, optionally filtered by team
  *     security:
- *       - ApiKeyAuth: []
- *       - ApiSecretAuth: []
  *       - BearerAuth: []
  *     parameters:
  *       - in: path
@@ -508,8 +494,6 @@ router.get('/competition/:competitionId/snapshots', AdminController.getCompetiti
  *     summary: Get performance reports
  *     description: Get performance reports and leaderboard for a competition
  *     security:
- *       - ApiKeyAuth: []
- *       - ApiSecretAuth: []
  *       - BearerAuth: []
  *     parameters:
  *       - in: query

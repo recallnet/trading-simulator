@@ -12,31 +12,15 @@ const router = Router();
  *     summary: Get competition leaderboard
  *     description: Get the leaderboard for the active competition or a specific competition
  *     security:
- *       - ApiKeyAuth: []
- *       - TimestampAuth: []
- *       - SignatureAuth: []
+ *       - BearerAuth: []
  *     parameters:
  *       - in: header
- *         name: X-Timestamp
+ *         name: Authorization
  *         schema:
  *           type: string
  *         required: true
- *         description: Current timestamp in ISO format
- *         example: "2023-03-15T17:30:45.123Z"
- *       - in: header
- *         name: X-API-Key
- *         schema:
- *           type: string
- *         required: true
- *         description: API key for authentication
- *         example: "sk_1b2c3d4e5f"
- *       - in: header
- *         name: X-Signature
- *         schema:
- *           type: string
- *         required: true
- *         description: HMAC-SHA256 signature of request data
- *         example: "a1b2c3d4e5f6..."
+ *         description: Bearer token for authentication (format "Bearer YOUR_API_KEY")
+ *         example: "Bearer ts_live_abc123def456_ghi789jkl012"
  *       - in: query
  *         name: competitionId
  *         schema:
@@ -108,7 +92,7 @@ const router = Router();
  *       400:
  *         description: Bad request - No active competition and no competitionId provided
  *       401:
- *         description: Unauthorized - Missing or invalid authentication (API key, timestamp, or signature)
+ *         description: Unauthorized - Missing or invalid authentication
  *       403:
  *         description: Forbidden - Team not participating in the competition
  *       404:
@@ -127,31 +111,15 @@ router.get('/leaderboard', CompetitionController.getLeaderboard);
  *     summary: Get competition status
  *     description: Get the status of the active competition
  *     security:
- *       - ApiKeyAuth: []
- *       - TimestampAuth: []
- *       - SignatureAuth: []
+ *       - BearerAuth: []
  *     parameters:
  *       - in: header
- *         name: X-Timestamp
+ *         name: Authorization
  *         schema:
  *           type: string
  *         required: true
- *         description: Current timestamp in ISO format
- *         example: "2023-03-15T17:30:45.123Z"
- *       - in: header
- *         name: X-API-Key
- *         schema:
- *           type: string
- *         required: true
- *         description: API key for authentication
- *         example: "sk_1b2c3d4e5f"
- *       - in: header
- *         name: X-Signature
- *         schema:
- *           type: string
- *         required: true
- *         description: HMAC-SHA256 signature of request data
- *         example: "a1b2c3d4e5f6..."
+ *         description: Bearer token for authentication (format "Bearer YOUR_API_KEY")
+ *         example: "Bearer ts_live_abc123def456_ghi789jkl012"
  *     responses:
  *       200:
  *         description: Competition status
@@ -206,7 +174,7 @@ router.get('/leaderboard', CompetitionController.getLeaderboard);
  *                   description: Additional information about the competition status
  *                   nullable: true
  *       401:
- *         description: Unauthorized - Missing or invalid authentication (API key, timestamp, or signature)
+ *         description: Unauthorized - Missing or invalid authentication
  *       500:
  *         description: Server error
  */
@@ -221,31 +189,15 @@ router.get('/status', CompetitionController.getStatus);
  *     summary: Get competition rules
  *     description: Get the rules for all competitions
  *     security:
- *       - ApiKeyAuth: []
- *       - TimestampAuth: []
- *       - SignatureAuth: []
+ *       - BearerAuth: []
  *     parameters:
  *       - in: header
- *         name: X-Timestamp
+ *         name: Authorization
  *         schema:
  *           type: string
  *         required: true
- *         description: Current timestamp in ISO format
- *         example: "2023-03-15T17:30:45.123Z"
- *       - in: header
- *         name: X-API-Key
- *         schema:
- *           type: string
- *         required: true
- *         description: API key for authentication
- *         example: "sk_1b2c3d4e5f"
- *       - in: header
- *         name: X-Signature
- *         schema:
- *           type: string
- *         required: true
- *         description: HMAC-SHA256 signature of request data
- *         example: "a1b2c3d4e5f6..."
+ *         description: Bearer token for authentication (format "Bearer YOUR_API_KEY")
+ *         example: "Bearer ts_live_abc123def456_ghi789jkl012"
  *     responses:
  *       200:
  *         description: Competition rules
@@ -274,7 +226,7 @@ router.get('/status', CompetitionController.getStatus);
  *                       type: string
  *                       description: Formula used to calculate slippage
  *       401:
- *         description: Unauthorized - Missing or invalid authentication (API key, timestamp, or signature)
+ *         description: Unauthorized - Missing or invalid authentication
  *       500:
  *         description: Server error
  */

@@ -22,62 +22,39 @@ API for the Trading Simulator - a platform for simulated cryptocurrency trading 
       
 ## Authentication Guide
 
-This API requires three authentication headers for all protected endpoints:
+This API uses Bearer token authentication. All protected endpoints require the following header:
 
-- **X-API-Key**: Your team's API key (provided during registration)
-- **X-Timestamp**: Current timestamp in ISO format (e.g., `2023-03-15T17:30:45.123Z`)
-- **X-Signature**: HMAC-SHA256 signature of the request data
+- **Authorization**: Bearer your-api-key
 
-### Calculating the Signature
+Where "your-api-key" is the API key provided during team registration.
 
-When testing endpoints in this documentation UI, you'll need to manually calculate the signature:
+### Authentication Examples
 
-1. Concatenate: `METHOD + PATH + TIMESTAMP + BODY_STRING`
-   - Example: `GET/api/account/balances2023-10-15T14:30:00.000Z{}`
-   - For GET requests with no body, use `{}` in the signature calculation
-   - For POST requests, use the JSON string of your request body
+**cURL Example:**
 
-2. ⚠️ **IMPORTANT PATH HANDLING**:
-   - Use ONLY the base path without query parameters for signature calculation
-   - Example: For `/api/price?token=xyz`, use only `/api/price` in the signature
-   - The path should start with a leading slash
-   - Do not include the domain or protocol (e.g., use `/api/trade/execute` not `http://localhost:3000/api/trade/execute`)
-
-3. Sign using HMAC-SHA256 with your API secret
-   - You can use online tools to calculate this, or the provided API client
-
-4. Enter all three values in the Authorize dialog
-
-### Example with Node.js
-
-```javascript
-const crypto = require('crypto');
-
-// Your credentials
-const apiKey = 'sk_1b2c3d4e5f...';
-const apiSecret = 'a1b2c3d4e5f6...';
-
-// Request details
-const method = 'GET';
-const fullPath = '/api/account/balances?limit=10'; // Full path with query params
-const pathForSignature = fullPath.split('?')[0];  // Remove query params for signature
-const timestamp = new Date().toISOString();
-const body = {}; // Empty for GET requests
-
-// Calculate signature
-const data = method + pathForSignature + timestamp + JSON.stringify(body);
-const signature = crypto
-  .createHmac('sha256', apiSecret)
-  .update(data)
-  .digest('hex');
-
-console.log('X-API-Key:', apiKey);
-console.log('X-Timestamp:', timestamp);
-console.log('X-Signature:', signature);
-console.log('Path used for signature:', pathForSignature);
+```bash
+curl -X GET "https://api.example.com/api/account/balances" \
+  -H "Authorization: Bearer ts_live_abc123def456_ghi789jkl012" \
+  -H "Content-Type: application/json"
 ```
 
-For convenience, we provide an API client that handles this automatically. See `docs/examples/api-client.ts`.
+**JavaScript Example:**
+
+```javascript
+const fetchData = async () => {
+  const apiKey = 'ts_live_abc123def456_ghi789jkl012';
+  const response = await fetch('https://api.example.com/api/account/balances', {
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json'
+    }
+  });
+  
+  return await response.json();
+};
+```
+
+For convenience, we provide an API client that handles authentication automatically. See `docs/examples/api-client.ts`.
       
 
 Base URLs:
@@ -91,184 +68,7 @@ License: <a href="https://opensource.org/licenses/ISC">ISC License</a>
 
 # Authentication
 
-* API Key (ApiKeyAuth)
-    - Parameter Name: **X-API-Key**, in: header. 
-
-* API Key (TimestampAuth)
-    - Parameter Name: **X-Timestamp**, in: header. 
-
-* API Key (SignatureAuth)
-    - Parameter Name: **X-Signature**, in: header. 
-
-- HTTP Authentication, scheme: bearer 
-
-<h1 id="trading-simulator-api-auth">Auth</h1>
-
-Authentication endpoints
-
-## Login with API key and secret
-
-> Code samples
-
-```javascript
-const inputBody = '{
-  "apiKey": "string",
-  "apiSecret": "string"
-}';
-const headers = {
-  'Content-Type':'application/json',
-  'Accept':'application/json'
-};
-
-fetch('http://localhost:3000/api/auth/login',
-{
-  method: 'POST',
-  body: inputBody,
-  headers: headers
-})
-.then(function(res) {
-    return res.json();
-}).then(function(body) {
-    console.log(body);
-});
-
-```
-
-`POST /api/auth/login`
-
-Authenticates a team using their API key and secret, returning a JWT token
-
-> Body parameter
-
-```json
-{
-  "apiKey": "string",
-  "apiSecret": "string"
-}
-```
-
-<h3 id="login-with-api-key-and-secret-parameters">Parameters</h3>
-
-|Name|In|Type|Required|Description|
-|---|---|---|---|---|
-|body|body|object|true|none|
-|» apiKey|body|string|true|Team's API key|
-|» apiSecret|body|string|true|Team's API secret|
-
-> Example responses
-
-> 200 Response
-
-```json
-{
-  "token": "string",
-  "teamId": "string",
-  "expiresIn": "string"
-}
-```
-
-<h3 id="login-with-api-key-and-secret-responses">Responses</h3>
-
-|Status|Meaning|Description|Schema|
-|---|---|---|---|
-|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|Login successful|Inline|
-|401|[Unauthorized](https://tools.ietf.org/html/rfc7235#section-3.1)|Invalid credentials|[Error](#schemaerror)|
-|500|[Internal Server Error](https://tools.ietf.org/html/rfc7231#section-6.6.1)|Server error|None|
-
-<h3 id="login-with-api-key-and-secret-responseschema">Response Schema</h3>
-
-Status Code **200**
-
-|Name|Type|Required|Restrictions|Description|
-|---|---|---|---|---|
-|» token|string|false|none|JWT token for authentication|
-|» teamId|string|false|none|Team ID|
-|» expiresIn|string|false|none|Token expiration time in seconds|
-
-<aside class="success">
-This operation does not require authentication
-</aside>
-
-## Validate API credentials
-
-> Code samples
-
-```javascript
-const inputBody = '{
-  "apiKey": "string",
-  "apiSecret": "string"
-}';
-const headers = {
-  'Content-Type':'application/json',
-  'Accept':'application/json'
-};
-
-fetch('http://localhost:3000/api/auth/validate',
-{
-  method: 'POST',
-  body: inputBody,
-  headers: headers
-})
-.then(function(res) {
-    return res.json();
-}).then(function(body) {
-    console.log(body);
-});
-
-```
-
-`POST /api/auth/validate`
-
-Validates the provided API key and secret without returning a token
-
-> Body parameter
-
-```json
-{
-  "apiKey": "string",
-  "apiSecret": "string"
-}
-```
-
-<h3 id="validate-api-credentials-parameters">Parameters</h3>
-
-|Name|In|Type|Required|Description|
-|---|---|---|---|---|
-|body|body|object|true|none|
-|» apiKey|body|string|true|Team's API key|
-|» apiSecret|body|string|true|Team's API secret|
-
-> Example responses
-
-> 200 Response
-
-```json
-{
-  "valid": true,
-  "teamId": "string"
-}
-```
-
-<h3 id="validate-api-credentials-responses">Responses</h3>
-
-|Status|Meaning|Description|Schema|
-|---|---|---|---|
-|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|Credentials are valid|Inline|
-|401|[Unauthorized](https://tools.ietf.org/html/rfc7235#section-3.1)|Invalid credentials|[Error](#schemaerror)|
-|500|[Internal Server Error](https://tools.ietf.org/html/rfc7231#section-6.6.1)|Server error|None|
-
-<h3 id="validate-api-credentials-responseschema">Response Schema</h3>
-
-Status Code **200**
-
-|Name|Type|Required|Restrictions|Description|
-|---|---|---|---|---|
-|» valid|boolean|false|none|Whether the credentials are valid|
-|» teamId|string|false|none|Team ID if credentials are valid|
-
-<aside class="success">
-This operation does not require authentication
-</aside>
+- HTTP Authentication, scheme: bearer API key provided in the Authorization header using Bearer token authentication
 
 <h1 id="trading-simulator-api-account">Account</h1>
 
@@ -282,10 +82,7 @@ Account management endpoints
 
 const headers = {
   'Accept':'application/json',
-  'X-Timestamp':'2023-03-15T17:30:45.123Z',
-  'X-API-Key':'sk_1b2c3d4e5f',
-  'X-Signature':'a1b2c3d4e5f6...',
-  'X-API-Key':'API_KEY'
+  'Authorization':'Bearer ts_live_abc123def456_ghi789jkl012'
 };
 
 fetch('http://localhost:3000/api/account/profile',
@@ -310,9 +107,7 @@ Get profile information for the authenticated team
 
 |Name|In|Type|Required|Description|
 |---|---|---|---|---|
-|X-Timestamp|header|string|true|Current timestamp in ISO format|
-|X-API-Key|header|string|true|API key for authentication|
-|X-Signature|header|string|true|HMAC-SHA256 signature of request data|
+|Authorization|header|string|true|Bearer token for authentication (format "Bearer YOUR_API_KEY")|
 
 > Example responses
 
@@ -337,7 +132,7 @@ Get profile information for the authenticated team
 |Status|Meaning|Description|Schema|
 |---|---|---|---|
 |200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|Team profile|Inline|
-|401|[Unauthorized](https://tools.ietf.org/html/rfc7235#section-3.1)|Unauthorized - Missing or invalid authentication (API key, timestamp, or signature)|None|
+|401|[Unauthorized](https://tools.ietf.org/html/rfc7235#section-3.1)|Unauthorized - Missing or invalid authentication|None|
 |404|[Not Found](https://tools.ietf.org/html/rfc7231#section-6.5.4)|Team not found|None|
 |500|[Internal Server Error](https://tools.ietf.org/html/rfc7231#section-6.6.1)|Server error|None|
 
@@ -358,7 +153,7 @@ Status Code **200**
 
 <aside class="warning">
 To perform this operation, you must be authenticated by means of one of the following methods:
-ApiKeyAuth, TimestampAuth, SignatureAuth
+BearerAuth
 </aside>
 
 ## Update team profile
@@ -372,10 +167,7 @@ const inputBody = '{
 const headers = {
   'Content-Type':'application/json',
   'Accept':'application/json',
-  'X-Timestamp':'2023-03-15T17:30:45.123Z',
-  'X-API-Key':'sk_1b2c3d4e5f',
-  'X-Signature':'a1b2c3d4e5f6...',
-  'X-API-Key':'API_KEY'
+  'Authorization':'Bearer ts_live_abc123def456_ghi789jkl012'
 };
 
 fetch('http://localhost:3000/api/account/profile',
@@ -408,9 +200,7 @@ Update profile information for the authenticated team
 
 |Name|In|Type|Required|Description|
 |---|---|---|---|---|
-|X-Timestamp|header|string|true|Current timestamp in ISO format|
-|X-API-Key|header|string|true|API key for authentication|
-|X-Signature|header|string|true|HMAC-SHA256 signature of request data|
+|Authorization|header|string|true|Bearer token for authentication (format "Bearer YOUR_API_KEY")|
 |body|body|object|true|none|
 |» contactPerson|body|string|false|New contact person name|
 
@@ -437,7 +227,7 @@ Update profile information for the authenticated team
 |Status|Meaning|Description|Schema|
 |---|---|---|---|
 |200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|Updated team profile|Inline|
-|401|[Unauthorized](https://tools.ietf.org/html/rfc7235#section-3.1)|Unauthorized - Missing or invalid authentication (API key, timestamp, or signature)|None|
+|401|[Unauthorized](https://tools.ietf.org/html/rfc7235#section-3.1)|Unauthorized - Missing or invalid authentication|None|
 |404|[Not Found](https://tools.ietf.org/html/rfc7231#section-6.5.4)|Team not found|None|
 |500|[Internal Server Error](https://tools.ietf.org/html/rfc7231#section-6.6.1)|Server error|None|
 
@@ -458,7 +248,7 @@ Status Code **200**
 
 <aside class="warning">
 To perform this operation, you must be authenticated by means of one of the following methods:
-ApiKeyAuth, TimestampAuth, SignatureAuth
+BearerAuth
 </aside>
 
 ## Get token balances
@@ -469,10 +259,7 @@ ApiKeyAuth, TimestampAuth, SignatureAuth
 
 const headers = {
   'Accept':'application/json',
-  'X-Timestamp':'2023-03-15T17:30:45.123Z',
-  'X-API-Key':'sk_1b2c3d4e5f',
-  'X-Signature':'a1b2c3d4e5f6...',
-  'X-API-Key':'API_KEY'
+  'Authorization':'Bearer ts_live_abc123def456_ghi789jkl012'
 };
 
 fetch('http://localhost:3000/api/account/balances',
@@ -497,9 +284,7 @@ Get all token balances for the authenticated team
 
 |Name|In|Type|Required|Description|
 |---|---|---|---|---|
-|X-Timestamp|header|string|true|Current timestamp in ISO format|
-|X-API-Key|header|string|true|API key for authentication|
-|X-Signature|header|string|true|HMAC-SHA256 signature of request data|
+|Authorization|header|string|true|Bearer token for authentication (format "Bearer YOUR_API_KEY")|
 
 > Example responses
 
@@ -525,7 +310,7 @@ Get all token balances for the authenticated team
 |Status|Meaning|Description|Schema|
 |---|---|---|---|
 |200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|Team token balances|Inline|
-|401|[Unauthorized](https://tools.ietf.org/html/rfc7235#section-3.1)|Unauthorized - Missing or invalid authentication (API key, timestamp, or signature)|None|
+|401|[Unauthorized](https://tools.ietf.org/html/rfc7235#section-3.1)|Unauthorized - Missing or invalid authentication|None|
 |500|[Internal Server Error](https://tools.ietf.org/html/rfc7231#section-6.6.1)|Server error|None|
 
 <h3 id="get-token-balances-responseschema">Response Schema</h3>
@@ -551,7 +336,7 @@ Status Code **200**
 
 <aside class="warning">
 To perform this operation, you must be authenticated by means of one of the following methods:
-ApiKeyAuth, TimestampAuth, SignatureAuth
+BearerAuth
 </aside>
 
 ## Get portfolio information
@@ -562,10 +347,7 @@ ApiKeyAuth, TimestampAuth, SignatureAuth
 
 const headers = {
   'Accept':'application/json',
-  'X-Timestamp':'2023-03-15T17:30:45.123Z',
-  'X-API-Key':'sk_1b2c3d4e5f',
-  'X-Signature':'a1b2c3d4e5f6...',
-  'X-API-Key':'API_KEY'
+  'Authorization':'Bearer ts_live_abc123def456_ghi789jkl012'
 };
 
 fetch('http://localhost:3000/api/account/portfolio',
@@ -590,9 +372,7 @@ Get portfolio valuation and token details for the authenticated team
 
 |Name|In|Type|Required|Description|
 |---|---|---|---|---|
-|X-Timestamp|header|string|true|Current timestamp in ISO format|
-|X-API-Key|header|string|true|API key for authentication|
-|X-Signature|header|string|true|HMAC-SHA256 signature of request data|
+|Authorization|header|string|true|Bearer token for authentication (format "Bearer YOUR_API_KEY")|
 
 > Example responses
 
@@ -623,7 +403,7 @@ Get portfolio valuation and token details for the authenticated team
 |Status|Meaning|Description|Schema|
 |---|---|---|---|
 |200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|Team portfolio information|Inline|
-|401|[Unauthorized](https://tools.ietf.org/html/rfc7235#section-3.1)|Unauthorized - Missing or invalid authentication (API key, timestamp, or signature)|None|
+|401|[Unauthorized](https://tools.ietf.org/html/rfc7235#section-3.1)|Unauthorized - Missing or invalid authentication|None|
 |500|[Internal Server Error](https://tools.ietf.org/html/rfc7231#section-6.6.1)|Server error|None|
 
 <h3 id="get-portfolio-information-responseschema">Response Schema</h3>
@@ -656,7 +436,7 @@ Status Code **200**
 
 <aside class="warning">
 To perform this operation, you must be authenticated by means of one of the following methods:
-ApiKeyAuth, TimestampAuth, SignatureAuth
+BearerAuth
 </aside>
 
 ## Get trade history
@@ -667,10 +447,7 @@ ApiKeyAuth, TimestampAuth, SignatureAuth
 
 const headers = {
   'Accept':'application/json',
-  'X-Timestamp':'2023-03-15T17:30:45.123Z',
-  'X-API-Key':'sk_1b2c3d4e5f',
-  'X-Signature':'a1b2c3d4e5f6...',
-  'X-API-Key':'API_KEY'
+  'Authorization':'Bearer ts_live_abc123def456_ghi789jkl012'
 };
 
 fetch('http://localhost:3000/api/account/trades',
@@ -695,9 +472,7 @@ Get trade history for the authenticated team
 
 |Name|In|Type|Required|Description|
 |---|---|---|---|---|
-|X-Timestamp|header|string|true|Current timestamp in ISO format|
-|X-API-Key|header|string|true|API key for authentication|
-|X-Signature|header|string|true|HMAC-SHA256 signature of request data|
+|Authorization|header|string|true|Bearer token for authentication (format "Bearer YOUR_API_KEY")|
 
 > Example responses
 
@@ -734,7 +509,7 @@ Get trade history for the authenticated team
 |Status|Meaning|Description|Schema|
 |---|---|---|---|
 |200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|Team trade history|Inline|
-|401|[Unauthorized](https://tools.ietf.org/html/rfc7235#section-3.1)|Unauthorized - Missing or invalid authentication (API key, timestamp, or signature)|None|
+|401|[Unauthorized](https://tools.ietf.org/html/rfc7235#section-3.1)|Unauthorized - Missing or invalid authentication|None|
 |500|[Internal Server Error](https://tools.ietf.org/html/rfc7231#section-6.6.1)|Server error|None|
 
 <h3 id="get-trade-history-responseschema">Response Schema</h3>
@@ -764,7 +539,7 @@ Status Code **200**
 
 <aside class="warning">
 To perform this operation, you must be authenticated by means of one of the following methods:
-ApiKeyAuth, TimestampAuth, SignatureAuth
+BearerAuth
 </aside>
 
 <h1 id="trading-simulator-api-trade">Trade</h1>
@@ -789,10 +564,7 @@ const inputBody = '{
 const headers = {
   'Content-Type':'application/json',
   'Accept':'application/json',
-  'X-Timestamp':'2023-03-15T17:30:45.123Z',
-  'X-API-Key':'sk_1b2c3d4e5f',
-  'X-Signature':'a1b2c3d4e5f6...',
-  'X-API-Key':'API_KEY'
+  'Authorization':'string'
 };
 
 fetch('http://localhost:3000/api/trade/execute',
@@ -832,9 +604,7 @@ Execute a trade between two tokens
 
 |Name|In|Type|Required|Description|
 |---|---|---|---|---|
-|X-Timestamp|header|string|true|Current timestamp in ISO format|
-|X-API-Key|header|string|true|API key for authentication|
-|X-Signature|header|string|true|HMAC-SHA256 signature of request data|
+|Authorization|header|string|true|Bearer token for authentication (format "Bearer YOUR_API_KEY")|
 |body|body|object|true|none|
 |» fromToken|body|string|true|Token address to sell|
 |» toToken|body|string|true|Token address to buy|
@@ -876,8 +646,8 @@ Execute a trade between two tokens
 |Status|Meaning|Description|Schema|
 |---|---|---|---|
 |200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|Trade executed successfully|Inline|
-|400|[Bad Request](https://tools.ietf.org/html/rfc7231#section-6.5.1)|Invalid input parameters|[Error](#schemaerror)|
-|401|[Unauthorized](https://tools.ietf.org/html/rfc7235#section-3.1)|Unauthorized - Missing or invalid authentication (API key, timestamp, or signature)|None|
+|400|[Bad Request](https://tools.ietf.org/html/rfc7231#section-6.5.1)|Invalid input parameters|None|
+|401|[Unauthorized](https://tools.ietf.org/html/rfc7235#section-3.1)|Unauthorized - Missing or invalid authentication|None|
 |403|[Forbidden](https://tools.ietf.org/html/rfc7231#section-6.5.3)|Forbidden - Competition not in progress or other restrictions|None|
 |500|[Internal Server Error](https://tools.ietf.org/html/rfc7231#section-6.6.1)|Server error|None|
 
@@ -906,7 +676,7 @@ Status Code **200**
 
 <aside class="warning">
 To perform this operation, you must be authenticated by means of one of the following methods:
-ApiKeyAuth, TimestampAuth, SignatureAuth
+BearerAuth
 </aside>
 
 ## Get a quote for a trade
@@ -917,10 +687,7 @@ ApiKeyAuth, TimestampAuth, SignatureAuth
 
 const headers = {
   'Accept':'application/json',
-  'X-Timestamp':'2023-03-15T17:30:45.123Z',
-  'X-API-Key':'sk_1b2c3d4e5f',
-  'X-Signature':'a1b2c3d4e5f6...',
-  'X-API-Key':'API_KEY'
+  'Authorization':'string'
 };
 
 fetch('http://localhost:3000/api/trade/quote?fromToken=So11111111111111111111111111111111111111112&toToken=EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v&amount=1.5',
@@ -945,9 +712,7 @@ Get a quote for a potential trade between two tokens
 
 |Name|In|Type|Required|Description|
 |---|---|---|---|---|
-|X-Timestamp|header|string|true|Current timestamp in ISO format|
-|X-API-Key|header|string|true|API key for authentication|
-|X-Signature|header|string|true|HMAC-SHA256 signature of request data|
+|Authorization|header|string|true|Bearer token for authentication (format "Bearer YOUR_API_KEY")|
 |fromToken|query|string|true|Token address to sell|
 |toToken|query|string|true|Token address to buy|
 |amount|query|string|true|Amount of fromToken to get quote for|
@@ -985,7 +750,7 @@ Get a quote for a potential trade between two tokens
 |---|---|---|---|
 |200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|Quote generated successfully|Inline|
 |400|[Bad Request](https://tools.ietf.org/html/rfc7231#section-6.5.1)|Invalid input parameters|None|
-|401|[Unauthorized](https://tools.ietf.org/html/rfc7235#section-3.1)|Unauthorized - Missing or invalid authentication (API key, timestamp, or signature)|None|
+|401|[Unauthorized](https://tools.ietf.org/html/rfc7235#section-3.1)|Unauthorized - Missing or invalid authentication|None|
 |500|[Internal Server Error](https://tools.ietf.org/html/rfc7231#section-6.6.1)|Server error|None|
 
 <h3 id="get-a-quote-for-a-trade-responseschema">Response Schema</h3>
@@ -1009,7 +774,7 @@ Status Code **200**
 
 <aside class="warning">
 To perform this operation, you must be authenticated by means of one of the following methods:
-ApiKeyAuth, TimestampAuth, SignatureAuth
+BearerAuth
 </aside>
 
 <h1 id="trading-simulator-api-price">Price</h1>
@@ -1024,10 +789,7 @@ Price information endpoints
 
 const headers = {
   'Accept':'application/json',
-  'X-Timestamp':'2023-03-15T17:30:45.123Z',
-  'X-API-Key':'sk_1b2c3d4e5f',
-  'X-Signature':'a1b2c3d4e5f6...',
-  'X-API-Key':'API_KEY'
+  'Authorization':'Bearer ts_live_abc123def456_ghi789jkl012'
 };
 
 fetch('http://localhost:3000/api/price?token=So11111111111111111111111111111111111111112',
@@ -1052,9 +814,7 @@ Get the current price of a specified token
 
 |Name|In|Type|Required|Description|
 |---|---|---|---|---|
-|X-Timestamp|header|string|true|Current timestamp in ISO format|
-|X-API-Key|header|string|true|API key for authentication|
-|X-Signature|header|string|true|HMAC-SHA256 signature of request data|
+|Authorization|header|string|true|Bearer token for authentication (format "Bearer YOUR_API_KEY")|
 |token|query|string|true|Token address|
 |chain|query|string|false|Blockchain type of the token|
 |specificChain|query|string|false|Specific chain for EVM tokens|
@@ -1098,7 +858,7 @@ Get the current price of a specified token
 |---|---|---|---|
 |200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|Token price information|Inline|
 |400|[Bad Request](https://tools.ietf.org/html/rfc7231#section-6.5.1)|Invalid request parameters|[Error](#schemaerror)|
-|401|[Unauthorized](https://tools.ietf.org/html/rfc7235#section-3.1)|Unauthorized - Missing or invalid authentication (API key, timestamp, or signature)|None|
+|401|[Unauthorized](https://tools.ietf.org/html/rfc7235#section-3.1)|Unauthorized - Missing or invalid authentication|None|
 |500|[Internal Server Error](https://tools.ietf.org/html/rfc7231#section-6.6.1)|Server error|None|
 
 <h3 id="get-price-for-a-token-responseschema">Response Schema</h3>
@@ -1122,7 +882,7 @@ Status Code **200**
 
 <aside class="warning">
 To perform this operation, you must be authenticated by means of one of the following methods:
-ApiKeyAuth, TimestampAuth, SignatureAuth
+BearerAuth
 </aside>
 
 ## Get detailed token information
@@ -1133,10 +893,7 @@ ApiKeyAuth, TimestampAuth, SignatureAuth
 
 const headers = {
   'Accept':'application/json',
-  'X-Timestamp':'2023-03-15T17:30:45.123Z',
-  'X-API-Key':'sk_1b2c3d4e5f',
-  'X-Signature':'a1b2c3d4e5f6...',
-  'X-API-Key':'API_KEY'
+  'Authorization':'Bearer ts_live_abc123def456_ghi789jkl012'
 };
 
 fetch('http://localhost:3000/api/price/token-info?token=So11111111111111111111111111111111111111112',
@@ -1161,9 +918,7 @@ Get detailed token information including price and specific chain
 
 |Name|In|Type|Required|Description|
 |---|---|---|---|---|
-|X-Timestamp|header|string|true|Current timestamp in ISO format|
-|X-API-Key|header|string|true|API key for authentication|
-|X-Signature|header|string|true|HMAC-SHA256 signature of request data|
+|Authorization|header|string|true|Bearer token for authentication (format "Bearer YOUR_API_KEY")|
 |token|query|string|true|Token address|
 |chain|query|string|false|Blockchain type of the token|
 |specificChain|query|string|false|Specific chain for EVM tokens|
@@ -1207,7 +962,7 @@ Get detailed token information including price and specific chain
 |---|---|---|---|
 |200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|Token information|Inline|
 |400|[Bad Request](https://tools.ietf.org/html/rfc7231#section-6.5.1)|Invalid request parameters|[Error](#schemaerror)|
-|401|[Unauthorized](https://tools.ietf.org/html/rfc7235#section-3.1)|Unauthorized - Missing or invalid authentication (API key, timestamp, or signature)|None|
+|401|[Unauthorized](https://tools.ietf.org/html/rfc7235#section-3.1)|Unauthorized - Missing or invalid authentication|None|
 |500|[Internal Server Error](https://tools.ietf.org/html/rfc7231#section-6.6.1)|Server error|None|
 
 <h3 id="get-detailed-token-information-responseschema">Response Schema</h3>
@@ -1231,7 +986,7 @@ Status Code **200**
 
 <aside class="warning">
 To perform this operation, you must be authenticated by means of one of the following methods:
-ApiKeyAuth, TimestampAuth, SignatureAuth
+BearerAuth
 </aside>
 
 <h1 id="trading-simulator-api-competition">Competition</h1>
@@ -1246,10 +1001,7 @@ Competition endpoints
 
 const headers = {
   'Accept':'application/json',
-  'X-Timestamp':'2023-03-15T17:30:45.123Z',
-  'X-API-Key':'sk_1b2c3d4e5f',
-  'X-Signature':'a1b2c3d4e5f6...',
-  'X-API-Key':'API_KEY'
+  'Authorization':'Bearer ts_live_abc123def456_ghi789jkl012'
 };
 
 fetch('http://localhost:3000/api/competition/leaderboard',
@@ -1274,9 +1026,7 @@ Get the leaderboard for the active competition or a specific competition
 
 |Name|In|Type|Required|Description|
 |---|---|---|---|---|
-|X-Timestamp|header|string|true|Current timestamp in ISO format|
-|X-API-Key|header|string|true|API key for authentication|
-|X-Signature|header|string|true|HMAC-SHA256 signature of request data|
+|Authorization|header|string|true|Bearer token for authentication (format "Bearer YOUR_API_KEY")|
 |competitionId|query|string|false|Optional competition ID (if not provided, the active competition is used)|
 
 > Example responses
@@ -1313,7 +1063,7 @@ Get the leaderboard for the active competition or a specific competition
 |---|---|---|---|
 |200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|Competition leaderboard|Inline|
 |400|[Bad Request](https://tools.ietf.org/html/rfc7231#section-6.5.1)|Bad request - No active competition and no competitionId provided|None|
-|401|[Unauthorized](https://tools.ietf.org/html/rfc7235#section-3.1)|Unauthorized - Missing or invalid authentication (API key, timestamp, or signature)|None|
+|401|[Unauthorized](https://tools.ietf.org/html/rfc7235#section-3.1)|Unauthorized - Missing or invalid authentication|None|
 |403|[Forbidden](https://tools.ietf.org/html/rfc7231#section-6.5.3)|Forbidden - Team not participating in the competition|None|
 |404|[Not Found](https://tools.ietf.org/html/rfc7231#section-6.5.4)|Competition not found|None|
 |500|[Internal Server Error](https://tools.ietf.org/html/rfc7231#section-6.6.1)|Server error|None|
@@ -1350,7 +1100,7 @@ Status Code **200**
 
 <aside class="warning">
 To perform this operation, you must be authenticated by means of one of the following methods:
-ApiKeyAuth, TimestampAuth, SignatureAuth
+BearerAuth
 </aside>
 
 ## Get competition status
@@ -1361,10 +1111,7 @@ ApiKeyAuth, TimestampAuth, SignatureAuth
 
 const headers = {
   'Accept':'application/json',
-  'X-Timestamp':'2023-03-15T17:30:45.123Z',
-  'X-API-Key':'sk_1b2c3d4e5f',
-  'X-Signature':'a1b2c3d4e5f6...',
-  'X-API-Key':'API_KEY'
+  'Authorization':'Bearer ts_live_abc123def456_ghi789jkl012'
 };
 
 fetch('http://localhost:3000/api/competition/status',
@@ -1389,9 +1136,7 @@ Get the status of the active competition
 
 |Name|In|Type|Required|Description|
 |---|---|---|---|---|
-|X-Timestamp|header|string|true|Current timestamp in ISO format|
-|X-API-Key|header|string|true|API key for authentication|
-|X-Signature|header|string|true|HMAC-SHA256 signature of request data|
+|Authorization|header|string|true|Bearer token for authentication (format "Bearer YOUR_API_KEY")|
 
 > Example responses
 
@@ -1420,7 +1165,7 @@ Get the status of the active competition
 |Status|Meaning|Description|Schema|
 |---|---|---|---|
 |200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|Competition status|Inline|
-|401|[Unauthorized](https://tools.ietf.org/html/rfc7235#section-3.1)|Unauthorized - Missing or invalid authentication (API key, timestamp, or signature)|None|
+|401|[Unauthorized](https://tools.ietf.org/html/rfc7235#section-3.1)|Unauthorized - Missing or invalid authentication|None|
 |500|[Internal Server Error](https://tools.ietf.org/html/rfc7231#section-6.6.1)|Server error|None|
 
 <h3 id="get-competition-status-responseschema">Response Schema</h3>
@@ -1452,7 +1197,7 @@ Status Code **200**
 
 <aside class="warning">
 To perform this operation, you must be authenticated by means of one of the following methods:
-ApiKeyAuth, TimestampAuth, SignatureAuth
+BearerAuth
 </aside>
 
 ## Get competition rules
@@ -1463,10 +1208,7 @@ ApiKeyAuth, TimestampAuth, SignatureAuth
 
 const headers = {
   'Accept':'application/json',
-  'X-Timestamp':'2023-03-15T17:30:45.123Z',
-  'X-API-Key':'sk_1b2c3d4e5f',
-  'X-Signature':'a1b2c3d4e5f6...',
-  'X-API-Key':'API_KEY'
+  'Authorization':'Bearer ts_live_abc123def456_ghi789jkl012'
 };
 
 fetch('http://localhost:3000/api/competition/rules',
@@ -1491,9 +1233,7 @@ Get the rules for all competitions
 
 |Name|In|Type|Required|Description|
 |---|---|---|---|---|
-|X-Timestamp|header|string|true|Current timestamp in ISO format|
-|X-API-Key|header|string|true|API key for authentication|
-|X-Signature|header|string|true|HMAC-SHA256 signature of request data|
+|Authorization|header|string|true|Bearer token for authentication (format "Bearer YOUR_API_KEY")|
 
 > Example responses
 
@@ -1519,7 +1259,7 @@ Get the rules for all competitions
 |Status|Meaning|Description|Schema|
 |---|---|---|---|
 |200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|Competition rules|Inline|
-|401|[Unauthorized](https://tools.ietf.org/html/rfc7235#section-3.1)|Unauthorized - Missing or invalid authentication (API key, timestamp, or signature)|None|
+|401|[Unauthorized](https://tools.ietf.org/html/rfc7235#section-3.1)|Unauthorized - Missing or invalid authentication|None|
 |500|[Internal Server Error](https://tools.ietf.org/html/rfc7231#section-6.6.1)|Server error|None|
 
 <h3 id="get-competition-rules-responseschema">Response Schema</h3>
@@ -1536,7 +1276,7 @@ Status Code **200**
 
 <aside class="warning">
 To perform this operation, you must be authenticated by means of one of the following methods:
-ApiKeyAuth, TimestampAuth, SignatureAuth
+BearerAuth
 </aside>
 
 <h1 id="trading-simulator-api-admin">Admin</h1>
@@ -1652,7 +1392,7 @@ const inputBody = '{
 const headers = {
   'Content-Type':'application/json',
   'Accept':'application/json',
-  'X-API-Key':'API_KEY'
+  'Authorization':'Bearer {access-token}'
 };
 
 fetch('http://localhost:3000/api/admin/teams/register',
@@ -1671,7 +1411,7 @@ fetch('http://localhost:3000/api/admin/teams/register',
 
 `POST /api/admin/teams/register`
 
-Create a new team account with API credentials
+Admin-only endpoint to register a new team. Admins create team accounts and distribute the generated API keys to team members. Teams cannot register themselves.
 
 > Body parameter
 
@@ -1705,8 +1445,7 @@ Create a new team account with API credentials
     "email": "string",
     "contactPerson": "string",
     "contact_person": "string",
-    "apiKey": "string",
-    "apiSecret": "string",
+    "apiKey": "ts_live_abc123def456_ghi789jkl012",
     "createdAt": "2019-08-24T14:15:22Z"
   }
 }
@@ -1734,13 +1473,12 @@ Status Code **201**
 |»» email|string|false|none|Team email|
 |»» contactPerson|string|false|none|Contact person name|
 |»» contact_person|string|false|none|Contact person name (snake_case version)|
-|»» apiKey|string|false|none|API key for authentication|
-|»» apiSecret|string|false|none|API secret for authentication|
+|»» apiKey|string|false|none|API key for the team to use with Bearer authentication. Admin should securely provide this to the team.|
 |»» createdAt|string(date-time)|false|none|Account creation timestamp|
 
 <aside class="warning">
 To perform this operation, you must be authenticated by means of one of the following methods:
-ApiKeyAuth, None, BearerAuth
+BearerAuth
 </aside>
 
 ## List all teams
@@ -1751,7 +1489,7 @@ ApiKeyAuth, None, BearerAuth
 
 const headers = {
   'Accept':'application/json',
-  'X-API-Key':'API_KEY'
+  'Authorization':'Bearer {access-token}'
 };
 
 fetch('http://localhost:3000/api/admin/teams',
@@ -1817,7 +1555,7 @@ Status Code **200**
 
 <aside class="warning">
 To perform this operation, you must be authenticated by means of one of the following methods:
-ApiKeyAuth, None, BearerAuth
+BearerAuth
 </aside>
 
 ## Delete a team
@@ -1828,7 +1566,7 @@ ApiKeyAuth, None, BearerAuth
 
 const headers = {
   'Accept':'application/json',
-  'X-API-Key':'API_KEY'
+  'Authorization':'Bearer {access-token}'
 };
 
 fetch('http://localhost:3000/api/admin/teams/{teamId}',
@@ -1888,7 +1626,7 @@ Status Code **200**
 
 <aside class="warning">
 To perform this operation, you must be authenticated by means of one of the following methods:
-ApiKeyAuth, None, BearerAuth
+BearerAuth
 </aside>
 
 ## Start a competition
@@ -1906,7 +1644,7 @@ const inputBody = '{
 const headers = {
   'Content-Type':'application/json',
   'Accept':'application/json',
-  'X-API-Key':'API_KEY'
+  'Authorization':'Bearer {access-token}'
 };
 
 fetch('http://localhost:3000/api/admin/competition/start',
@@ -2004,7 +1742,7 @@ Status Code **200**
 
 <aside class="warning">
 To perform this operation, you must be authenticated by means of one of the following methods:
-ApiKeyAuth, None, BearerAuth
+BearerAuth
 </aside>
 
 ## End a competition
@@ -2018,7 +1756,7 @@ const inputBody = '{
 const headers = {
   'Content-Type':'application/json',
   'Accept':'application/json',
-  'X-API-Key':'API_KEY'
+  'Authorization':'Bearer {access-token}'
 };
 
 fetch('http://localhost:3000/api/admin/competition/end',
@@ -2116,7 +1854,7 @@ Status Code **200**
 
 <aside class="warning">
 To perform this operation, you must be authenticated by means of one of the following methods:
-ApiKeyAuth, None, BearerAuth
+BearerAuth
 </aside>
 
 ## Get competition snapshots
@@ -2127,7 +1865,7 @@ ApiKeyAuth, None, BearerAuth
 
 const headers = {
   'Accept':'application/json',
-  'X-API-Key':'API_KEY'
+  'Authorization':'Bearer {access-token}'
 };
 
 fetch('http://localhost:3000/api/admin/competition/{competitionId}/snapshots',
@@ -2200,7 +1938,7 @@ Status Code **200**
 
 <aside class="warning">
 To perform this operation, you must be authenticated by means of one of the following methods:
-ApiKeyAuth, None, BearerAuth
+BearerAuth
 </aside>
 
 ## Get performance reports
@@ -2211,7 +1949,7 @@ ApiKeyAuth, None, BearerAuth
 
 const headers = {
   'Accept':'application/json',
-  'X-API-Key':'API_KEY'
+  'Authorization':'Bearer {access-token}'
 };
 
 fetch('http://localhost:3000/api/admin/reports/performance?competitionId=string',
@@ -2304,7 +2042,7 @@ Status Code **200**
 
 <aside class="warning">
 To perform this operation, you must be authenticated by means of one of the following methods:
-ApiKeyAuth, None, BearerAuth
+BearerAuth
 </aside>
 
 <h1 id="trading-simulator-api-health">Health</h1>

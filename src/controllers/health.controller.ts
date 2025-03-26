@@ -1,5 +1,4 @@
 import { Request, Response, NextFunction } from 'express';
-import { services } from '../services';
 
 /**
  * Health Controller

@@ -12,31 +12,14 @@ const router = Router();
  *     summary: Execute a trade
  *     description: Execute a trade between two tokens
  *     security:
- *       - ApiKeyAuth: []
- *       - TimestampAuth: []
- *       - SignatureAuth: []
+ *       - BearerAuth: []
  *     parameters:
  *       - in: header
- *         name: X-Timestamp
+ *         name: Authorization
  *         schema:
  *           type: string
  *         required: true
- *         description: Current timestamp in ISO format
- *         example: "2023-03-15T17:30:45.123Z"
- *       - in: header
- *         name: X-API-Key
- *         schema:
- *           type: string
- *         required: true
- *         description: API key for authentication
- *         example: "sk_1b2c3d4e5f"
- *       - in: header
- *         name: X-Signature
- *         schema:
- *           type: string
- *         required: true
- *         description: HMAC-SHA256 signature of request data
- *         example: "a1b2c3d4e5f6..."
+ *         description: Bearer token for authentication (format "Bearer YOUR_API_KEY")
  *     requestBody:
  *       required: true
  *       content:
@@ -139,12 +122,8 @@ const router = Router();
  *                       description: Specific chain for the destination token
  *       400:
  *         description: Invalid input parameters
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
  *       401:
- *         description: Unauthorized - Missing or invalid authentication (API key, timestamp, or signature)
+ *         description: Unauthorized - Missing or invalid authentication
  *       403:
  *         description: Forbidden - Competition not in progress or other restrictions
  *       500:
@@ -161,31 +140,14 @@ router.post('/execute', TradeController.executeTrade);
  *     summary: Get a quote for a trade
  *     description: Get a quote for a potential trade between two tokens
  *     security:
- *       - ApiKeyAuth: []
- *       - TimestampAuth: []
- *       - SignatureAuth: []
+ *       - BearerAuth: []
  *     parameters:
  *       - in: header
- *         name: X-Timestamp
+ *         name: Authorization
  *         schema:
  *           type: string
  *         required: true
- *         description: Current timestamp in ISO format
- *         example: "2023-03-15T17:30:45.123Z"
- *       - in: header
- *         name: X-API-Key
- *         schema:
- *           type: string
- *         required: true
- *         description: API key for authentication
- *         example: "sk_1b2c3d4e5f"
- *       - in: header
- *         name: X-Signature
- *         schema:
- *           type: string
- *         required: true
- *         description: HMAC-SHA256 signature of request data
- *         example: "a1b2c3d4e5f6..."
+ *         description: Bearer token for authentication (format "Bearer YOUR_API_KEY")
  *       - in: query
  *         name: fromToken
  *         schema:
@@ -282,7 +244,7 @@ router.post('/execute', TradeController.executeTrade);
  *       400:
  *         description: Invalid input parameters
  *       401:
- *         description: Unauthorized - Missing or invalid authentication (API key, timestamp, or signature)
+ *         description: Unauthorized - Missing or invalid authentication
  *       500:
  *         description: Server error
  */

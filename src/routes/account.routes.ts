@@ -12,31 +12,15 @@ const router = Router();
  *     summary: Get team profile
  *     description: Get profile information for the authenticated team
  *     security:
- *       - ApiKeyAuth: []
- *       - TimestampAuth: []
- *       - SignatureAuth: []
+ *       - BearerAuth: []
  *     parameters:
  *       - in: header
- *         name: X-Timestamp
+ *         name: Authorization
  *         schema:
  *           type: string
  *         required: true
- *         description: Current timestamp in ISO format
- *         example: "2023-03-15T17:30:45.123Z"
- *       - in: header
- *         name: X-API-Key
- *         schema:
- *           type: string
- *         required: true
- *         description: API key for authentication
- *         example: "sk_1b2c3d4e5f"
- *       - in: header
- *         name: X-Signature
- *         schema:
- *           type: string
- *         required: true
- *         description: HMAC-SHA256 signature of request data
- *         example: "a1b2c3d4e5f6..."
+ *         description: Bearer token for authentication (format "Bearer YOUR_API_KEY")
+ *         example: "Bearer ts_live_abc123def456_ghi789jkl012"
  *     responses:
  *       200:
  *         description: Team profile
@@ -72,7 +56,7 @@ const router = Router();
  *                       format: date-time
  *                       description: Team last update timestamp
  *       401:
- *         description: Unauthorized - Missing or invalid authentication (API key, timestamp, or signature)
+ *         description: Unauthorized - Missing or invalid authentication
  *       404:
  *         description: Team not found
  *       500:
@@ -89,31 +73,15 @@ router.get('/profile', AccountController.getProfile);
  *     summary: Update team profile
  *     description: Update profile information for the authenticated team
  *     security:
- *       - ApiKeyAuth: []
- *       - TimestampAuth: []
- *       - SignatureAuth: []
+ *       - BearerAuth: []
  *     parameters:
  *       - in: header
- *         name: X-Timestamp
+ *         name: Authorization
  *         schema:
  *           type: string
  *         required: true
- *         description: Current timestamp in ISO format
- *         example: "2023-03-15T17:30:45.123Z"
- *       - in: header
- *         name: X-API-Key
- *         schema:
- *           type: string
- *         required: true
- *         description: API key for authentication
- *         example: "sk_1b2c3d4e5f"
- *       - in: header
- *         name: X-Signature
- *         schema:
- *           type: string
- *         required: true
- *         description: HMAC-SHA256 signature of request data
- *         example: "a1b2c3d4e5f6..."
+ *         description: Bearer token for authentication (format "Bearer YOUR_API_KEY")
+ *         example: "Bearer ts_live_abc123def456_ghi789jkl012"
  *     requestBody:
  *       required: true
  *       content:
@@ -159,7 +127,7 @@ router.get('/profile', AccountController.getProfile);
  *                       format: date-time
  *                       description: Team update timestamp
  *       401:
- *         description: Unauthorized - Missing or invalid authentication (API key, timestamp, or signature)
+ *         description: Unauthorized - Missing or invalid authentication
  *       404:
  *         description: Team not found
  *       500:
@@ -176,31 +144,15 @@ router.put('/profile', AccountController.updateProfile);
  *     summary: Get token balances
  *     description: Get all token balances for the authenticated team
  *     security:
- *       - ApiKeyAuth: []
- *       - TimestampAuth: []
- *       - SignatureAuth: []
+ *       - BearerAuth: []
  *     parameters:
  *       - in: header
- *         name: X-Timestamp
+ *         name: Authorization
  *         schema:
  *           type: string
  *         required: true
- *         description: Current timestamp in ISO format
- *         example: "2023-03-15T17:30:45.123Z"
- *       - in: header
- *         name: X-API-Key
- *         schema:
- *           type: string
- *         required: true
- *         description: API key for authentication
- *         example: "sk_1b2c3d4e5f"
- *       - in: header
- *         name: X-Signature
- *         schema:
- *           type: string
- *         required: true
- *         description: HMAC-SHA256 signature of request data
- *         example: "a1b2c3d4e5f6..."
+ *         description: Bearer token for authentication (format "Bearer YOUR_API_KEY")
+ *         example: "Bearer ts_live_abc123def456_ghi789jkl012"
  *     responses:
  *       200:
  *         description: Team token balances
@@ -235,7 +187,7 @@ router.put('/profile', AccountController.updateProfile);
  *                         nullable: true
  *                         description: Specific chain for EVM tokens
  *       401:
- *         description: Unauthorized - Missing or invalid authentication (API key, timestamp, or signature)
+ *         description: Unauthorized - Missing or invalid authentication
  *       500:
  *         description: Server error
  */
@@ -250,31 +202,15 @@ router.get('/balances', AccountController.getBalances);
  *     summary: Get portfolio information
  *     description: Get portfolio valuation and token details for the authenticated team
  *     security:
- *       - ApiKeyAuth: []
- *       - TimestampAuth: []
- *       - SignatureAuth: []
+ *       - BearerAuth: []
  *     parameters:
  *       - in: header
- *         name: X-Timestamp
+ *         name: Authorization
  *         schema:
  *           type: string
  *         required: true
- *         description: Current timestamp in ISO format
- *         example: "2023-03-15T17:30:45.123Z"
- *       - in: header
- *         name: X-API-Key
- *         schema:
- *           type: string
- *         required: true
- *         description: API key for authentication
- *         example: "sk_1b2c3d4e5f"
- *       - in: header
- *         name: X-Signature
- *         schema:
- *           type: string
- *         required: true
- *         description: HMAC-SHA256 signature of request data
- *         example: "a1b2c3d4e5f6..."
+ *         description: Bearer token for authentication (format "Bearer YOUR_API_KEY")
+ *         example: "Bearer ts_live_abc123def456_ghi789jkl012"
  *     responses:
  *       200:
  *         description: Team portfolio information
@@ -326,7 +262,7 @@ router.get('/balances', AccountController.getBalances);
  *                   enum: [snapshot, live-calculation]
  *                   description: Source of the portfolio data
  *       401:
- *         description: Unauthorized - Missing or invalid authentication (API key, timestamp, or signature)
+ *         description: Unauthorized - Missing or invalid authentication
  *       500:
  *         description: Server error
  */
@@ -341,31 +277,15 @@ router.get('/portfolio', AccountController.getPortfolio);
  *     summary: Get trade history
  *     description: Get trade history for the authenticated team
  *     security:
- *       - ApiKeyAuth: []
- *       - TimestampAuth: []
- *       - SignatureAuth: []
+ *       - BearerAuth: []
  *     parameters:
  *       - in: header
- *         name: X-Timestamp
+ *         name: Authorization
  *         schema:
  *           type: string
  *         required: true
- *         description: Current timestamp in ISO format
- *         example: "2023-03-15T17:30:45.123Z"
- *       - in: header
- *         name: X-API-Key
- *         schema:
- *           type: string
- *         required: true
- *         description: API key for authentication
- *         example: "sk_1b2c3d4e5f"
- *       - in: header
- *         name: X-Signature
- *         schema:
- *           type: string
- *         required: true
- *         description: HMAC-SHA256 signature of request data
- *         example: "a1b2c3d4e5f6..."
+ *         description: Bearer token for authentication (format "Bearer YOUR_API_KEY")
+ *         example: "Bearer ts_live_abc123def456_ghi789jkl012"
  *     responses:
  *       200:
  *         description: Team trade history
@@ -432,7 +352,7 @@ router.get('/portfolio', AccountController.getPortfolio);
  *                         type: string
  *                         description: Specific chain for the destination token
  *       401:
- *         description: Unauthorized - Missing or invalid authentication (API key, timestamp, or signature)
+ *         description: Unauthorized - Missing or invalid authentication
  *       500:
  *         description: Server error
  */

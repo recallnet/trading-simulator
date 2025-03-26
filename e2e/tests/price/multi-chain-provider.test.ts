@@ -102,7 +102,6 @@ describe('Multi-Chain Provider Tests', () => {
     
     // Log the API key to verify it's correctly set
     console.log(`Test client API key: ${result.apiKey}`);
-    console.log(`Test client API secret available: ${!!result.team.apiSecret}`);
   });
   
   // Check database schema as a test

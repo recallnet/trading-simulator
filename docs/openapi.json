@@ -3,7 +3,7 @@
   "info": {
     "title": "Trading Simulator API",
     "version": "1.0.0",
-    "description": "API for the Trading Simulator - a platform for simulated cryptocurrency trading competitions\n      \n## Authentication Guide\n\nThis API requires three authentication headers for all protected endpoints:\n\n- **X-API-Key**: Your team's API key (provided during registration)\n- **X-Timestamp**: Current timestamp in ISO format (e.g., `2023-03-15T17:30:45.123Z`)\n- **X-Signature**: HMAC-SHA256 signature of the request data\n\n### Calculating the Signature\n\nWhen testing endpoints in this documentation UI, you'll need to manually calculate the signature:\n\n1. Concatenate: `METHOD + PATH + TIMESTAMP + BODY_STRING`\n   - Example: `GET/api/account/balances2023-10-15T14:30:00.000Z{}`\n   - For GET requests with no body, use `{}` in the signature calculation\n   - For POST requests, use the JSON string of your request body\n\n2. ⚠️ **IMPORTANT PATH HANDLING**:\n   - Use ONLY the base path without query parameters for signature calculation\n   - Example: For `/api/price?token=xyz`, use only `/api/price` in the signature\n   - The path should start with a leading slash\n   - Do not include the domain or protocol (e.g., use `/api/trade/execute` not `http://localhost:3000/api/trade/execute`)\n\n3. Sign using HMAC-SHA256 with your API secret\n   - You can use online tools to calculate this, or the provided API client\n\n4. Enter all three values in the Authorize dialog\n\n### Example with Node.js\n\n```javascript\nconst crypto = require('crypto');\n\n// Your credentials\nconst apiKey = 'sk_1b2c3d4e5f...';\nconst apiSecret = 'a1b2c3d4e5f6...';\n\n// Request details\nconst method = 'GET';\nconst fullPath = '/api/account/balances?limit=10'; // Full path with query params\nconst pathForSignature = fullPath.split('?')[0];  // Remove query params for signature\nconst timestamp = new Date().toISOString();\nconst body = {}; // Empty for GET requests\n\n// Calculate signature\nconst data = method + pathForSignature + timestamp + JSON.stringify(body);\nconst signature = crypto\n  .createHmac('sha256', apiSecret)\n  .update(data)\n  .digest('hex');\n\nconsole.log('X-API-Key:', apiKey);\nconsole.log('X-Timestamp:', timestamp);\nconsole.log('X-Signature:', signature);\nconsole.log('Path used for signature:', pathForSignature);\n```\n\nFor convenience, we provide an API client that handles this automatically. See `docs/examples/api-client.ts`.\n      ",
+    "description": "API for the Trading Simulator - a platform for simulated cryptocurrency trading competitions\n      \n## Authentication Guide\n\nThis API uses Bearer token authentication. All protected endpoints require the following header:\n\n- **Authorization**: Bearer your-api-key\n\nWhere \"your-api-key\" is the API key provided during team registration.\n\n### Authentication Examples\n\n**cURL Example:**\n\n```bash\ncurl -X GET \"https://api.example.com/api/account/balances\" \\\n  -H \"Authorization: Bearer ts_live_abc123def456_ghi789jkl012\" \\\n  -H \"Content-Type: application/json\"\n```\n\n**JavaScript Example:**\n\n```javascript\nconst fetchData = async () => {\n  const apiKey = 'ts_live_abc123def456_ghi789jkl012';\n  const response = await fetch('https://api.example.com/api/account/balances', {\n    headers: {\n      'Authorization': `Bearer ${apiKey}`,\n      'Content-Type': 'application/json'\n    }\n  });\n  \n  return await response.json();\n};\n```\n\nFor convenience, we provide an API client that handles authentication automatically. See `docs/examples/api-client.ts`.\n      ",
     "contact": {
       "name": "API Support",
       "email": "support@example.com"
@@ -25,25 +25,10 @@
   ],
   "components": {
     "securitySchemes": {
-      "ApiKeyAuth": {
-        "type": "apiKey",
-        "in": "header",
-        "name": "X-API-Key"
-      },
-      "TimestampAuth": {
-        "type": "apiKey",
-        "in": "header",
-        "name": "X-Timestamp"
-      },
-      "SignatureAuth": {
-        "type": "apiKey",
-        "in": "header",
-        "name": "X-Signature"
-      },
       "BearerAuth": {
         "type": "http",
         "scheme": "bearer",
-        "bearerFormat": "JWT"
+        "description": "API key provided in the Authorization header using Bearer token authentication"
       }
     },
     "schemas": {
@@ -194,45 +179,19 @@
         "description": "Get profile information for the authenticated team",
         "security": [
           {
-            "ApiKeyAuth": []
-          },
-          {
-            "TimestampAuth": []
-          },
-          {
-            "SignatureAuth": []
+            "BearerAuth": []
           }
         ],
         "parameters": [
           {
             "in": "header",
-            "name": "X-Timestamp",
+            "name": "Authorization",
             "schema": {
               "type": "string"
             },
             "required": true,
-            "description": "Current timestamp in ISO format",
-            "example": "2023-03-15T17:30:45.123Z"
-          },
-          {
-            "in": "header",
-            "name": "X-API-Key",
-            "schema": {
-              "type": "string"
-            },
-            "required": true,
-            "description": "API key for authentication",
-            "example": "sk_1b2c3d4e5f"
-          },
-          {
-            "in": "header",
-            "name": "X-Signature",
-            "schema": {
-              "type": "string"
-            },
-            "required": true,
-            "description": "HMAC-SHA256 signature of request data",
-            "example": "a1b2c3d4e5f6..."
+            "description": "Bearer token for authentication (format \"Bearer YOUR_API_KEY\")",
+            "example": "Bearer ts_live_abc123def456_ghi789jkl012"
           }
         ],
         "responses": {
@@ -284,7 +243,7 @@
             }
           },
           "401": {
-            "description": "Unauthorized - Missing or invalid authentication (API key, timestamp, or signature)"
+            "description": "Unauthorized - Missing or invalid authentication"
           },
           "404": {
             "description": "Team not found"
@@ -302,45 +261,19 @@
         "description": "Update profile information for the authenticated team",
         "security": [
           {
-            "ApiKeyAuth": []
-          },
-          {
-            "TimestampAuth": []
-          },
-          {
-            "SignatureAuth": []
+            "BearerAuth": []
           }
         ],
         "parameters": [
           {
             "in": "header",
-            "name": "X-Timestamp",
+            "name": "Authorization",
             "schema": {
               "type": "string"
             },
             "required": true,
-            "description": "Current timestamp in ISO format",
-            "example": "2023-03-15T17:30:45.123Z"
-          },
-          {
-            "in": "header",
-            "name": "X-API-Key",
-            "schema": {
-              "type": "string"
-            },
-            "required": true,
-            "description": "API key for authentication",
-            "example": "sk_1b2c3d4e5f"
-          },
-          {
-            "in": "header",
-            "name": "X-Signature",
-            "schema": {
-              "type": "string"
-            },
-            "required": true,
-            "description": "HMAC-SHA256 signature of request data",
-            "example": "a1b2c3d4e5f6..."
+            "description": "Bearer token for authentication (format \"Bearer YOUR_API_KEY\")",
+            "example": "Bearer ts_live_abc123def456_ghi789jkl012"
           }
         ],
         "requestBody": {
@@ -408,7 +341,7 @@
             }
           },
           "401": {
-            "description": "Unauthorized - Missing or invalid authentication (API key, timestamp, or signature)"
+            "description": "Unauthorized - Missing or invalid authentication"
           },
           "404": {
             "description": "Team not found"
@@ -428,45 +361,19 @@
         "description": "Get all token balances for the authenticated team",
         "security": [
           {
-            "ApiKeyAuth": []
-          },
-          {
-            "TimestampAuth": []
-          },
-          {
-            "SignatureAuth": []
+            "BearerAuth": []
           }
         ],
         "parameters": [
           {
             "in": "header",
-            "name": "X-Timestamp",
+            "name": "Authorization",
             "schema": {
               "type": "string"
             },
             "required": true,
-            "description": "Current timestamp in ISO format",
-            "example": "2023-03-15T17:30:45.123Z"
-          },
-          {
-            "in": "header",
-            "name": "X-API-Key",
-            "schema": {
-              "type": "string"
-            },
-            "required": true,
-            "description": "API key for authentication",
-            "example": "sk_1b2c3d4e5f"
-          },
-          {
-            "in": "header",
-            "name": "X-Signature",
-            "schema": {
-              "type": "string"
-            },
-            "required": true,
-            "description": "HMAC-SHA256 signature of request data",
-            "example": "a1b2c3d4e5f6..."
+            "description": "Bearer token for authentication (format \"Bearer YOUR_API_KEY\")",
+            "example": "Bearer ts_live_abc123def456_ghi789jkl012"
           }
         ],
         "responses": {
@@ -520,7 +427,7 @@
             }
           },
           "401": {
-            "description": "Unauthorized - Missing or invalid authentication (API key, timestamp, or signature)"
+            "description": "Unauthorized - Missing or invalid authentication"
           },
           "500": {
             "description": "Server error"
@@ -537,45 +444,19 @@
         "description": "Get portfolio valuation and token details for the authenticated team",
         "security": [
           {
-            "ApiKeyAuth": []
-          },
-          {
-            "TimestampAuth": []
-          },
-          {
-            "SignatureAuth": []
+            "BearerAuth": []
           }
         ],
         "parameters": [
           {
             "in": "header",
-            "name": "X-Timestamp",
+            "name": "Authorization",
             "schema": {
               "type": "string"
             },
             "required": true,
-            "description": "Current timestamp in ISO format",
-            "example": "2023-03-15T17:30:45.123Z"
-          },
-          {
-            "in": "header",
-            "name": "X-API-Key",
-            "schema": {
-              "type": "string"
-            },
-            "required": true,
-            "description": "API key for authentication",
-            "example": "sk_1b2c3d4e5f"
-          },
-          {
-            "in": "header",
-            "name": "X-Signature",
-            "schema": {
-              "type": "string"
-            },
-            "required": true,
-            "description": "HMAC-SHA256 signature of request data",
-            "example": "a1b2c3d4e5f6..."
+            "description": "Bearer token for authentication (format \"Bearer YOUR_API_KEY\")",
+            "example": "Bearer ts_live_abc123def456_ghi789jkl012"
           }
         ],
         "responses": {
@@ -654,7 +535,7 @@
             }
           },
           "401": {
-            "description": "Unauthorized - Missing or invalid authentication (API key, timestamp, or signature)"
+            "description": "Unauthorized - Missing or invalid authentication"
           },
           "500": {
             "description": "Server error"
@@ -671,45 +552,19 @@
         "description": "Get trade history for the authenticated team",
         "security": [
           {
-            "ApiKeyAuth": []
-          },
-          {
-            "TimestampAuth": []
-          },
-          {
-            "SignatureAuth": []
+            "BearerAuth": []
           }
         ],
         "parameters": [
           {
             "in": "header",
-            "name": "X-Timestamp",
+            "name": "Authorization",
             "schema": {
               "type": "string"
             },
             "required": true,
-            "description": "Current timestamp in ISO format",
-            "example": "2023-03-15T17:30:45.123Z"
-          },
-          {
-            "in": "header",
-            "name": "X-API-Key",
-            "schema": {
-              "type": "string"
-            },
-            "required": true,
-            "description": "API key for authentication",
-            "example": "sk_1b2c3d4e5f"
-          },
-          {
-            "in": "header",
-            "name": "X-Signature",
-            "schema": {
-              "type": "string"
-            },
-            "required": true,
-            "description": "HMAC-SHA256 signature of request data",
-            "example": "a1b2c3d4e5f6..."
+            "description": "Bearer token for authentication (format \"Bearer YOUR_API_KEY\")",
+            "example": "Bearer ts_live_abc123def456_ghi789jkl012"
           }
         ],
         "responses": {
@@ -803,7 +658,7 @@
             }
           },
           "401": {
-            "description": "Unauthorized - Missing or invalid authentication (API key, timestamp, or signature)"
+            "description": "Unauthorized - Missing or invalid authentication"
           },
           "500": {
             "description": "Server error"
@@ -913,14 +768,8 @@
           "Admin"
         ],
         "summary": "Register a new team",
-        "description": "Create a new team account with API credentials",
+        "description": "Admin-only endpoint to register a new team. Admins create team accounts and distribute the generated API keys to team members. Teams cannot register themselves.",
         "security": [
-          {
-            "ApiKeyAuth": []
-          },
-          {
-            "ApiSecretAuth": []
-          },
           {
             "BearerAuth": []
           }
@@ -995,11 +844,8 @@
                         },
                         "apiKey": {
                           "type": "string",
-                          "description": "API key for authentication"
-                        },
-                        "apiSecret": {
-                          "type": "string",
-                          "description": "API secret for authentication"
+                          "description": "API key for the team to use with Bearer authentication. Admin should securely provide this to the team.",
+                          "example": "ts_live_abc123def456_ghi789jkl012"
                         },
                         "createdAt": {
                           "type": "string",
@@ -1033,12 +879,6 @@
         "summary": "List all teams",
         "description": "Get a list of all non-admin teams",
         "security": [
-          {
-            "ApiKeyAuth": []
-          },
-          {
-            "ApiSecretAuth": []
-          },
           {
             "BearerAuth": []
           }
@@ -1112,12 +952,6 @@
         "description": "Permanently delete a team and all associated data",
         "security": [
           {
-            "ApiKeyAuth": []
-          },
-          {
-            "ApiSecretAuth": []
-          },
-          {
             "BearerAuth": []
           }
         ],
@@ -1179,12 +1013,6 @@
         "summary": "Start a competition",
         "description": "Create and start a new trading competition with specified teams",
         "security": [
-          {
-            "ApiKeyAuth": []
-          },
-          {
-            "ApiSecretAuth": []
-          },
           {
             "BearerAuth": []
           }
@@ -1304,12 +1132,6 @@
         "description": "End an active competition and finalize the results",
         "security": [
           {
-            "ApiKeyAuth": []
-          },
-          {
-            "ApiSecretAuth": []
-          },
-          {
             "BearerAuth": []
           }
         ],
@@ -1425,12 +1247,6 @@
         "description": "Get portfolio snapshots for a competition, optionally filtered by team",
         "security": [
           {
-            "ApiKeyAuth": []
-          },
-          {
-            "ApiSecretAuth": []
-          },
-          {
             "BearerAuth": []
           }
         ],
@@ -1523,12 +1339,6 @@
         "summary": "Get performance reports",
         "description": "Get performance reports and leaderboard for a competition",
         "security": [
-          {
-            "ApiKeyAuth": []
-          },
-          {
-            "ApiSecretAuth": []
-          },
           {
             "BearerAuth": []
           }
@@ -1637,147 +1447,6 @@
         }
       }
     },
-    "/api/auth/login": {
-      "post": {
-        "tags": [
-          "Auth"
-        ],
-        "summary": "Login with API key and secret",
-        "description": "Authenticates a team using their API key and secret, returning a JWT token",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": [
-                  "apiKey",
-                  "apiSecret"
-                ],
-                "properties": {
-                  "apiKey": {
-                    "type": "string",
-                    "description": "Team's API key"
-                  },
-                  "apiSecret": {
-                    "type": "string",
-                    "description": "Team's API secret"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Login successful",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "token": {
-                      "type": "string",
-                      "description": "JWT token for authentication"
-                    },
-                    "teamId": {
-                      "type": "string",
-                      "description": "Team ID"
-                    },
-                    "expiresIn": {
-                      "type": "string",
-                      "description": "Token expiration time in seconds"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Invalid credentials",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Server error"
-          }
-        }
-      }
-    },
-    "/api/auth/validate": {
-      "post": {
-        "tags": [
-          "Auth"
-        ],
-        "summary": "Validate API credentials",
-        "description": "Validates the provided API key and secret without returning a token",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": [
-                  "apiKey",
-                  "apiSecret"
-                ],
-                "properties": {
-                  "apiKey": {
-                    "type": "string",
-                    "description": "Team's API key"
-                  },
-                  "apiSecret": {
-                    "type": "string",
-                    "description": "Team's API secret"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Credentials are valid",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "valid": {
-                      "type": "boolean",
-                      "description": "Whether the credentials are valid",
-                      "example": true
-                    },
-                    "teamId": {
-                      "type": "string",
-                      "description": "Team ID if credentials are valid"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Invalid credentials",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Server error"
-          }
-        }
-      }
-    },
     "/api/competition/leaderboard": {
       "get": {
         "tags": [
@@ -1787,45 +1456,19 @@
         "description": "Get the leaderboard for the active competition or a specific competition",
         "security": [
           {
-            "ApiKeyAuth": []
-          },
-          {
-            "TimestampAuth": []
-          },
-          {
-            "SignatureAuth": []
+            "BearerAuth": []
           }
         ],
         "parameters": [
           {
             "in": "header",
-            "name": "X-Timestamp",
+            "name": "Authorization",
             "schema": {
               "type": "string"
             },
             "required": true,
-            "description": "Current timestamp in ISO format",
-            "example": "2023-03-15T17:30:45.123Z"
-          },
-          {
-            "in": "header",
-            "name": "X-API-Key",
-            "schema": {
-              "type": "string"
-            },
-            "required": true,
-            "description": "API key for authentication",
-            "example": "sk_1b2c3d4e5f"
-          },
-          {
-            "in": "header",
-            "name": "X-Signature",
-            "schema": {
-              "type": "string"
-            },
-            "required": true,
-            "description": "HMAC-SHA256 signature of request data",
-            "example": "a1b2c3d4e5f6..."
+            "description": "Bearer token for authentication (format \"Bearer YOUR_API_KEY\")",
+            "example": "Bearer ts_live_abc123def456_ghi789jkl012"
           },
           {
             "in": "query",
@@ -1930,7 +1573,7 @@
             "description": "Bad request - No active competition and no competitionId provided"
           },
           "401": {
-            "description": "Unauthorized - Missing or invalid authentication (API key, timestamp, or signature)"
+            "description": "Unauthorized - Missing or invalid authentication"
           },
           "403": {
             "description": "Forbidden - Team not participating in the competition"
@@ -1953,45 +1596,19 @@
         "description": "Get the status of the active competition",
         "security": [
           {
-            "ApiKeyAuth": []
-          },
-          {
-            "TimestampAuth": []
-          },
-          {
-            "SignatureAuth": []
+            "BearerAuth": []
           }
         ],
         "parameters": [
           {
             "in": "header",
-            "name": "X-Timestamp",
+            "name": "Authorization",
             "schema": {
               "type": "string"
             },
             "required": true,
-            "description": "Current timestamp in ISO format",
-            "example": "2023-03-15T17:30:45.123Z"
-          },
-          {
-            "in": "header",
-            "name": "X-API-Key",
-            "schema": {
-              "type": "string"
-            },
-            "required": true,
-            "description": "API key for authentication",
-            "example": "sk_1b2c3d4e5f"
-          },
-          {
-            "in": "header",
-            "name": "X-Signature",
-            "schema": {
-              "type": "string"
-            },
-            "required": true,
-            "description": "HMAC-SHA256 signature of request data",
-            "example": "a1b2c3d4e5f6..."
+            "description": "Bearer token for authentication (format \"Bearer YOUR_API_KEY\")",
+            "example": "Bearer ts_live_abc123def456_ghi789jkl012"
           }
         ],
         "responses": {
@@ -2070,7 +1687,7 @@
             }
           },
           "401": {
-            "description": "Unauthorized - Missing or invalid authentication (API key, timestamp, or signature)"
+            "description": "Unauthorized - Missing or invalid authentication"
           },
           "500": {
             "description": "Server error"
@@ -2087,45 +1704,19 @@
         "description": "Get the rules for all competitions",
         "security": [
           {
-            "ApiKeyAuth": []
-          },
-          {
-            "TimestampAuth": []
-          },
-          {
-            "SignatureAuth": []
+            "BearerAuth": []
           }
         ],
         "parameters": [
           {
             "in": "header",
-            "name": "X-Timestamp",
+            "name": "Authorization",
             "schema": {
               "type": "string"
             },
             "required": true,
-            "description": "Current timestamp in ISO format",
-            "example": "2023-03-15T17:30:45.123Z"
-          },
-          {
-            "in": "header",
-            "name": "X-API-Key",
-            "schema": {
-              "type": "string"
-            },
-            "required": true,
-            "description": "API key for authentication",
-            "example": "sk_1b2c3d4e5f"
-          },
-          {
-            "in": "header",
-            "name": "X-Signature",
-            "schema": {
-              "type": "string"
-            },
-            "required": true,
-            "description": "HMAC-SHA256 signature of request data",
-            "example": "a1b2c3d4e5f6..."
+            "description": "Bearer token for authentication (format \"Bearer YOUR_API_KEY\")",
+            "example": "Bearer ts_live_abc123def456_ghi789jkl012"
           }
         ],
         "responses": {
@@ -2169,7 +1760,7 @@
             }
           },
           "401": {
-            "description": "Unauthorized - Missing or invalid authentication (API key, timestamp, or signature)"
+            "description": "Unauthorized - Missing or invalid authentication"
           },
           "500": {
             "description": "Server error"
@@ -2305,45 +1896,19 @@
         "description": "Get the current price of a specified token",
         "security": [
           {
-            "ApiKeyAuth": []
-          },
-          {
-            "TimestampAuth": []
-          },
-          {
-            "SignatureAuth": []
+            "BearerAuth": []
           }
         ],
         "parameters": [
           {
             "in": "header",
-            "name": "X-Timestamp",
+            "name": "Authorization",
             "schema": {
               "type": "string"
             },
             "required": true,
-            "description": "Current timestamp in ISO format",
-            "example": "2023-03-15T17:30:45.123Z"
-          },
-          {
-            "in": "header",
-            "name": "X-API-Key",
-            "schema": {
-              "type": "string"
-            },
-            "required": true,
-            "description": "API key for authentication",
-            "example": "sk_1b2c3d4e5f"
-          },
-          {
-            "in": "header",
-            "name": "X-Signature",
-            "schema": {
-              "type": "string"
-            },
-            "required": true,
-            "description": "HMAC-SHA256 signature of request data",
-            "example": "a1b2c3d4e5f6..."
+            "description": "Bearer token for authentication (format \"Bearer YOUR_API_KEY\")",
+            "example": "Bearer ts_live_abc123def456_ghi789jkl012"
           },
           {
             "in": "query",
@@ -2444,7 +2009,7 @@
             }
           },
           "401": {
-            "description": "Unauthorized - Missing or invalid authentication (API key, timestamp, or signature)"
+            "description": "Unauthorized - Missing or invalid authentication"
           },
           "500": {
             "description": "Server error"
@@ -2461,45 +2026,19 @@
         "description": "Get detailed token information including price and specific chain",
         "security": [
           {
-            "ApiKeyAuth": []
-          },
-          {
-            "TimestampAuth": []
-          },
-          {
-            "SignatureAuth": []
+            "BearerAuth": []
           }
         ],
         "parameters": [
           {
             "in": "header",
-            "name": "X-Timestamp",
+            "name": "Authorization",
             "schema": {
               "type": "string"
             },
             "required": true,
-            "description": "Current timestamp in ISO format",
-            "example": "2023-03-15T17:30:45.123Z"
-          },
-          {
-            "in": "header",
-            "name": "X-API-Key",
-            "schema": {
-              "type": "string"
-            },
-            "required": true,
-            "description": "API key for authentication",
-            "example": "sk_1b2c3d4e5f"
-          },
-          {
-            "in": "header",
-            "name": "X-Signature",
-            "schema": {
-              "type": "string"
-            },
-            "required": true,
-            "description": "HMAC-SHA256 signature of request data",
-            "example": "a1b2c3d4e5f6..."
+            "description": "Bearer token for authentication (format \"Bearer YOUR_API_KEY\")",
+            "example": "Bearer ts_live_abc123def456_ghi789jkl012"
           },
           {
             "in": "query",
@@ -2600,7 +2139,7 @@
             }
           },
           "401": {
-            "description": "Unauthorized - Missing or invalid authentication (API key, timestamp, or signature)"
+            "description": "Unauthorized - Missing or invalid authentication"
           },
           "500": {
             "description": "Server error"
@@ -2617,45 +2156,18 @@
         "description": "Execute a trade between two tokens",
         "security": [
           {
-            "ApiKeyAuth": []
-          },
-          {
-            "TimestampAuth": []
-          },
-          {
-            "SignatureAuth": []
+            "BearerAuth": []
           }
         ],
         "parameters": [
           {
             "in": "header",
-            "name": "X-Timestamp",
+            "name": "Authorization",
             "schema": {
               "type": "string"
             },
             "required": true,
-            "description": "Current timestamp in ISO format",
-            "example": "2023-03-15T17:30:45.123Z"
-          },
-          {
-            "in": "header",
-            "name": "X-API-Key",
-            "schema": {
-              "type": "string"
-            },
-            "required": true,
-            "description": "API key for authentication",
-            "example": "sk_1b2c3d4e5f"
-          },
-          {
-            "in": "header",
-            "name": "X-Signature",
-            "schema": {
-              "type": "string"
-            },
-            "required": true,
-            "description": "HMAC-SHA256 signature of request data",
-            "example": "a1b2c3d4e5f6..."
+            "description": "Bearer token for authentication (format \"Bearer YOUR_API_KEY\")"
           }
         ],
         "requestBody": {
@@ -2795,17 +2307,10 @@
             }
           },
           "400": {
-            "description": "Invalid input parameters",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
+            "description": "Invalid input parameters"
           },
           "401": {
-            "description": "Unauthorized - Missing or invalid authentication (API key, timestamp, or signature)"
+            "description": "Unauthorized - Missing or invalid authentication"
           },
           "403": {
             "description": "Forbidden - Competition not in progress or other restrictions"
@@ -2825,45 +2330,18 @@
         "description": "Get a quote for a potential trade between two tokens",
         "security": [
           {
-            "ApiKeyAuth": []
-          },
-          {
-            "TimestampAuth": []
-          },
-          {
-            "SignatureAuth": []
+            "BearerAuth": []
           }
         ],
         "parameters": [
           {
             "in": "header",
-            "name": "X-Timestamp",
+            "name": "Authorization",
             "schema": {
               "type": "string"
             },
             "required": true,
-            "description": "Current timestamp in ISO format",
-            "example": "2023-03-15T17:30:45.123Z"
-          },
-          {
-            "in": "header",
-            "name": "X-API-Key",
-            "schema": {
-              "type": "string"
-            },
-            "required": true,
-            "description": "API key for authentication",
-            "example": "sk_1b2c3d4e5f"
-          },
-          {
-            "in": "header",
-            "name": "X-Signature",
-            "schema": {
-              "type": "string"
-            },
-            "required": true,
-            "description": "HMAC-SHA256 signature of request data",
-            "example": "a1b2c3d4e5f6..."
+            "description": "Bearer token for authentication (format \"Bearer YOUR_API_KEY\")"
           },
           {
             "in": "query",
@@ -3003,7 +2481,7 @@
             "description": "Invalid input parameters"
           },
           "401": {
-            "description": "Unauthorized - Missing or invalid authentication (API key, timestamp, or signature)"
+            "description": "Unauthorized - Missing or invalid authentication"
           },
           "500": {
             "description": "Server error"
