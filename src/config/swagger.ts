@@ -12,62 +12,39 @@ const swaggerOptions: swaggerJsdoc.Options = {
       
 ## Authentication Guide
 
-This API requires three authentication headers for all protected endpoints:
+This API uses Bearer token authentication. All protected endpoints require the following header:
 
-- **X-API-Key**: Your team's API key (provided during registration)
-- **X-Timestamp**: Current timestamp in ISO format (e.g., \`2023-03-15T17:30:45.123Z\`)
-- **X-Signature**: HMAC-SHA256 signature of the request data
+- **Authorization**: Bearer your-api-key
 
-### Calculating the Signature
+Where "your-api-key" is the API key provided during team registration.
 
-When testing endpoints in this documentation UI, you'll need to manually calculate the signature:
+### Authentication Examples
 
-1. Concatenate: \`METHOD + PATH + TIMESTAMP + BODY_STRING\`
-   - Example: \`GET/api/account/balances2023-10-15T14:30:00.000Z{}\`
-   - For GET requests with no body, use \`{}\` in the signature calculation
-   - For POST requests, use the JSON string of your request body
+**cURL Example:**
 
-2. ⚠️ **IMPORTANT PATH HANDLING**:
-   - Use ONLY the base path without query parameters for signature calculation
-   - Example: For \`/api/price?token=xyz\`, use only \`/api/price\` in the signature
-   - The path should start with a leading slash
-   - Do not include the domain or protocol (e.g., use \`/api/trade/execute\` not \`http://localhost:3000/api/trade/execute\`)
-
-3. Sign using HMAC-SHA256 with your API secret
-   - You can use online tools to calculate this, or the provided API client
-
-4. Enter all three values in the Authorize dialog
-
-### Example with Node.js
-
-\`\`\`javascript
-const crypto = require('crypto');
-
-// Your credentials
-const apiKey = 'sk_1b2c3d4e5f...';
-const apiSecret = 'a1b2c3d4e5f6...';
-
-// Request details
-const method = 'GET';
-const fullPath = '/api/account/balances?limit=10'; // Full path with query params
-const pathForSignature = fullPath.split('?')[0];  // Remove query params for signature
-const timestamp = new Date().toISOString();
-const body = {}; // Empty for GET requests
-
-// Calculate signature
-const data = method + pathForSignature + timestamp + JSON.stringify(body);
-const signature = crypto
-  .createHmac('sha256', apiSecret)
-  .update(data)
-  .digest('hex');
-
-console.log('X-API-Key:', apiKey);
-console.log('X-Timestamp:', timestamp);
-console.log('X-Signature:', signature);
-console.log('Path used for signature:', pathForSignature);
+\`\`\`bash
+curl -X GET "https://api.example.com/api/account/balances" \\
+  -H "Authorization: Bearer abc123def456_ghi789jkl012" \\
+  -H "Content-Type: application/json"
 \`\`\`
 
-For convenience, we provide an API client that handles this automatically. See \`docs/examples/api-client.ts\`.
+**JavaScript Example:**
+
+\`\`\`javascript
+const fetchData = async () => {
+  const apiKey = 'abc123def456_ghi789jkl012';
+  const response = await fetch('https://api.example.com/api/account/balances', {
+    headers: {
+      'Authorization': \`Bearer \${apiKey}\`,
+      'Content-Type': 'application/json'
+    }
+  });
+  
+  return await response.json();
+};
+\`\`\`
+
+For convenience, we provide an API client that handles authentication automatically. See \`docs/examples/api-client.ts\`.
       `,
       contact: {
         name: 'API Support',
@@ -90,25 +67,10 @@ For convenience, we provide an API client that handles this automatically. See \
     ],
     components: {
       securitySchemes: {
-        ApiKeyAuth: {
-          type: 'apiKey',
-          in: 'header',
-          name: 'X-API-Key'
-        },
-        TimestampAuth: {
-          type: 'apiKey',
-          in: 'header',
-          name: 'X-Timestamp'
-        },
-        SignatureAuth: {
-          type: 'apiKey',
-          in: 'header',
-          name: 'X-Signature'
-        },
         BearerAuth: {
           type: 'http',
           scheme: 'bearer',
-          bearerFormat: 'JWT'
+          description: 'API key provided in the Authorization header using Bearer token authentication'
         }
       },
       schemas: {

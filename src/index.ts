@@ -8,7 +8,6 @@ import { services } from './services';
 import { initializeDatabase } from './database';
 
 // Import routes
-import * as authRoutes from './routes/auth.routes';
 import * as accountRoutes from './routes/account.routes';
 import * as tradeRoutes from './routes/trade.routes';
 import * as priceRoutes from './routes/price.routes';
@@ -37,7 +36,6 @@ app.use(protectedRoutes, authMiddleware(services.teamManager, services.competiti
 app.use(rateLimiterMiddleware);
 
 // Apply routes
-app.use('/api/auth', authRoutes.default);
 app.use('/api/account', accountRoutes.default);
 app.use('/api/trade', tradeRoutes.default);
 app.use('/api/price', priceRoutes.default);

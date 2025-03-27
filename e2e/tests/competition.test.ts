@@ -1,23 +1,31 @@
-import { setupAdminClient, registerTeamAndGetClient, startTestCompetition, cleanupTestState, ADMIN_USERNAME, ADMIN_PASSWORD, ADMIN_EMAIL } from '../utils/test-helpers';
+import { createTestClient, registerTeamAndGetClient, startTestCompetition, cleanupTestState, ADMIN_USERNAME, ADMIN_PASSWORD, ADMIN_EMAIL } from '../utils/test-helpers';
 import axios from 'axios';
 import { getBaseUrl } from '../utils/server';
 
 describe('Competition API', () => {
+  let adminApiKey: string;
+  
   // Clean up test state before each test
   beforeEach(async () => {
     await cleanupTestState();
     
     // Create admin account directly using the setup endpoint
-    await axios.post(`${getBaseUrl()}/api/admin/setup`, {
+    const response = await axios.post(`${getBaseUrl()}/api/admin/setup`, {
       username: ADMIN_USERNAME,
       password: ADMIN_PASSWORD,
       email: ADMIN_EMAIL
     });
+    
+    // Store the admin API key for authentication
+    adminApiKey = response.data.admin.apiKey;
+    expect(adminApiKey).toBeDefined();
+    console.log(`Admin API key created: ${adminApiKey.substring(0, 8)}...`);
   });
   
   test('should start a competition with registered teams', async () => {
     // Setup admin client
-    const adminClient = await setupAdminClient();
+    const adminClient = createTestClient();
+    await adminClient.loginAsAdmin(adminApiKey);
     
     // Register teams
     const { team: team1 } = await registerTeamAndGetClient(adminClient, 'Team Alpha');
@@ -42,7 +50,9 @@ describe('Competition API', () => {
   
   test('teams can view competition status and leaderboard', async () => {
     // Setup admin client and register a team
-    const adminClient = await setupAdminClient();
+    const adminClient = createTestClient();
+    await adminClient.loginAsAdmin(adminApiKey);
+    
     const { client: teamClient, team } = await registerTeamAndGetClient(adminClient, 'Team Gamma');
     
     // Admin starts a competition with the team
@@ -75,7 +85,8 @@ describe('Competition API', () => {
   
   test('teams cannot access competitions they are not part of', async () => {
     // Setup admin client
-    const adminClient = await setupAdminClient();
+    const adminClient = createTestClient();
+    await adminClient.loginAsAdmin(adminApiKey);
     
     // Register teams - one in the competition, one not
     const { client: teamInClient, team: teamIn } = await registerTeamAndGetClient(adminClient, 'Inside Team');

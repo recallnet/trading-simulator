@@ -1,24 +1,32 @@
-import { setupAdminClient, registerTeamAndGetClient, startTestCompetition, cleanupTestState, wait, ADMIN_USERNAME, ADMIN_PASSWORD, ADMIN_EMAIL } from '../utils/test-helpers';
+import { registerTeamAndGetClient, startTestCompetition, cleanupTestState, wait, ADMIN_USERNAME, ADMIN_PASSWORD, ADMIN_EMAIL, createTestClient } from '../utils/test-helpers';
 import axios, { AxiosError } from 'axios';
 import { getBaseUrl } from '../utils/server';
 import config from '../../src/config';
 
 describe('Rate Limiter Middleware', () => {
   // Clean up test state before each test
+  let adminApiKey: string;
+  
   beforeEach(async () => {
     await cleanupTestState();
     
     // Create admin account directly using the setup endpoint
-    await axios.post(`${getBaseUrl()}/api/admin/setup`, {
+    const response = await axios.post(`${getBaseUrl()}/api/admin/setup`, {
       username: ADMIN_USERNAME,
       password: ADMIN_PASSWORD,
       email: ADMIN_EMAIL
     });
+    
+    // Store the admin API key for authentication
+    adminApiKey = response.data.admin.apiKey;
+    expect(adminApiKey).toBeDefined();
+    console.log(`Admin API key created: ${adminApiKey.substring(0, 8)}...`);
   });
   
   test('enforces separate rate limits for different teams', async () => {
     // Setup admin client
-    const adminClient = await setupAdminClient();
+    const adminClient = createTestClient();
+    await adminClient.loginAsAdmin(adminApiKey);
     
     // Register two teams
     const { client: team1Client, team: team1 } = await registerTeamAndGetClient(adminClient, 'Rate Limit Team 1');
@@ -117,7 +125,8 @@ describe('Rate Limiter Middleware', () => {
   
   test('enforces different rate limits for different endpoint types', async () => {
     // Setup admin client
-    const adminClient = await setupAdminClient();
+    const adminClient = createTestClient();
+    await adminClient.loginAsAdmin(adminApiKey);
     
     // Register team
     const { client: teamClient, team } = await registerTeamAndGetClient(adminClient, 'Endpoint Rate Limit Team');
@@ -202,10 +211,11 @@ describe('Rate Limiter Middleware', () => {
     // The ApiClient transforms the response and we lose access to headers
     
     // Setup admin client
-    const adminClient = await setupAdminClient();
+    const adminClient = createTestClient();
+    await adminClient.loginAsAdmin(adminApiKey);
     
     // Register team
-    const { client: teamClient, team } = await registerTeamAndGetClient(adminClient, 'Headers Rate Limit Team');
+    const { client: teamClient, team, apiKey } = await registerTeamAndGetClient(adminClient, 'Headers Rate Limit Team');
     
     // Start a competition
     const competitionName = `Headers Rate Limit Test ${Date.now()}`;
@@ -219,29 +229,13 @@ describe('Rate Limiter Middleware', () => {
       baseURL: getBaseUrl(),
     });
     
-    // Add interceptor to sign requests
+    // Add interceptor to add authentication header
     axiosInstance.interceptors.request.use((config) => {
-      // Add authentication headers
+      // Add authentication header
       config.headers = config.headers || {};
       
-      // Generate timestamp in the future to avoid expiration
-      const timestamp = new Date(Date.now() + 2 * 365 * 24 * 60 * 60 * 1000).toISOString();
-      
-      // Calculate signature using same algorithm as ApiClient
-      const method = config.method?.toUpperCase() || 'GET';
-      const path = config.url || '';
-      const body = config.data ? JSON.stringify(config.data) : '{}';
-      
-      const payload = method + path + timestamp + body;
-      const signature = require('crypto')
-        .createHmac('sha256', team.apiSecret)
-        .update(payload)
-        .digest('hex');
-      
-      // Add the headers
-      config.headers['X-API-Key'] = team.apiKey;
-      config.headers['X-Timestamp'] = timestamp;
-      config.headers['X-Signature'] = signature;
+      // Add Bearer token authorization
+      config.headers['Authorization'] = `Bearer ${apiKey}`;
       
       return config;
     });

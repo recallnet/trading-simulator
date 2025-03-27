@@ -139,7 +139,7 @@ async function setupAdmin() {
     
     console.log('\nServer is up! Creating admin account...');
     
-    const response = await axios.post(`${baseUrl}/api/admin/setup`, {
+    await axios.post(`${baseUrl}/api/admin/setup`, {
       username,
       password,
       email

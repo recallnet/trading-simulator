@@ -15,7 +15,7 @@ To run these examples, you need:
 
 1. Node.js (v14 or newer)
 2. TypeScript (v4.0 or newer)
-3. Your team's API credentials (API key and secret)
+3. Your team's API key (obtained during registration)
 
 ## Setup
 
@@ -25,7 +25,7 @@ To run these examples, you need:
 npm install typescript ts-node @types/node
 ```
 
-2. Replace the API key and secret in the examples with your team's credentials.
+2. Replace the API key in the examples with your team's credential.
 
 ## Running the Examples
 
@@ -185,12 +185,12 @@ import { TradingSimulatorClient, BlockchainType, SpecificChain, COMMON_TOKENS } 
 // Create a client instance
 const client = new TradingSimulatorClient(
   'your-api-key',
-  'your-api-secret',
-  'http://localhost:3001' // Use the correct API URL
+  'http://localhost:3000', // Use the correct API URL
+  false // Debug mode (optional)
 );
 
 // Get balances
-const balances = await client.getBalances();
+const balances = await client.getBalance();
 console.log('Balances:', balances);
 
 // Execute a trade on Base chain
@@ -206,7 +206,7 @@ const baseTrade = await client.executeTrade({
 console.log('Base Trade Result:', baseTrade);
 
 // Get trade history
-const trades = await client.getTrades();
+const trades = await client.getTradeHistory();
 console.log('Trade History:', trades);
 ```
 
@@ -216,52 +216,16 @@ For specific use cases, you may want to make requests directly to the API withou
 
 ## Authentication
 
-All requests to the protected API endpoints require authentication using three headers:
+The API uses Bearer token authentication:
 
-1. **X-API-Key**: Your team's API key (provided during registration)
-2. **X-Timestamp**: Current timestamp in ISO format (e.g., `2023-03-15T17:30:45.123Z`)
-3. **X-Signature**: HMAC-SHA256 signature of the request data
+1. Obtain your API key during team registration
+2. Include the following header in your request:
+   - `Authorization`: `Bearer your-api-key`
+   - `Content-Type`: `application/json`
 
-### Calculating the Signature
+This simplified authentication approach makes it easier to integrate with the API while maintaining security.
 
-To calculate the signature:
-
-1. Concatenate: `METHOD + PATH + TIMESTAMP + BODY_STRING`
-   - Example: `GET/api/account/balances2023-10-15T14:30:00.000Z{}`
-   - For GET requests with no body, use `{}` in the signature calculation
-   - For POST requests, use the JSON string of your request body
-
-2. **IMPORTANT PATH HANDLING**:
-   - Use ONLY the base path without query parameters for signature calculation
-   - Example: For `/api/price?token=xyz`, use only `/api/price` in the signature
-   - The path should start with a leading slash
-
-3. Sign using HMAC-SHA256 with your API secret
-
-```javascript
-const crypto = require('crypto');
-
-// Your credentials
-const apiKey = 'sk_1b2c3d4e5f...';
-const apiSecret = 'a1b2c3d4e5f6...';
-
-// Request details
-const method = 'GET';
-const path = '/api/account/balances';
-const timestamp = new Date().toISOString();
-const body = {}; // Empty for GET requests
-
-// Calculate signature
-const data = method + path + timestamp + JSON.stringify(body);
-const signature = crypto
-  .createHmac('sha256', apiSecret)
-  .update(data)
-  .digest('hex');
-
-console.log('X-API-Key:', apiKey);
-console.log('X-Timestamp:', timestamp);
-console.log('X-Signature:', signature);
-```
+See the examples for detailed implementation.
 
 ## Further Documentation
 

@@ -1,37 +1,53 @@
-import * as crypto from 'crypto';
+import { 
+  TradingSimulatorClient, 
+  BlockchainType, 
+  SpecificChain, 
+  COMMON_TOKENS,
+  TradeResponse
+} from './api-client';
+
+// Define the TradeDetails interface based on the api-client.ts parameters
+interface TradeDetails {
+  fromToken: string;
+  toToken: string;
+  amount: string;
+  slippageTolerance?: string;
+  fromChain?: BlockchainType;
+  toChain?: BlockchainType;
+  fromSpecificChain?: SpecificChain;
+  toSpecificChain?: SpecificChain;
+}
 
 /**
  * Example: Execute a Trade
  * 
- * This example demonstrates how to make an authenticated request to
+ * This example demonstrates how to use the Trading Simulator client to
  * execute a trade between two tokens on the same chain or across chains.
  * 
  * Note: All pricing is determined automatically by the server based on
  * current market data. The server calculates the appropriate exchange rate.
  */
 
-// Replace these with your team's credentials
+// Replace with your team's API key
 const apiKey = 'your-api-key';
-const apiSecret = 'your-api-secret';
-const baseUrl = 'http://localhost:3001';
+const baseUrl = 'http://localhost:3000';
 
-// API endpoint details
-const method = 'POST';
-const path = '/api/trade/execute';
+// Create a client instance
+const client = new TradingSimulatorClient(apiKey, baseUrl, true); // Enable debug mode
 
-// Token addresses (use these instead of symbols)
+// Token addresses (for reference, these are also available in COMMON_TOKENS)
 // Solana tokens
-const USDC_SOL_ADDRESS = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
-const SOL_ADDRESS = 'So11111111111111111111111111111111111111112';
+const USDC_SOL_ADDRESS = COMMON_TOKENS.SVM.USDC;
+const SOL_ADDRESS = COMMON_TOKENS.SVM.SOL;
 // Ethereum tokens
-const USDC_ETH_ADDRESS = '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48';
-const ETH_ADDRESS = '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2'; // WETH
+const USDC_ETH_ADDRESS = COMMON_TOKENS.EVM.USDC;
+const ETH_ADDRESS = COMMON_TOKENS.EVM.ETH;
 
 // Choose which example to run
 const tradeType = process.argv[2] || 'solana'; // Options: 'solana', 'ethereum', 'cross-chain'
 
 // Trade details based on selected type
-let tradeDetails;
+let tradeDetails: TradeDetails;
 
 switch (tradeType) {
   case 'ethereum':
@@ -41,10 +57,10 @@ switch (tradeType) {
       toToken: ETH_ADDRESS,
       amount: "100.00",         // Amount as string, not number
       slippageTolerance: "0.5", // Optional slippage tolerance in percentage
-      fromChain: "evm",         // Blockchain type for source token (evm or svm)
-      toChain: "evm",           // Blockchain type for destination token
-      fromSpecificChain: "eth", // Specific chain for source token (eth, polygon, etc)
-      toSpecificChain: "eth"    // Specific chain for destination token
+      fromChain: BlockchainType.EVM,         // Blockchain type for source token (evm or svm)
+      toChain: BlockchainType.EVM,           // Blockchain type for destination token
+      fromSpecificChain: SpecificChain.ETH, // Specific chain for source token (eth, polygon, etc)
+      toSpecificChain: SpecificChain.ETH    // Specific chain for destination token
     };
     console.log('Executing Ethereum trade: Buy ETH with USDC on Ethereum');
     break;
@@ -56,10 +72,10 @@ switch (tradeType) {
       toToken: ETH_ADDRESS,        // To buy ETH on Ethereum
       amount: "100.00",            // Amount as string, not number
       slippageTolerance: "0.5",    // Optional slippage tolerance in percentage
-      fromChain: "svm",            // Blockchain type for source token (svm)
-      toChain: "evm",              // Blockchain type for destination token (evm)
-      fromSpecificChain: "svm",    // Specific chain for source token (Solana)
-      toSpecificChain: "eth"       // Specific chain for destination token (Ethereum)
+      fromChain: BlockchainType.SVM,            // Blockchain type for source token (svm)
+      toChain: BlockchainType.EVM,              // Blockchain type for destination token (evm)
+      fromSpecificChain: SpecificChain.SVM,    // Specific chain for source token (Solana)
+      toSpecificChain: SpecificChain.ETH       // Specific chain for destination token (Ethereum)
     };
     console.log('Executing cross-chain trade: Buy ETH with Solana USDC');
     break;
@@ -72,66 +88,23 @@ switch (tradeType) {
       toToken: SOL_ADDRESS,
       amount: "100.00",        // Amount as string, not number
       slippageTolerance: "0.5", // Optional slippage tolerance in percentage
-      fromChain: "svm",        // Blockchain type for source token
-      toChain: "svm",          // Blockchain type for destination token
-      fromSpecificChain: "svm", // Specific chain for source token
-      toSpecificChain: "svm"   // Specific chain for destination token
+      fromChain: BlockchainType.SVM,        // Blockchain type for source token
+      toChain: BlockchainType.SVM,          // Blockchain type for destination token
+      fromSpecificChain: SpecificChain.SVM, // Specific chain for source token
+      toSpecificChain: SpecificChain.SVM   // Specific chain for destination token
     };
     console.log('Executing Solana trade: Buy SOL with USDC on Solana');
     break;
 }
 
-async function executeTrade() {
+async function executeTrade(): Promise<TradeResponse> {
   try {
-    // Convert request body to string
-    const bodyStr = JSON.stringify(tradeDetails);
-    
-    // Generate timestamp and signature
-    const timestamp = new Date().toISOString();
-    
-    // IMPORTANT: For authentication, concatenate: method + path + timestamp + bodyStr
-    // This must match exactly what the server expects
-    const data = method + path + timestamp + bodyStr;
-    
-    const signature = crypto
-      .createHmac('sha256', apiSecret)
-      .update(data)
-      .digest('hex');
-    
-    // Create headers
-    const headers = {
-      'X-API-Key': apiKey,
-      'X-Timestamp': timestamp,
-      'X-Signature': signature,
-      'Content-Type': 'application/json'
-    };
-    
-    // Log request details
     console.log('Executing trade...');
-    console.log('URL:', `${baseUrl}${path}`);
-    console.log('Headers:', headers);
-    console.log('Body:', bodyStr);
+    console.log('Trade details:', JSON.stringify(tradeDetails, null, 2));
     
-    // Make the request
-    const response = await fetch(`${baseUrl}${path}`, {
-      method,
-      headers,
-      body: bodyStr
-    });
+    // Execute the trade using the client
+    const result = await client.executeTrade(tradeDetails);
     
-    // Handle response
-    if (!response.ok) {
-      let errorMessage;
-      try {
-        const errorBody = await response.json();
-        errorMessage = errorBody.message || errorBody.error || 'Unknown error';
-      } catch (e) {
-        errorMessage = await response.text();
-      }
-      throw new Error(`Request failed with status ${response.status}: ${errorMessage}`);
-    }
-    
-    const result = await response.json();
     console.log('Trade Result:', JSON.stringify(result, null, 2));
     
     /* Expected response format:

@@ -47,7 +47,6 @@ export class CompetitionManager {
       const activeCompetition = await repositories.competitionRepository.findActive();
       if (activeCompetition) {
         this.activeCompetitionCache = activeCompetition.id;
-        console.log(`[CompetitionManager] Loaded active competition: ${activeCompetition.name} (${activeCompetition.id})`);
       }
     } catch (error) {
       console.error('[CompetitionManager] Error loading active competition:', error);

@@ -12,31 +12,15 @@ export const priceRoutes = Router();
  *     summary: Get price for a token
  *     description: Get the current price of a specified token
  *     security:
- *       - ApiKeyAuth: []
- *       - TimestampAuth: []
- *       - SignatureAuth: []
+ *       - BearerAuth: []
  *     parameters:
  *       - in: header
- *         name: X-Timestamp
+ *         name: Authorization
  *         schema:
  *           type: string
  *         required: true
- *         description: Current timestamp in ISO format
- *         example: "2023-03-15T17:30:45.123Z"
- *       - in: header
- *         name: X-API-Key
- *         schema:
- *           type: string
- *         required: true
- *         description: API key for authentication
- *         example: "sk_1b2c3d4e5f"
- *       - in: header
- *         name: X-Signature
- *         schema:
- *           type: string
- *         required: true
- *         description: HMAC-SHA256 signature of request data
- *         example: "a1b2c3d4e5f6..."
+ *         description: Bearer token for authentication (format "Bearer YOUR_API_KEY")
+ *         example: "Bearer abc123def456_ghi789jkl012"
  *       - in: query
  *         name: token
  *         schema:
@@ -93,7 +77,7 @@ export const priceRoutes = Router();
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *       401:
- *         description: Unauthorized - Missing or invalid authentication (API key, timestamp, or signature)
+ *         description: Unauthorized - Missing or invalid authentication
  *       500:
  *         description: Server error
  */
@@ -108,31 +92,15 @@ priceRoutes.get('/', PriceController.getPrice);
  *     summary: Get detailed token information
  *     description: Get detailed token information including price and specific chain
  *     security:
- *       - ApiKeyAuth: []
- *       - TimestampAuth: []
- *       - SignatureAuth: []
+ *       - BearerAuth: []
  *     parameters:
  *       - in: header
- *         name: X-Timestamp
+ *         name: Authorization
  *         schema:
  *           type: string
  *         required: true
- *         description: Current timestamp in ISO format
- *         example: "2023-03-15T17:30:45.123Z"
- *       - in: header
- *         name: X-API-Key
- *         schema:
- *           type: string
- *         required: true
- *         description: API key for authentication
- *         example: "sk_1b2c3d4e5f"
- *       - in: header
- *         name: X-Signature
- *         schema:
- *           type: string
- *         required: true
- *         description: HMAC-SHA256 signature of request data
- *         example: "a1b2c3d4e5f6..."
+ *         description: Bearer token for authentication (format "Bearer YOUR_API_KEY")
+ *         example: "Bearer abc123def456_ghi789jkl012"
  *       - in: query
  *         name: token
  *         schema:
@@ -189,7 +157,7 @@ priceRoutes.get('/', PriceController.getPrice);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *       401:
- *         description: Unauthorized - Missing or invalid authentication (API key, timestamp, or signature)
+ *         description: Unauthorized - Missing or invalid authentication
  *       500:
  *         description: Server error
  */
