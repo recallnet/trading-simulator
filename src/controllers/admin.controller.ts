@@ -79,7 +79,7 @@ export class AdminController {
    *                     apiKey:
    *                       type: string
    *                       description: API key for the admin to use with Bearer authentication
-   *                       example: ts_live_abc123def456_ghi789jkl012
+   *                       example: abc123def456_ghi789jkl012
    *       400:
    *         description: Missing required parameters or password too short
    *       403:
@@ -215,7 +215,7 @@ export class AdminController {
    *                     apiKey:
    *                       type: string
    *                       description: API key for the team to use with Bearer authentication. Admin should securely provide this to the team.
-   *                       example: ts_live_abc123def456_ghi789jkl012
+   *                       example: abc123def456_ghi789jkl012
    *                     createdAt:
    *                       type: string
    *                       format: date-time

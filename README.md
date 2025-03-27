@@ -328,7 +328,7 @@ Authorization: Bearer your-api-key
 
 For enhanced security, the API implements:
 - Bearer token authentication with unique API keys for each team
-- API keys in the format `ts_live_[hexstring]_[hexstring]`
+- API keys in the format `[hexstring]_[hexstring]`
 - Admin-specific API keys for administrative operations
 - Encrypted storage of API keys using AES-256-CBC encryption
 

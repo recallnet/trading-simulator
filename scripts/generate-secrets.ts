@@ -13,10 +13,10 @@ function generateSecureSecret(): string {
  * Generate a more human-readable admin API key
  */
 function generateAdminApiKey(): string {
-  // Format: ts_live_[hexstring]_[hexstring]
+  // Format: [hexstring]_[hexstring]
   const segment1 = crypto.randomBytes(8).toString('hex');  // 16 chars
   const segment2 = crypto.randomBytes(8).toString('hex');  // 16 chars
-  return `ts_live_${segment1}_${segment2}`;
+  return `${segment1}_${segment2}`;
 }
 
 /**

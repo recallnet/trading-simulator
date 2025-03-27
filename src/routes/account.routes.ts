@@ -20,7 +20,7 @@ const router = Router();
  *           type: string
  *         required: true
  *         description: Bearer token for authentication (format "Bearer YOUR_API_KEY")
- *         example: "Bearer ts_live_abc123def456_ghi789jkl012"
+ *         example: "Bearer abc123def456_ghi789jkl012"
  *     responses:
  *       200:
  *         description: Team profile
@@ -81,7 +81,7 @@ router.get('/profile', AccountController.getProfile);
  *           type: string
  *         required: true
  *         description: Bearer token for authentication (format "Bearer YOUR_API_KEY")
- *         example: "Bearer ts_live_abc123def456_ghi789jkl012"
+ *         example: "Bearer abc123def456_ghi789jkl012"
  *     requestBody:
  *       required: true
  *       content:
@@ -152,7 +152,7 @@ router.put('/profile', AccountController.updateProfile);
  *           type: string
  *         required: true
  *         description: Bearer token for authentication (format "Bearer YOUR_API_KEY")
- *         example: "Bearer ts_live_abc123def456_ghi789jkl012"
+ *         example: "Bearer abc123def456_ghi789jkl012"
  *     responses:
  *       200:
  *         description: Team token balances
@@ -210,7 +210,7 @@ router.get('/balances', AccountController.getBalances);
  *           type: string
  *         required: true
  *         description: Bearer token for authentication (format "Bearer YOUR_API_KEY")
- *         example: "Bearer ts_live_abc123def456_ghi789jkl012"
+ *         example: "Bearer abc123def456_ghi789jkl012"
  *     responses:
  *       200:
  *         description: Team portfolio information
@@ -285,7 +285,7 @@ router.get('/portfolio', AccountController.getPortfolio);
  *           type: string
  *         required: true
  *         description: Bearer token for authentication (format "Bearer YOUR_API_KEY")
- *         example: "Bearer ts_live_abc123def456_ghi789jkl012"
+ *         example: "Bearer abc123def456_ghi789jkl012"
  *     responses:
  *       200:
  *         description: Team trade history

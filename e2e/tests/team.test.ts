@@ -48,7 +48,6 @@ describe('Team API', () => {
     expect(team.email).toBe(email);
     expect(team.contact_person).toBe(contactPerson);
     expect(apiKey).toBeDefined();
-    expect(apiKey.startsWith('ts_live_')).toBe(true);
     
     // Verify team client is authenticated
     const profileResponse = await teamClient.getProfile();
@@ -97,7 +96,7 @@ describe('Team API', () => {
     await registerTeamAndGetClient(client);
     
     // Create a client with an invalid API key
-    const invalidApiKey = 'ts_live_invalid_key_12345';
+    const invalidApiKey = 'invalid_key_12345';
     const invalidClient = client.createTeamClient(invalidApiKey);
     
     // Try to get profile with invalid API key

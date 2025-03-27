@@ -20,7 +20,7 @@ export const priceRoutes = Router();
  *           type: string
  *         required: true
  *         description: Bearer token for authentication (format "Bearer YOUR_API_KEY")
- *         example: "Bearer ts_live_abc123def456_ghi789jkl012"
+ *         example: "Bearer abc123def456_ghi789jkl012"
  *       - in: query
  *         name: token
  *         schema:
@@ -100,7 +100,7 @@ priceRoutes.get('/', PriceController.getPrice);
  *           type: string
  *         required: true
  *         description: Bearer token for authentication (format "Bearer YOUR_API_KEY")
- *         example: "Bearer ts_live_abc123def456_ghi789jkl012"
+ *         example: "Bearer abc123def456_ghi789jkl012"
  *       - in: query
  *         name: token
  *         schema:

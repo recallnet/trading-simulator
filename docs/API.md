@@ -34,7 +34,7 @@ Where "your-api-key" is the API key provided during team registration.
 
 ```bash
 curl -X GET "https://api.example.com/api/account/balances" \
-  -H "Authorization: Bearer ts_live_abc123def456_ghi789jkl012" \
+  -H "Authorization: Bearer abc123def456_ghi789jkl012" \
   -H "Content-Type: application/json"
 ```
 
@@ -42,7 +42,7 @@ curl -X GET "https://api.example.com/api/account/balances" \
 
 ```javascript
 const fetchData = async () => {
-  const apiKey = 'ts_live_abc123def456_ghi789jkl012';
+  const apiKey = 'abc123def456_ghi789jkl012';
   const response = await fetch('https://api.example.com/api/account/balances', {
     headers: {
       'Authorization': `Bearer ${apiKey}`,
@@ -82,7 +82,7 @@ Account management endpoints
 
 const headers = {
   'Accept':'application/json',
-  'Authorization':'Bearer ts_live_abc123def456_ghi789jkl012'
+  'Authorization':'Bearer abc123def456_ghi789jkl012'
 };
 
 fetch('http://localhost:3000/api/account/profile',
@@ -167,7 +167,7 @@ const inputBody = '{
 const headers = {
   'Content-Type':'application/json',
   'Accept':'application/json',
-  'Authorization':'Bearer ts_live_abc123def456_ghi789jkl012'
+  'Authorization':'Bearer abc123def456_ghi789jkl012'
 };
 
 fetch('http://localhost:3000/api/account/profile',
@@ -259,7 +259,7 @@ BearerAuth
 
 const headers = {
   'Accept':'application/json',
-  'Authorization':'Bearer ts_live_abc123def456_ghi789jkl012'
+  'Authorization':'Bearer abc123def456_ghi789jkl012'
 };
 
 fetch('http://localhost:3000/api/account/balances',
@@ -347,7 +347,7 @@ BearerAuth
 
 const headers = {
   'Accept':'application/json',
-  'Authorization':'Bearer ts_live_abc123def456_ghi789jkl012'
+  'Authorization':'Bearer abc123def456_ghi789jkl012'
 };
 
 fetch('http://localhost:3000/api/account/portfolio',
@@ -447,7 +447,7 @@ BearerAuth
 
 const headers = {
   'Accept':'application/json',
-  'Authorization':'Bearer ts_live_abc123def456_ghi789jkl012'
+  'Authorization':'Bearer abc123def456_ghi789jkl012'
 };
 
 fetch('http://localhost:3000/api/account/trades',
@@ -789,7 +789,7 @@ Price information endpoints
 
 const headers = {
   'Accept':'application/json',
-  'Authorization':'Bearer ts_live_abc123def456_ghi789jkl012'
+  'Authorization':'Bearer abc123def456_ghi789jkl012'
 };
 
 fetch('http://localhost:3000/api/price?token=So11111111111111111111111111111111111111112',
@@ -893,7 +893,7 @@ BearerAuth
 
 const headers = {
   'Accept':'application/json',
-  'Authorization':'Bearer ts_live_abc123def456_ghi789jkl012'
+  'Authorization':'Bearer abc123def456_ghi789jkl012'
 };
 
 fetch('http://localhost:3000/api/price/token-info?token=So11111111111111111111111111111111111111112',
@@ -1445,7 +1445,7 @@ Admin-only endpoint to register a new team. Admins create team accounts and dist
     "email": "string",
     "contactPerson": "string",
     "contact_person": "string",
-    "apiKey": "ts_live_abc123def456_ghi789jkl012",
+    "apiKey": "abc123def456_ghi789jkl012",
     "createdAt": "2019-08-24T14:15:22Z"
   }
 }

@@ -157,7 +157,7 @@ export class TeamManager {
     const segment2 = crypto.randomBytes(8).toString('hex');  // 16 chars
     
     // Combine with a prefix and separator underscore for readability
-    const key = `ts_live_${segment1}_${segment2}`;
+    const key = `${segment1}_${segment2}`;
     console.log(`[TeamManager] Generated API key with length: ${key.length}`);
     return key;
   }

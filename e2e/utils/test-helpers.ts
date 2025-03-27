@@ -1,6 +1,7 @@
 import { ApiClient } from './api-client';
 import { dbManager } from './db-manager';
 import { resetRateLimiters } from '../../src/middleware/rate-limiter.middleware';
+import * as crypto from 'crypto';
 
 // Configured test token address
 export const TEST_TOKEN_ADDRESS = process.env.TEST_SOL_TOKEN_ADDRESS || '4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R';
@@ -18,9 +19,10 @@ let isDatabaseInitialized = false;
  * This is useful for creating a client that doesn't have predefined API credentials
  */
 export function createTestClient(baseUrl?: string): ApiClient {
-  // Generate a random key with ts_live_ prefix instead of sk_test_
-  const randomKey = `ts_live_${generateRandomString(32)}`;
-  return new ApiClient(randomKey, baseUrl);
+  // Generate a random key
+  const segment1 = crypto.randomBytes(8).toString('hex');  // 16 chars
+  const segment2 = crypto.randomBytes(8).toString('hex');  // 16 chars
+  return new ApiClient(`${segment1}_${segment2}`, baseUrl);
 }
 
 /**

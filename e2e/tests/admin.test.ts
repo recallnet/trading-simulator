@@ -37,7 +37,7 @@ describe('Admin API', () => {
     
     // Attempt to login with incorrect API key and assert failure
     console.log('TEST: Attempting to login with invalid API key');
-    const failedLogin = await client.loginAsAdmin('ts_live_invalid_api_key');
+    const failedLogin = await client.loginAsAdmin('invalid_api_key');
     console.log(`TEST: Invalid login result: ${failedLogin}`);
     expect(failedLogin).toBe(false);
     
@@ -63,8 +63,6 @@ describe('Admin API', () => {
     expect(result.team.email).toBe(teamEmail);
     expect(result.team.contactPerson).toBe(contactPerson);
     expect(result.team.apiKey).toBeDefined();
-    // With the new authentication approach, we don't expect apiSecret anymore
-    expect(result.team.apiKey.startsWith('ts_live_')).toBe(true);
   });
   
   test('should not allow team registration without admin auth', async () => {

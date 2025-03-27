@@ -24,7 +24,7 @@ Where "your-api-key" is the API key provided during team registration.
 
 \`\`\`bash
 curl -X GET "https://api.example.com/api/account/balances" \\
-  -H "Authorization: Bearer ts_live_abc123def456_ghi789jkl012" \\
+  -H "Authorization: Bearer abc123def456_ghi789jkl012" \\
   -H "Content-Type: application/json"
 \`\`\`
 
@@ -32,7 +32,7 @@ curl -X GET "https://api.example.com/api/account/balances" \\
 
 \`\`\`javascript
 const fetchData = async () => {
-  const apiKey = 'ts_live_abc123def456_ghi789jkl012';
+  const apiKey = 'abc123def456_ghi789jkl012';
   const response = await fetch('https://api.example.com/api/account/balances', {
     headers: {
       'Authorization': \`Bearer \${apiKey}\`,
