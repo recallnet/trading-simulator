@@ -20,7 +20,7 @@ const router = Router();
  *           type: string
  *         required: true
  *         description: Bearer token for authentication (format "Bearer YOUR_API_KEY")
- *         example: "Bearer ts_live_abc123def456_ghi789jkl012"
+ *         example: "Bearer abc123def456_ghi789jkl012"
  *       - in: query
  *         name: competitionId
  *         schema:
@@ -119,7 +119,7 @@ router.get('/leaderboard', CompetitionController.getLeaderboard);
  *           type: string
  *         required: true
  *         description: Bearer token for authentication (format "Bearer YOUR_API_KEY")
- *         example: "Bearer ts_live_abc123def456_ghi789jkl012"
+ *         example: "Bearer abc123def456_ghi789jkl012"
  *     responses:
  *       200:
  *         description: Competition status
@@ -197,7 +197,7 @@ router.get('/status', CompetitionController.getStatus);
  *           type: string
  *         required: true
  *         description: Bearer token for authentication (format "Bearer YOUR_API_KEY")
- *         example: "Bearer ts_live_abc123def456_ghi789jkl012"
+ *         example: "Bearer abc123def456_ghi789jkl012"
  *     responses:
  *       200:
  *         description: Competition rules

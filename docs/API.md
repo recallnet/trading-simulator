@@ -1001,7 +1001,7 @@ Competition endpoints
 
 const headers = {
   'Accept':'application/json',
-  'Authorization':'Bearer ts_live_abc123def456_ghi789jkl012'
+  'Authorization':'Bearer abc123def456_ghi789jkl012'
 };
 
 fetch('http://localhost:3000/api/competition/leaderboard',
@@ -1111,7 +1111,7 @@ BearerAuth
 
 const headers = {
   'Accept':'application/json',
-  'Authorization':'Bearer ts_live_abc123def456_ghi789jkl012'
+  'Authorization':'Bearer abc123def456_ghi789jkl012'
 };
 
 fetch('http://localhost:3000/api/competition/status',
@@ -1208,7 +1208,7 @@ BearerAuth
 
 const headers = {
   'Accept':'application/json',
-  'Authorization':'Bearer ts_live_abc123def456_ghi789jkl012'
+  'Authorization':'Bearer abc123def456_ghi789jkl012'
 };
 
 fetch('http://localhost:3000/api/competition/rules',
