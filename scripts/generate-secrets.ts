@@ -10,16 +10,6 @@ function generateSecureSecret(): string {
 }
 
 /**
- * Generate a more human-readable admin API key
- */
-function generateAdminApiKey(): string {
-  // Format: [hexstring]_[hexstring]
-  const segment1 = crypto.randomBytes(8).toString('hex');  // 16 chars
-  const segment2 = crypto.randomBytes(8).toString('hex');  // 16 chars
-  return `${segment1}_${segment2}`;
-}
-
-/**
  * Generate secrets and update .env file
  */
 async function generateSecrets(): Promise<void> {
@@ -47,7 +37,6 @@ async function generateSecrets(): Promise<void> {
   
   // Generate secrets
   const rootEncryptionKey = generateSecureSecret();
-  const adminApiKey = generateAdminApiKey();
   
   // Replace placeholder values
   const placeholderPatterns = [
@@ -103,11 +92,6 @@ async function generateSecrets(): Promise<void> {
     password: "<your-strong-password>",
     email: "admin@example.com"
   }, null, 2));
-  console.log('\nAlternatively, you can use this generated API key for admin API access:');
-  console.log(`Admin API Key: ${adminApiKey}`);
-  console.log('----------------------------------------');
-  console.log('\nIMPORTANT: Store this admin API key securely. This is the only time it will be displayed.');
-  console.log('Once you have your admin account set up, you can use it to register teams and manage competitions.');
 }
 
 // Run the script
