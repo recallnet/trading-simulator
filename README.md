@@ -431,7 +431,6 @@ With chain override, you can specify the exact chain for a token, resulting in:
 - **Without chain override**: 1-3 seconds response time (checking multiple chains)
 - **With chain override**: 50-100ms response time (direct API call to specified chain)
 
-That's a 10-20x performance improvement!
 
 ### How to Use Chain Override
 
