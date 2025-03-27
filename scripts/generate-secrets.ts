@@ -43,7 +43,6 @@ async function generateSecrets(): Promise<void> {
   } else {
     console.error('Error: Neither .env nor .env.example files found.');
     process.exit(1);
-    return;
   }
   
   // Generate secrets
@@ -81,20 +80,6 @@ async function generateSecrets(): Promise<void> {
       newEnvContent += `\n${replacements[index]}`;
     }
   });
-  
-  // Remove deprecated secrets
-  if (!isNewFile) {
-    const deprecatedVars = [
-      'JWT_SECRET=',
-      'API_KEY_SECRET=',
-      'HMAC_SECRET='
-    ];
-    
-    for (const varName of deprecatedVars) {
-      const regex = new RegExp(`\\n${varName}.*`, 'g');
-      newEnvContent = newEnvContent.replace(regex, '');
-    }
-  }
   
   // Write updated content back to .env file
   fs.writeFileSync(envPath, newEnvContent);
