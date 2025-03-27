@@ -46,16 +46,16 @@ async function generateSecrets(): Promise<void> {
   }
   
   // Generate secrets
-  const masterEncryptionKey = generateSecureSecret();
+  const rootEncryptionKey = generateSecureSecret();
   const adminApiKey = generateAdminApiKey();
   
   // Replace placeholder values
   const placeholderPatterns = [
-    /MASTER_ENCRYPTION_KEY=.*$/m
+    /ROOT_ENCRYPTION_KEY=.*$/m
   ];
   
   const replacements = [
-    `MASTER_ENCRYPTION_KEY=${masterEncryptionKey}`
+    `ROOT_ENCRYPTION_KEY=${rootEncryptionKey}`
   ];
   
   // Only replace if the value looks like a placeholder or if it's a new file
@@ -86,7 +86,7 @@ async function generateSecrets(): Promise<void> {
   
   console.log('Secrets generated and updated in .env file:');
   console.log('----------------------------------------');
-  console.log(`MASTER_ENCRYPTION_KEY=${masterEncryptionKey}`);
+  console.log(`ROOT_ENCRYPTION_KEY=${rootEncryptionKey}`);
   console.log('----------------------------------------');
   console.log('These values have been written to your .env file.');
   

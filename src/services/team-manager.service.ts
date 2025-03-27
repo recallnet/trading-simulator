@@ -173,9 +173,9 @@ export class TeamManager {
       const algorithm = 'aes-256-cbc';
       const iv = crypto.randomBytes(16);
       
-      // Create a consistently-sized key from the master encryption key
+      // Create a consistently-sized key from the root encryption key
       const cryptoKey = crypto.createHash('sha256')
-        .update(String(config.security.masterEncryptionKey))
+        .update(String(config.security.rootEncryptionKey))
         .digest();
       
       const cipher = crypto.createCipheriv(algorithm, cryptoKey, iv);
@@ -209,9 +209,9 @@ export class TeamManager {
       const iv = Buffer.from(parts[0], 'hex');
       const encrypted = parts[1];
       
-      // Create a consistently-sized key from the master encryption key
+      // Create a consistently-sized key from the root encryption key
       const cryptoKey = crypto.createHash('sha256')
-        .update(String(config.security.masterEncryptionKey))
+        .update(String(config.security.rootEncryptionKey))
         .digest();
       
       const decipher = crypto.createDecipheriv(algorithm, cryptoKey, iv);

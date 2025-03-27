@@ -160,7 +160,7 @@ The application uses a layered architecture:
    npm run setup:all
    ```
    This command will:
-   - Generate secure random values for security secrets (MASTER_ENCRYPTION_KEY)
+   - Generate secure random values for security secrets (ROOT_ENCRYPTION_KEY)
    - Initialize the database schema with all necessary tables
    - Build the application
    - Start a temporary server
@@ -336,16 +336,16 @@ This approach ensures:
 1. All API requests are properly authenticated
 2. Each team has its own unique API key
 3. API keys are never stored in plaintext in the database
-4. Even if database contents are exposed, the API keys remain protected by the master encryption key
+4. Even if database contents are exposed, the API keys remain protected by the root encryption key
 
 The encryption uses:
 - AES-256-CBC encryption algorithm
 - A unique initialization vector (IV) for each encrypted key
-- A master encryption key from environment variables (`MASTER_ENCRYPTION_KEY`)
+- A root encryption key from environment variables (`ROOT_ENCRYPTION_KEY`)
 
 For production deployments, it's recommended to:
-- Use a hardware security module (HSM) or key management service (KMS) for the master encryption key
-- Rotate the master encryption key periodically
+- Use a hardware security module (HSM) or key management service (KMS) for the root encryption key
+- Rotate the root encryption key periodically
 - Implement proper key management procedures
 
 ## API Documentation
@@ -497,7 +497,7 @@ Below is a comprehensive list of all environment variables available in `.env.ex
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `MASTER_ENCRYPTION_KEY` | Optional | Auto-generated | Master key for API key encryption |
+| `ROOT_ENCRYPTION_KEY` | Optional | Auto-generated | Root key for API key encryption |
 | `ADMIN_API_KEY` | Optional | Auto-generated | Default admin API key if not created during setup |
 
 ### Server Configuration
@@ -911,7 +911,7 @@ npm run generate:secrets
 ```
 
 This will create the following secrets:
-- `MASTER_ENCRYPTION_KEY`: Used for encrypting API keys
+- `ROOT_ENCRYPTION_KEY`: Used for encrypting API keys
 - `ADMIN_API_KEY`: Used for admin authentication (if not already set up)
 
 #### 4. Database Initialization

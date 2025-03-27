@@ -88,7 +88,7 @@ export const config = {
     url: process.env.REDIS_URL || 'redis://localhost:6379',
   },
   security: {
-    masterEncryptionKey: process.env.MASTER_ENCRYPTION_KEY || 'default_encryption_key_do_not_use_in_production',
+    rootEncryptionKey: process.env.ROOT_ENCRYPTION_KEY || 'default_encryption_key_do_not_use_in_production',
   },
   rateLimiting: {
     windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '60000', 10),
