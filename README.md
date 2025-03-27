@@ -421,7 +421,7 @@ console.log('ARB Price (with chain override):', arbPrice);
 
 ## Chain Override Feature
 
-Our new chain override feature significantly improves API response times when fetching token prices on EVM chains. This is the **recommended way** to use the API for price checking:
+The chain override feature significantly improves API response times when fetching token prices on EVM chains. This is the **recommended way** to use the API for price checking:
 
 ### What is Chain Override?
 
