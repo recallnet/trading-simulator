@@ -10,13 +10,6 @@ function generateSecureSecret(): string {
 }
 
 /**
- * Generate a more human-readable admin API key
- */
-function generateAdminApiKey(): string {
-  return `master_${crypto.randomBytes(16).toString('hex')}`;
-}
-
-/**
  * Generate secrets and update .env file
  */
 async function generateSecrets(): Promise<void> {
@@ -40,30 +33,18 @@ async function generateSecrets(): Promise<void> {
   } else {
     console.error('Error: Neither .env nor .env.example files found.');
     process.exit(1);
-    return;
   }
   
   // Generate secrets
-  const jwtSecret = generateSecureSecret();
-  const apiKeySecret = generateSecureSecret();
-  const hmacSecret = generateSecureSecret();
-  const masterEncryptionKey = generateSecureSecret();
-  const adminApiKey = generateAdminApiKey();
-  const adminApiSecret = generateSecureSecret();
+  const rootEncryptionKey = generateSecureSecret();
   
   // Replace placeholder values
   const placeholderPatterns = [
-    /JWT_SECRET=.*$/m,
-    /API_KEY_SECRET=.*$/m,
-    /HMAC_SECRET=.*$/m,
-    /MASTER_ENCRYPTION_KEY=.*$/m
+    /ROOT_ENCRYPTION_KEY=.*$/m
   ];
   
   const replacements = [
-    `JWT_SECRET=${jwtSecret}`,
-    `API_KEY_SECRET=${apiKeySecret}`,
-    `HMAC_SECRET=${hmacSecret}`,
-    `MASTER_ENCRYPTION_KEY=${masterEncryptionKey}`
+    `ROOT_ENCRYPTION_KEY=${rootEncryptionKey}`
   ];
   
   // Only replace if the value looks like a placeholder or if it's a new file
@@ -94,10 +75,7 @@ async function generateSecrets(): Promise<void> {
   
   console.log('Secrets generated and updated in .env file:');
   console.log('----------------------------------------');
-  console.log(`JWT_SECRET=${jwtSecret}`);
-  console.log(`API_KEY_SECRET=${apiKeySecret}`);
-  console.log(`HMAC_SECRET=${hmacSecret}`);
-  console.log(`MASTER_ENCRYPTION_KEY=${masterEncryptionKey}`);
+  console.log(`ROOT_ENCRYPTION_KEY=${rootEncryptionKey}`);
   console.log('----------------------------------------');
   console.log('These values have been written to your .env file.');
   
@@ -114,12 +92,6 @@ async function generateSecrets(): Promise<void> {
     password: "<your-strong-password>",
     email: "admin@example.com"
   }, null, 2));
-  console.log('\nAlternatively, you can use these generated credentials for API access:');
-  console.log(`API Key: ${adminApiKey}`);
-  console.log(`API Secret: ${adminApiSecret}`);
-  console.log('----------------------------------------');
-  console.log('\nIMPORTANT: Store these admin credentials securely. This is the only time they will be displayed.');
-  console.log('Once you have your admin account set up, you can use it to register teams and manage competitions.');
 }
 
 // Run the script

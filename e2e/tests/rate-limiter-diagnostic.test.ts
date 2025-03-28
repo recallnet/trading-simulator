@@ -1,4 +1,4 @@
-import { setupAdminClient, registerTeamAndGetClient, cleanupTestState, wait, ADMIN_USERNAME, ADMIN_PASSWORD, ADMIN_EMAIL } from '../utils/test-helpers';
+import { registerTeamAndGetClient, cleanupTestState, wait, ADMIN_USERNAME, ADMIN_PASSWORD, ADMIN_EMAIL, createTestClient } from '../utils/test-helpers';
 import axios, { AxiosError } from 'axios';
 import { getBaseUrl } from '../utils/server';
 
@@ -10,30 +10,38 @@ import { getBaseUrl } from '../utils/server';
  */
 describe('Rate Limiter Diagnostics', () => {
   // Begin with clean state
+  let adminApiKey: string;
+  
   beforeEach(async () => {
     await cleanupTestState();
     
     // Create admin account
-    await axios.post(`${getBaseUrl()}/api/admin/setup`, {
+    const response = await axios.post(`${getBaseUrl()}/api/admin/setup`, {
       username: ADMIN_USERNAME,
       password: ADMIN_PASSWORD,
       email: ADMIN_EMAIL
     });
+    
+    // Store the admin API key for authentication
+    adminApiKey = response.data.admin.apiKey;
+    expect(adminApiKey).toBeDefined();
+    console.log(`Admin API key created: ${adminApiKey.substring(0, 8)}...`);
   });
   
   test('properly isolates rate limits by team', async () => {
     // Setup admin client
-    const adminClient = await setupAdminClient();
+    const adminClient = createTestClient();
+    await adminClient.loginAsAdmin(adminApiKey);
     console.log('[DIAGNOSTIC] Admin client setup complete');
     
     // Register two teams
-    const { client: team1Client, team: team1 } = await registerTeamAndGetClient(adminClient, 'Rate Limit Diagnostic Team 1');
-    const { client: team2Client, team: team2 } = await registerTeamAndGetClient(adminClient, 'Rate Limit Diagnostic Team 2');
-    console.log(`[DIAGNOSTIC] Registered Team 1 ID: ${team1.id}, API Key: ${team1.apiKey}`);
-    console.log(`[DIAGNOSTIC] Registered Team 2 ID: ${team2.id}, API Key: ${team2.apiKey}`);
+    const { client: team1Client, team: team1, apiKey: team1ApiKey } = await registerTeamAndGetClient(adminClient, 'Rate Limit Diagnostic Team 1');
+    const { client: team2Client, team: team2, apiKey: team2ApiKey } = await registerTeamAndGetClient(adminClient, 'Rate Limit Diagnostic Team 2');
+    console.log(`[DIAGNOSTIC] Registered Team 1 ID: ${team1.id}, API Key: ${team1ApiKey.substring(0, 8)}...`);
+    console.log(`[DIAGNOSTIC] Registered Team 2 ID: ${team2.id}, API Key: ${team2ApiKey.substring(0, 8)}...`);
     
     // Verify the API keys are different
-    expect(team1.apiKey).not.toEqual(team2.apiKey);
+    expect(team1ApiKey).not.toEqual(team2ApiKey);
     
     // Start a competition with both teams
     await adminClient.startCompetition(

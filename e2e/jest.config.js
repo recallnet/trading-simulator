@@ -12,7 +12,7 @@ module.exports = {
   maxWorkers: 1,     // Use only one worker for test execution
   verbose: true,
   forceExit: true,   // Force exit after all tests complete
-  detectOpenHandles: true,
+  detectOpenHandles: false, // Disable detection of open handles since we're using forceExit
   globals: {
     'ts-jest': {
       tsconfig: 'tsconfig.json',

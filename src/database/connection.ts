@@ -52,11 +52,8 @@ export class DatabaseConnection {
    * @param params Query parameters
    */
   public async query(text: string, params: any[] = []): Promise<any> {
-    const start = Date.now();
     try {
       const res = await this.pool.query(text, params);
-      const duration = Date.now() - start;
-      console.log(`[DatabaseConnection] Executed query in ${duration}ms: ${text}`);
       return res;
     } catch (err) {
       console.error(`[DatabaseConnection] Error executing query: ${text}`, err);
@@ -88,6 +85,5 @@ export class DatabaseConnection {
    */
   public async close(): Promise<void> {
     await this.pool.end();
-    console.log('[DatabaseConnection] Connection pool closed');
   }
 } 

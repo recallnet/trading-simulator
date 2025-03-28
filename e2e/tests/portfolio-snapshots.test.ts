@@ -1,30 +1,37 @@
-import { setupAdminClient, registerTeamAndGetClient, startTestCompetition, cleanupTestState, wait, ADMIN_USERNAME, ADMIN_PASSWORD, ADMIN_EMAIL } from '../utils/test-helpers';
+import { createTestClient, registerTeamAndGetClient, startTestCompetition, cleanupTestState, wait, ADMIN_USERNAME, ADMIN_PASSWORD, ADMIN_EMAIL } from '../utils/test-helpers';
 import axios from 'axios';
 import { getBaseUrl } from '../utils/server';
 import config from '../../src/config';
 import { services } from '../../src/services';
-import { dbManager } from '../utils/db-manager';
 import { BlockchainType } from '../../src/types';
 import { PriceTracker } from '../../src/services/price-tracker.service';
 
 describe('Portfolio Snapshots', () => {
+  let adminApiKey: string;
+
   // Reset database between tests
   beforeEach(async () => {
     // Clean up test state
     await cleanupTestState();
     
     // Create admin account
-    await axios.post(`${getBaseUrl()}/api/admin/setup`, {
+    const response = await axios.post(`${getBaseUrl()}/api/admin/setup`, {
       username: ADMIN_USERNAME,
       password: ADMIN_PASSWORD,
       email: ADMIN_EMAIL
     });
+    
+    // Store the admin API key for authentication
+    adminApiKey = response.data.admin.apiKey;
+    expect(adminApiKey).toBeDefined();
+    console.log(`Admin API key created: ${adminApiKey.substring(0, 8)}...`);
   });
 
   // Test that a snapshot is taken when a competition starts
   test('takes a snapshot when a competition starts', async () => {
     // Setup admin client
-    const adminClient = await setupAdminClient();
+    const adminClient = createTestClient();
+    await adminClient.loginAsAdmin(adminApiKey);
     
     // Register team and get client
     const { client: teamClient, team } = await registerTeamAndGetClient(adminClient, 'Snapshot Test Team');
@@ -59,7 +66,8 @@ describe('Portfolio Snapshots', () => {
   // Test that snapshots can be taken manually
   test('manually taking snapshots creates new portfolio snapshots', async () => {
     // Setup admin client
-    const adminClient = await setupAdminClient();
+    const adminClient = createTestClient();
+    await adminClient.loginAsAdmin(adminApiKey);
     
     // Register team and get client
     const { client: teamClient, team } = await registerTeamAndGetClient(adminClient, 'Periodic Snapshot Team');
@@ -111,7 +119,8 @@ describe('Portfolio Snapshots', () => {
   // Test that a snapshot is taken when a competition ends
   test('takes a snapshot when a competition ends', async () => {
     // Setup admin client
-    const adminClient = await setupAdminClient();
+    const adminClient = createTestClient();
+    await adminClient.loginAsAdmin(adminApiKey);
     
     // Register team and get client
     const { client: teamClient, team } = await registerTeamAndGetClient(adminClient, 'End Snapshot Team');
@@ -167,7 +176,8 @@ describe('Portfolio Snapshots', () => {
   // Test portfolio value calculation accuracy
   test('calculates portfolio value correctly based on token prices', async () => {
     // Setup admin client
-    const adminClient = await setupAdminClient();
+    const adminClient = createTestClient();
+    await adminClient.loginAsAdmin(adminApiKey);
     
     // Register team and get client
     const { client: teamClient, team } = await registerTeamAndGetClient(adminClient, 'Value Calc Team');
@@ -226,7 +236,8 @@ describe('Portfolio Snapshots', () => {
   // Test that price freshness threshold works correctly
   test('reuses prices within freshness threshold', async () => {
     // Setup admin client
-    const adminClient = await setupAdminClient();
+    const adminClient = createTestClient();
+    await adminClient.loginAsAdmin(adminApiKey);
     
     // Register team and get client
     const { client: teamClient, team } = await registerTeamAndGetClient(adminClient, 'Price Freshness Team');

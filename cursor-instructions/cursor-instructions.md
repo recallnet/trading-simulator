@@ -18,7 +18,7 @@ The Multi-Chain Trading Simulator Server will provide a controlled environment f
 
 ### 2.2 Key Features
 
-- Team registration and API key management with HMAC authentication
+- Team registration and API key management with Bearer token authentication
 - Token price simulation using real market data from multiple chains
 - Multi-chain trade execution with configurable parameters
 - Cross-chain trading capabilities (optional)
@@ -109,7 +109,7 @@ The core trading simulation logic has been extended to support:
 - Handles request validation
 
 #### 3.2.2 Authentication & Authorization
-- API key validation
+- API key validation using Bearer token authentication
 - Team identity management
 - Permission enforcement
 - Rate limit enforcement per team
@@ -196,10 +196,8 @@ POST /api/auth/validate
 ```
 
 All protected endpoints require:
-- API Key in request header (`X-API-Key`)
-- Request timestamp in header (`X-Timestamp`)
-- HMAC signature in header (`X-Signature`)
-  - Signature = HMAC-SHA256(requestMethod + path + timestamp + requestBody, apiSecret)
+- Bearer token authentication in the Authorization header
+  - Format: `Authorization: Bearer YOUR_API_KEY`
 
 ### 4.2 Account Management
 
@@ -460,7 +458,6 @@ POST /api/admin/teams/register
       "email": "string",
       "contactPerson": "string",
       "apiKey": "string",
-      "apiSecret": "string",
       "createdAt": "string"
     }
   }
@@ -566,7 +563,7 @@ GET /api/admin/reports/performance
 
 ### 5.1 API Security
 - Use of HTTPS for all connections
-- API key authentication with HMAC signatures for all endpoints
+- Bearer token authentication for all endpoints 
 - Rate limiting to prevent abuse
 - Input validation to prevent injection attacks
 - API keys are 32+ random characters with high entropy

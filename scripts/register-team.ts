@@ -13,7 +13,7 @@
  * The script will:
  * 1. Connect to the database
  * 2. Create a new team with API credentials
- * 3. Display the API key and secret (which is only shown ONCE)
+ * 3. Display the API key (only shown once)
  * 4. Close the database connection
  */
 import * as readline from 'readline';
@@ -140,16 +140,12 @@ async function registerTeam() {
     safeLog(`Contact: ${team.contactPerson}`);
     safeLog(`${colors.cyan}----------------------------------------${colors.reset}`);
     
-    // Get API secret from the extended team object
-    const apiSecret = (team as any).apiSecret;
-    
     safeLog(`\n${colors.yellow}API Credentials (SAVE THESE SECURELY):${colors.reset}`);
     safeLog(`${colors.yellow}----------------------------------------${colors.reset}`);
     safeLog(`API Key: ${team.apiKey}`);
-    safeLog(`API Secret: ${apiSecret}`);
     safeLog(`${colors.yellow}----------------------------------------${colors.reset}`);
     
-    safeLog(`\n${colors.red}IMPORTANT: The API Secret will only be shown once when the team is first created.${colors.reset}`);
+    safeLog(`\n${colors.red}IMPORTANT: The API Key will only be shown once when the team is first created.${colors.reset}`);
     safeLog(`Make sure to securely store these credentials.`);
     
   } catch (error) {

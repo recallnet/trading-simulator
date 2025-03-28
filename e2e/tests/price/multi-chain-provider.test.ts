@@ -6,7 +6,7 @@ import {
   ADMIN_USERNAME, 
   ADMIN_PASSWORD, 
   ADMIN_EMAIL,
-  setupAdminClient,
+  createTestClient,
   cleanupTestState,
   registerTeamAndGetClient
 } from '../../utils/test-helpers';
@@ -68,6 +68,7 @@ describe('Multi-Chain Provider Tests', () => {
   // Add authenticated clients
   let adminClient: ApiClient;
   let client: ApiClient;
+  let adminApiKey: string;
   
   // Initialize database before all tests
   beforeAll(async () => {
@@ -80,14 +81,20 @@ describe('Multi-Chain Provider Tests', () => {
     await cleanupTestState();
     
     // Create admin account directly
-    await axios.post(`${getBaseUrl()}/api/admin/setup`, {
+    const response = await axios.post(`${getBaseUrl()}/api/admin/setup`, {
       username: ADMIN_USERNAME,
       password: ADMIN_PASSWORD,
       email: ADMIN_EMAIL
     });
     
+    // Store the admin API key for authentication
+    adminApiKey = response.data.admin.apiKey;
+    expect(adminApiKey).toBeDefined();
+    console.log(`Admin API key created: ${adminApiKey.substring(0, 8)}...`);
+    
     // Setup admin client
-    adminClient = await setupAdminClient();
+    adminClient = createTestClient();
+    await adminClient.loginAsAdmin(adminApiKey);
     
     // Register a team and get an authenticated client
     const result = await registerTeamAndGetClient(adminClient);
@@ -95,7 +102,6 @@ describe('Multi-Chain Provider Tests', () => {
     
     // Log the API key to verify it's correctly set
     console.log(`Test client API key: ${result.apiKey}`);
-    console.log(`Test client API secret available: ${!!result.team.apiSecret}`);
   });
   
   // Check database schema as a test

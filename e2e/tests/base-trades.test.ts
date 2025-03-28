@@ -1,4 +1,4 @@
-import { setupAdminClient, registerTeamAndGetClient, startTestCompetition, cleanupTestState, wait, ADMIN_USERNAME, ADMIN_PASSWORD, ADMIN_EMAIL } from '../utils/test-helpers';
+import { createTestClient, registerTeamAndGetClient, startTestCompetition, cleanupTestState, wait, ADMIN_USERNAME, ADMIN_PASSWORD, ADMIN_EMAIL } from '../utils/test-helpers';
 import axios from 'axios';
 import { getBaseUrl } from '../utils/server';
 import config, { features } from '../../src/config';
@@ -18,6 +18,8 @@ console.log(`- Imported config from ../../src/config has initial balances:`, {
 console.log('===========================================================\n');
 
 describe('Base Chain Trading', () => {
+  let adminApiKey: string;
+  
   // Base tokens to test with
   const BASE_TOKENS = [
     '0x3992B27dA26848C2b19CeA6Fd25ad5568B68AB98', // DEGEN
@@ -45,18 +47,24 @@ describe('Base Chain Trading', () => {
     await cleanupTestState();
     
     // Create admin account
-    await axios.post(`${getBaseUrl()}/api/admin/setup`, {
+    const response = await axios.post(`${getBaseUrl()}/api/admin/setup`, {
       username: ADMIN_USERNAME,
       password: ADMIN_PASSWORD,
       email: ADMIN_EMAIL
     });
+    
+    // Store the admin API key for authentication
+    adminApiKey = response.data.admin.apiKey;
+    expect(adminApiKey).toBeDefined();
+    console.log(`Admin API key created: ${adminApiKey.substring(0, 8)}...`);
   });
   
   test('team can trade Base tokens with explicit chain parameters', async () => {
     console.log('[Test] Starting Base chain trading test with explicit chain parameters');
     
     // Setup admin client
-    const adminClient = await setupAdminClient();
+    const adminClient = createTestClient();
+    await adminClient.loginAsAdmin(adminApiKey);
     
     // Register team and get client
     const { client: teamClient, team } = await registerTeamAndGetClient(adminClient, 'Base Chain Trading Team');
@@ -210,7 +218,8 @@ describe('Base Chain Trading', () => {
     console.log(`Features config setting: features.ALLOW_CROSS_CHAIN_TRADING = ${features.ALLOW_CROSS_CHAIN_TRADING}`);
     
     // Setup admin client
-    const adminClient = await setupAdminClient();
+    const adminClient = createTestClient();
+    await adminClient.loginAsAdmin(adminApiKey);
     
     // Register team and get client
     const { client: teamClient, team } = await registerTeamAndGetClient(adminClient, 'Cross-Chain Restriction Team');
@@ -363,7 +372,8 @@ describe('Base Chain Trading', () => {
     console.log('[Test] Starting test to verify spending limits');
     
     // Setup admin client
-    const adminClient = await setupAdminClient();
+    const adminClient = createTestClient();
+    await adminClient.loginAsAdmin(adminApiKey);
     
     // Register team and get client
     const { client: teamClient, team } = await registerTeamAndGetClient(adminClient, 'Spending Limit Team');

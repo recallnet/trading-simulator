@@ -1,5 +1,5 @@
 import { 
-  setupAdminClient, 
+  createTestClient,
   cleanupTestState, 
   ADMIN_USERNAME, 
   ADMIN_PASSWORD, 
@@ -27,20 +27,27 @@ describe('Price Fetching', () => {
   // Create variables for authenticated clients
   let adminClient: ApiClient;
   let client: ApiClient;
+  let adminApiKey: string;
   
   // Clean up test state before each test
   beforeEach(async () => {
     await cleanupTestState();
     
     // Create admin account directly using the setup endpoint
-    await axios.post(`${getBaseUrl()}/api/admin/setup`, {
+    const response = await axios.post(`${getBaseUrl()}/api/admin/setup`, {
       username: ADMIN_USERNAME,
       password: ADMIN_PASSWORD,
       email: ADMIN_EMAIL
     });
     
+    // Store the admin API key for authentication
+    adminApiKey = response.data.admin.apiKey;
+    expect(adminApiKey).toBeDefined();
+    console.log(`Admin API key created: ${adminApiKey.substring(0, 8)}...`);
+    
     // Setup admin client
-    adminClient = await setupAdminClient();
+    adminClient = createTestClient();
+    await adminClient.loginAsAdmin(adminApiKey);
     
     // Register a team and get an authenticated client
     const result = await registerTeamAndGetClient(adminClient);

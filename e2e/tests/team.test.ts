@@ -1,23 +1,34 @@
-import { setupAdminClient, registerTeamAndGetClient, cleanupTestState, ADMIN_USERNAME, ADMIN_PASSWORD, ADMIN_EMAIL } from '../utils/test-helpers';
+import { registerTeamAndGetClient, cleanupTestState, ADMIN_USERNAME, ADMIN_PASSWORD, ADMIN_EMAIL, createTestClient } from '../utils/test-helpers';
 import axios from 'axios';
 import { getBaseUrl } from '../utils/server';
 
 describe('Team API', () => {
   // Clean up test state before each test
+  let adminApiKey: string;
+  
   beforeEach(async () => {
     await cleanupTestState();
     
     // Create admin account directly using the setup endpoint
-    await axios.post(`${getBaseUrl()}/api/admin/setup`, {
+    const response = await axios.post(`${getBaseUrl()}/api/admin/setup`, {
       username: ADMIN_USERNAME,
       password: ADMIN_PASSWORD,
       email: ADMIN_EMAIL
     });
+    
+    // Store the admin API key for authentication
+    adminApiKey = response.data.admin.apiKey;
+    expect(adminApiKey).toBeDefined();
+    console.log(`Admin API key created: ${adminApiKey.substring(0, 8)}...`);
   });
-  
+
   test('admin can register a team and team can authenticate', async () => {
-    // Setup admin client
-    const adminClient = await setupAdminClient();
+    // Create a test client
+    const client = createTestClient();
+    // Attempt to login as admin with correct API key
+    console.log(`TEST: Attempting to login with admin API key: ${adminApiKey.substring(0, 8)}...`);
+    const loginSuccess = await client.loginAsAdmin(adminApiKey);
+    console.log(`TEST: Login result: ${loginSuccess}`);
     
     // Register a team
     const teamName = `Team ${Date.now()}`;
@@ -25,7 +36,7 @@ describe('Team API', () => {
     const contactPerson = 'Test Contact';
     
     const { client: teamClient, team, apiKey } = await registerTeamAndGetClient(
-      adminClient, 
+      client, 
       teamName,
       email,
       contactPerson
@@ -48,10 +59,14 @@ describe('Team API', () => {
   
   test('teams can update their profile information', async () => {
     // Setup admin client
-    const adminClient = await setupAdminClient();
+    const client = createTestClient();
+    // Attempt to login as admin with correct API key
+    console.log(`TEST: Attempting to login with admin API key: ${adminApiKey.substring(0, 8)}...`);
+    const loginSuccess = await client.loginAsAdmin(adminApiKey);
+    console.log(`TEST: Login result: ${loginSuccess}`);
     
     // Register a team
-    const { client: teamClient, team } = await registerTeamAndGetClient(adminClient);
+    const { client: teamClient } = await registerTeamAndGetClient(client);
     
     // Update team profile
     const newContactPerson = 'Updated Contact Person';
@@ -71,14 +86,18 @@ describe('Team API', () => {
   
   test('team cannot authenticate with invalid API key', async () => {
     // Setup admin client
-    const adminClient = await setupAdminClient();
+    const client = createTestClient();
+    // Attempt to login as admin with correct API key
+    console.log(`TEST: Attempting to login with admin API key: ${adminApiKey.substring(0, 8)}...`);
+    const loginSuccess = await client.loginAsAdmin(adminApiKey);
+    console.log(`TEST: Login result: ${loginSuccess}`);
     
     // Register a team
-    await registerTeamAndGetClient(adminClient);
+    await registerTeamAndGetClient(client);
     
     // Create a client with an invalid API key
-    const invalidApiKey = 'invalid_api_key';
-    const invalidClient = adminClient.createTeamClient(invalidApiKey);
+    const invalidApiKey = 'invalid_key_12345';
+    const invalidClient = client.createTeamClient(invalidApiKey);
     
     // Try to get profile with invalid API key
     try {
@@ -99,7 +118,9 @@ describe('Team API', () => {
   
   test('admin can list all registered teams', async () => {
     // Setup admin client
-    const adminClient = await setupAdminClient();
+    const adminClient = createTestClient();
+    const adminLoginSuccess = await adminClient.loginAsAdmin(adminApiKey);
+    expect(adminLoginSuccess).toBe(true);
     
     // Register multiple teams
     const teamData = [

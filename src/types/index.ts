@@ -127,7 +127,6 @@ export interface Team {
   email: string;
   contactPerson: string;
   apiKey: string;
-  apiSecretEncrypted?: string;  // Encrypted API secret for HMAC validation
   isAdmin?: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -173,5 +172,4 @@ export interface PortfolioValue {
 export interface ApiAuth {
   teamId: string;
   key: string;
-  secret: string;
 } 

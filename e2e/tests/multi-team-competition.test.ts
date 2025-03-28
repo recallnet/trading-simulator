@@ -1,4 +1,4 @@
-import { setupAdminClient, registerTeamAndGetClient, startTestCompetition, cleanupTestState, wait, ADMIN_USERNAME, ADMIN_PASSWORD, ADMIN_EMAIL } from '../utils/test-helpers';
+import { createTestClient, registerTeamAndGetClient, startTestCompetition, cleanupTestState, wait, ADMIN_USERNAME, ADMIN_PASSWORD, ADMIN_EMAIL } from '../utils/test-helpers';
 import axios from 'axios';
 import { getBaseUrl } from '../utils/server';
 import config from '../../src/config';
@@ -6,6 +6,8 @@ import { BlockchainType } from '../../src/types';
 import { services } from '../../src/services';
 
 describe('Multi-Team Competition', () => {
+  let adminApiKey: string;
+  
   // Number of teams to create for multi-team tests
   const NUM_TEAMS = 6;
   
@@ -35,18 +37,24 @@ describe('Multi-Team Competition', () => {
     await cleanupTestState();
     
     // Create admin account directly using the setup endpoint
-    await axios.post(`${getBaseUrl()}/api/admin/setup`, {
+    const response = await axios.post(`${getBaseUrl()}/api/admin/setup`, {
       username: ADMIN_USERNAME,
       password: ADMIN_PASSWORD,
       email: ADMIN_EMAIL
     });
+    
+    // Store the admin API key for authentication
+    adminApiKey = response.data.admin.apiKey;
+    expect(adminApiKey).toBeDefined();
+    console.log(`Admin API key created: ${adminApiKey.substring(0, 8)}...`);
   });
 
   test('should create a competition with multiple teams and validate isolation', async () => {
     console.log('[Test] Starting multi-team competition test');
     
     // Step 1: Setup admin client
-    adminClient = await setupAdminClient();
+    adminClient = createTestClient();
+    await adminClient.loginAsAdmin(adminApiKey);
     
     // Step 2: Register 6 teams with unique names
     console.log(`Registering ${NUM_TEAMS} teams...`);
@@ -142,9 +150,7 @@ describe('Multi-Team Competition', () => {
         `${getBaseUrl()}/api/account/profile?teamId=${teamClients[1].team.id}`, 
         {
           headers: {
-            'X-API-Key': team1ApiKey,
-            // This approach deliberately omits the proper HMAC signature that would be added by ApiClient
-            // We're directly checking that Team 1's API key can't access Team 2's data
+            'Authorization': `Bearer ${team1ApiKey}`,
           }
         }
       );
@@ -206,7 +212,8 @@ describe('Multi-Team Competition', () => {
     console.log('[Test] Starting multi-team unique token purchasing test');
     
     // Step 1: Setup admin client
-    adminClient = await setupAdminClient();
+    adminClient = createTestClient();
+    await adminClient.loginAsAdmin(adminApiKey);
     
     // Step 2: Register 6 teams with unique names
     console.log(`Registering ${NUM_TEAMS} teams...`);
@@ -355,7 +362,8 @@ describe('Multi-Team Competition', () => {
       console.log('[Test] Starting portfolio value fluctuation test');
       
       // Step 1: Setup admin client
-      adminClient = await setupAdminClient();
+      adminClient = createTestClient();
+      await adminClient.loginAsAdmin(adminApiKey);
       
       // Step 2: Register teams with unique names
       console.log(`Registering ${NUM_TEAMS} teams...`);

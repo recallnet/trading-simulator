@@ -1,6 +1,7 @@
 import { ApiClient } from './api-client';
 import { dbManager } from './db-manager';
 import { resetRateLimiters } from '../../src/middleware/rate-limiter.middleware';
+import * as crypto from 'crypto';
 
 // Configured test token address
 export const TEST_TOKEN_ADDRESS = process.env.TEST_SOL_TOKEN_ADDRESS || '4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R';
@@ -18,31 +19,10 @@ let isDatabaseInitialized = false;
  * This is useful for creating a client that doesn't have predefined API credentials
  */
 export function createTestClient(baseUrl?: string): ApiClient {
-  const randomKey = `sk_test_${generateRandomString(32)}`;
-  const randomSecret = generateRandomString(64);
-  return new ApiClient(randomKey, randomSecret, baseUrl);
-}
-
-/**
- * Create and setup an admin API client
- */
-export async function setupAdminClient(): Promise<ApiClient> {
-  // Ensure database is initialized using DbManager
-  await ensureDatabaseInitialized();
-  
-  const client = createTestClient();
-  
-  // Use fixed admin credentials that match setup-admin.ts
-  const username = ADMIN_USERNAME;
-  const password = ADMIN_PASSWORD;
-  
-  // Login as admin
-  const loginSuccess = await client.loginAsAdmin(username, password);
-  if (!loginSuccess) {
-    throw new Error(`Failed to login as admin with username: ${username}`);
-  }
-  
-  return client;
+  // Generate a random key
+  const segment1 = crypto.randomBytes(8).toString('hex');  // 16 chars
+  const segment2 = crypto.randomBytes(8).toString('hex');  // 16 chars
+  return new ApiClient(`${segment1}_${segment2}`, baseUrl);
 }
 
 /**
@@ -68,8 +48,8 @@ export async function registerTeamAndGetClient(
     throw new Error('Failed to register team');
   }
   
-  // Create a client with the team's API credentials
-  const client = new ApiClient(result.team.apiKey, result.team.apiSecret);
+  // Create a client with the team's API key
+  const client = new ApiClient(result.team.apiKey);
   
   return { client, team: result.team, apiKey: result.team.apiKey };
 }
