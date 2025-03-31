@@ -1,7 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { RateLimiterMemory, RateLimiterRes, IRateLimiterOptions } from 'rate-limiter-flexible';
 import { ApiError } from './errorHandler';
-import { config } from '../config';
 
 // Define rate limiter configurations
 const rateLimiterConfigs = {

@@ -9,6 +9,17 @@ const rl = readline.createInterface({
   output: process.stdout
 });
 
+// Colors for console output
+const colors = {
+  red: '\x1b[31m',
+  yellow: '\x1b[33m',
+  green: '\x1b[32m',
+  blue: '\x1b[34m',
+  cyan: '\x1b[36m',
+  magenta: '\x1b[35m',
+  reset: '\x1b[0m'
+};
+
 // Prompt function that returns a promise
 function prompt(question: string): Promise<string> {
   return new Promise((resolve) => {
@@ -77,7 +88,13 @@ function generateRandomPassword(length: number = 12): string {
 
 async function setupAdmin() {
   try {
-    console.log('Setting up admin account...');
+    // Banner with clear visual separation
+    console.log('\n\n');
+    console.log(`${colors.magenta}╔════════════════════════════════════════════════════════════════╗${colors.reset}`);
+    console.log(`${colors.magenta}║                         ADMIN SETUP                           ║${colors.reset}`);
+    console.log(`${colors.magenta}╚════════════════════════════════════════════════════════════════╝${colors.reset}`);
+    
+    console.log(`\n${colors.cyan}Setting up admin account...${colors.reset}`);
     
     // Get admin details from command line arguments or prompt for them
     let username = process.argv[2];
@@ -85,22 +102,22 @@ async function setupAdmin() {
     let email = process.argv[4];
     
     if (!username) {
-      username = await prompt('Enter admin username (default: admin): ');
+      username = await prompt(`${colors.cyan}Enter admin username (default: admin): ${colors.reset}`);
       username = username || 'admin';
     }
     
     if (!password) {
-      const useGenerated = await prompt('Generate random password? (y/n, default: y): ');
+      const useGenerated = await prompt(`${colors.cyan}Generate random password? (y/n, default: y): ${colors.reset}`);
       
       if (useGenerated.toLowerCase() !== 'n') {
         password = generateRandomPassword();
-        console.log(`Generated password: ${password}`);
+        console.log(`${colors.green}Generated password: ${password}${colors.reset}`);
       } else {
-        password = await promptPassword('Enter admin password: ');
-        const confirmPassword = await promptPassword('Confirm admin password: ');
+        password = await promptPassword(`${colors.cyan}Enter admin password: ${colors.reset}`);
+        const confirmPassword = await promptPassword(`${colors.cyan}Confirm admin password: ${colors.reset}`);
         
         if (password !== confirmPassword) {
-          console.error('Passwords do not match. Please try again.');
+          console.error(`${colors.red}Passwords do not match. Please try again.${colors.reset}`);
           rl.close();
           return;
         }
@@ -108,7 +125,7 @@ async function setupAdmin() {
     }
     
     if (!email) {
-      email = await prompt('Enter admin email (default: admin@example.com): ');
+      email = await prompt(`${colors.cyan}Enter admin email (default: admin@example.com): ${colors.reset}`);
       email = email || 'admin@example.com';
     }
     
@@ -116,7 +133,7 @@ async function setupAdmin() {
     const port = config.server.port || 3000;
     const baseUrl = `http://localhost:${port}`;
     
-    console.log(`Attempting to connect to server at ${baseUrl}...`);
+    console.log(`${colors.blue}Attempting to connect to server at ${baseUrl}...${colors.reset}`);
     
     // Wait for server to be available (maximum 30 seconds)
     let serverAvailable = false;
@@ -132,36 +149,52 @@ async function setupAdmin() {
     }
     
     if (!serverAvailable) {
-      console.error('\nCould not connect to server after 30 seconds. Please ensure the server is running and try again.');
+      console.error(`\n${colors.red}Could not connect to server after 30 seconds. Please ensure the server is running and try again.${colors.reset}`);
       rl.close();
       return;
     }
     
-    console.log('\nServer is up! Creating admin account...');
+    console.log(`\n${colors.green}Server is up! Creating admin account...${colors.reset}`);
     
+    // Send the request to create admin and CAPTURE THE RESPONSE
     const response = await axios.post(`${baseUrl}/api/admin/setup`, {
       username,
       password,
       email
     });
     
-    console.log('\nAdmin account created successfully!');
-    console.log('----------------------------------------');
-    console.log('Username:', username);
-    console.log('Email:', email);
-    console.log('Password:', password);
-    console.log('----------------------------------------');
-    console.log('\nYou can now log in with these credentials to manage the trading simulator.');
+    // Extract the API key from the response
+    const adminApiKey = response.data.admin.apiKey;
+    
+    console.log(`\n${colors.green}✓ Admin account created successfully!${colors.reset}`);
+    console.log(`\n${colors.cyan}Admin Account Details:${colors.reset}`);
+    console.log(`${colors.cyan}----------------------------------------${colors.reset}`);
+    console.log(`Username: ${username}`);
+    console.log(`Email: ${email}`);
+    console.log(`Password: ${password}`);
+    console.log(`${colors.cyan}----------------------------------------${colors.reset}`);
+    
+    console.log(`\n${colors.yellow}API Key (SAVE THIS SECURELY):${colors.reset}`);
+    console.log(`${colors.yellow}----------------------------------------${colors.reset}`);
+    console.log(`API Key: ${adminApiKey}`);
+    console.log(`${colors.yellow}----------------------------------------${colors.reset}`);
+    
+    console.log(`\n${colors.red}IMPORTANT: The API Key will only be shown once!${colors.reset}`);
+    console.log(`${colors.red}Make sure to securely store this API key.${colors.reset}`);
+    console.log('\nYou can now use this API key to authenticate admin requests:');
+    console.log(`${colors.blue}Authorization: Bearer ${adminApiKey}${colors.reset}`);
+    
+    console.log(`\n${colors.green}You can now log in with these credentials to manage the trading simulator.${colors.reset}`);
     
   } catch (error) {
     if (axios.isAxiosError(error) && error.response) {
-      console.error(`\nError setting up admin account: ${error.response.data.message || error.response.data.error || error.message}`);
+      console.error(`\n${colors.red}Error setting up admin account: ${error.response.data.message || error.response.data.error || error.message}${colors.reset}`);
       
       if (error.response.status === 403 && error.response.data.message?.includes('admin account already exists')) {
-        console.log('\nAn admin account already exists. You can use the existing admin account to manage the trading simulator.');
+        console.log(`\n${colors.yellow}An admin account already exists. You can use the existing admin account to manage the trading simulator.${colors.reset}`);
       }
     } else {
-      console.error('\nError setting up admin account:', error);
+      console.error(`\n${colors.red}Error setting up admin account:${colors.reset}`, error);
     }
   } finally {
     rl.close();

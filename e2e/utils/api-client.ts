@@ -1,33 +1,28 @@
 import axios, { AxiosInstance } from 'axios';
-import { createHmac } from 'crypto';
 
 /**
  * API client for testing the Solana Trading Simulator
  * 
- * This client handles authentication, request signing, and convenience methods
+ * This client handles authentication and convenience methods
  * for interacting with the API endpoints.
  */
 export class ApiClient {
   private axiosInstance: AxiosInstance;
   private apiKey: string | undefined;
-  private apiSecret: string | undefined;
-  private jwtToken: string | null = null;
   private baseUrl: string;
+  private adminApiKey: string | undefined;
 
   /**
    * Create a new API client
    * 
    * @param apiKey API key for authentication
-   * @param apiSecret API secret for request signing
    * @param baseUrl Optional custom base URL
    */
   constructor(
     apiKey?: string,
-    apiSecret?: string,
     baseUrl: string = 'http://localhost:3001'
   ) {
     this.apiKey = apiKey;
-    this.apiSecret = apiSecret;
     this.baseUrl = baseUrl;
     
     // Create axios instance
@@ -38,50 +33,25 @@ export class ApiClient {
       }
     });
     
-    // Add interceptor to sign requests
+    // Add interceptor to add authentication header
     this.axiosInstance.interceptors.request.use((config) => {
       // Add common headers
       config.headers = config.headers || {};
       
-      // For admin routes, use JWT authentication if available
-      if (this.jwtToken && (config.url?.startsWith('/api/admin') || config.url?.includes('admin'))) {
-        config.headers['Authorization'] = `Bearer ${this.jwtToken}`;
+      // Set authentication header if API key is available
+      if (this.apiKey) {
+        config.headers['Authorization'] = `Bearer ${this.apiKey}`;
       }
       
-      // For all routes, use HMAC authentication
-      if (this.apiKey && this.apiSecret) {
-        const timestamp = new Date(Date.now() + 2 * 365 * 24 * 60 * 60 * 1000).toISOString(); // 2 years in the future
-        const method = config.method?.toUpperCase() || 'GET';
-        const path = config.url || '';
-        
-        // CRITICAL: Ensure path starts with a forward slash for signature generation
-        // This must match the path format expected by the server
-        const pathForSignature = path.startsWith('/') ? path : `/${path}`;
-        
-        // IMPORTANT: Strip query parameters for signature generation
-        // The server only uses the base path (without query parameters) for signature validation
-        const pathWithoutQuery = pathForSignature.split('?')[0];
-        
-        const body = config.data ? JSON.stringify(config.data) : '{}';
-        
-        const payload = method + pathWithoutQuery + timestamp + body;
-        const signature = this.calculateSignature(payload);
-        
-        console.log(`[ApiClient] Request details:`)
-        console.log(`[ApiClient] Method: ${method}`)
-        console.log(`[ApiClient] Path: ${path}`)
-        console.log(`[ApiClient] Path for signature: ${pathWithoutQuery}`)
-        console.log(`[ApiClient] Timestamp: ${timestamp}`)
-        console.log(`[ApiClient] Body: ${body}`)
-        console.log(`[ApiClient] Payload: ${payload}`)
-        console.log(`[ApiClient] API Key: ${this.apiKey}`)
-        console.log(`[ApiClient] Secret Length: ${this.apiSecret.length}`)
-        console.log(`[ApiClient] Signature: ${signature}`)
-        
-        config.headers['X-API-Key'] = this.apiKey;
-        config.headers['X-Timestamp'] = timestamp;
-        config.headers['X-Signature'] = signature;
+      // For admin routes, use admin API key if available and different from regular API key
+      if (this.adminApiKey && 
+          (config.url?.startsWith('/api/admin') || config.url?.includes('admin')) && 
+          this.adminApiKey !== this.apiKey) {
+        config.headers['Authorization'] = `Bearer ${this.adminApiKey}`;
       }
+      
+      // Log request (simplified)
+      console.log(`[ApiClient] Request to ${config.method?.toUpperCase()} ${config.url}`);
       
       return config;
     });
@@ -94,18 +64,6 @@ export class ApiClient {
         return Promise.reject(error);
       }
     );
-  }
-  
-  /**
-   * Calculate HMAC signature
-   */
-  private calculateSignature(payload: string): string {
-    if (!this.apiSecret) {
-      throw new Error('API secret is required for signature calculation');
-    }
-    return createHmac('sha256', this.apiSecret)
-      .update(payload)
-      .digest('hex');
   }
   
   /**
@@ -139,6 +97,11 @@ export class ApiClient {
         email
       });
       
+      // If admin creation is successful, store the returned API key
+      if (response.data.success && response.data.admin?.apiKey) {
+        this.adminApiKey = response.data.admin.apiKey;
+      }
+      
       return response.data.success;
     } catch (error) {
       return this.handleApiError(error, 'create admin account').success;
@@ -146,22 +109,19 @@ export class ApiClient {
   }
   
   /**
-   * Login as admin
+   * Login as admin (this method now expects the admin API key directly)
    */
-  async loginAsAdmin(username: string, password: string): Promise<boolean> {
+  async loginAsAdmin(apiKey: string): Promise<boolean> {
     try {
-      const response = await this.axiosInstance.post('/api/auth/login', {
-        username,
-        password
-      });
+      // Store the admin API key
+      this.adminApiKey = apiKey;
       
-      if (response.data.success && response.data.token) {
-        this.jwtToken = response.data.token;
-        return true;
-      }
-      
-      return false;
+      // Verify the API key by making a simple admin request
+      const response = await this.axiosInstance.get('/api/admin/teams');
+      return response.data.success;
     } catch (error) {
+      // Clear the admin API key if login fails
+      this.adminApiKey = undefined;
       return this.handleApiError(error, 'login as admin').success;
     }
   }
@@ -204,7 +164,7 @@ export class ApiClient {
    * Create a team client with a provided API key
    */
   createTeamClient(apiKey: string): ApiClient {
-    return new ApiClient(apiKey, this.apiSecret, this.baseUrl);
+    return new ApiClient(apiKey, this.baseUrl);
   }
   
   /**

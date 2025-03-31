@@ -15,7 +15,7 @@ To run these examples, you need:
 
 1. Node.js (v14 or newer)
 2. TypeScript (v4.0 or newer)
-3. Your team's API credentials (API key and secret)
+3. Your team's API key (obtained during registration)
 
 ## Setup
 
@@ -25,7 +25,7 @@ To run these examples, you need:
 npm install typescript ts-node @types/node
 ```
 
-2. Replace the API key and secret in the examples with your team's credentials.
+2. Replace the API key in the examples with your team's credential.
 
 ## Running the Examples
 
@@ -185,12 +185,12 @@ import { TradingSimulatorClient, BlockchainType, SpecificChain, COMMON_TOKENS } 
 // Create a client instance
 const client = new TradingSimulatorClient(
   'your-api-key',
-  'your-api-secret',
-  'http://localhost:3001' // Use the correct API URL
+  'http://localhost:3000', // Use the correct API URL
+  false // Debug mode (optional)
 );
 
 // Get balances
-const balances = await client.getBalances();
+const balances = await client.getBalance();
 console.log('Balances:', balances);
 
 // Execute a trade on Base chain
@@ -206,7 +206,7 @@ const baseTrade = await client.executeTrade({
 console.log('Base Trade Result:', baseTrade);
 
 // Get trade history
-const trades = await client.getTrades();
+const trades = await client.getTradeHistory();
 console.log('Trade History:', trades);
 ```
 
@@ -216,19 +216,21 @@ For specific use cases, you may want to make requests directly to the API withou
 
 ## Authentication
 
-All requests to the API require authentication using the HMAC method:
+The API uses Bearer token authentication:
 
-1. Generate a timestamp in ISO format
-2. Create a string by concatenating: HTTP method + path + timestamp + body
-3. Calculate an HMAC-SHA256 signature using your API secret
-4. Include the following headers in your request:
-   - `X-API-Key`: Your API key
-   - `X-Timestamp`: The timestamp
-   - `X-Signature`: The calculated signature
+1. Obtain your API key during team registration
+2. Include the following header in your request:
+   - `Authorization`: `Bearer your-api-key`
    - `Content-Type`: `application/json`
+
+This simplified authentication approach makes it easier to integrate with the API while maintaining security.
 
 See the examples for detailed implementation.
 
 ## Further Documentation
 
-For comprehensive API documentation, see the main [API_DOCUMENTATION.md](../API_DOCUMENTATION.md) file. 
+For comprehensive API documentation, see:
+
+1. The generated OpenAPI specification at `../openapi.json`
+2. The Markdown API documentation at `../API.md`
+3. The Swagger UI available at `http://localhost:3000/api/docs` when the server is running 

@@ -1,36 +1,53 @@
-import { setupAdminClient, createTestClient, cleanupTestState, ADMIN_USERNAME, ADMIN_PASSWORD, ADMIN_EMAIL } from '../utils/test-helpers';
+import { createTestClient, cleanupTestState, ADMIN_USERNAME, ADMIN_PASSWORD, ADMIN_EMAIL } from '../utils/test-helpers';
 import axios from 'axios';
 import { getBaseUrl } from '../utils/server';
 
 describe('Admin API', () => {
+  let adminApiKey: string;
+
   // Clean up test state before each test
   beforeEach(async () => {
     await cleanupTestState();
     
     // Create admin account directly using the setup endpoint
-    await axios.post(`${getBaseUrl()}/api/admin/setup`, {
+    const response = await axios.post(`${getBaseUrl()}/api/admin/setup`, {
       username: ADMIN_USERNAME,
       password: ADMIN_PASSWORD,
       email: ADMIN_EMAIL
     });
+    
+    // Store the admin API key for authentication
+    adminApiKey = response.data.admin.apiKey;
+    expect(adminApiKey).toBeDefined();
+    console.log(`Admin API key created: ${adminApiKey.substring(0, 8)}...`);
   });
   
   test('should authenticate as admin', async () => {
+    console.log('TEST: Starting admin authentication test');
+    
     // Create a test client
     const client = createTestClient();
+    console.log('TEST: Created test client');
     
-    // Attempt to login as admin with correct credentials
-    const loginSuccess = await client.loginAsAdmin(ADMIN_USERNAME, ADMIN_PASSWORD);
+    // Attempt to login as admin with correct API key
+    console.log(`TEST: Attempting to login with admin API key: ${adminApiKey.substring(0, 8)}...`);
+    const loginSuccess = await client.loginAsAdmin(adminApiKey);
+    console.log(`TEST: Login result: ${loginSuccess}`);
     expect(loginSuccess).toBe(true);
     
-    // Attempt to login with incorrect password and assert failure
-    const failedLogin = await client.loginAsAdmin(ADMIN_USERNAME, 'wrong-password');
+    // Attempt to login with incorrect API key and assert failure
+    console.log('TEST: Attempting to login with invalid API key');
+    const failedLogin = await client.loginAsAdmin('invalid_api_key');
+    console.log(`TEST: Invalid login result: ${failedLogin}`);
     expect(failedLogin).toBe(false);
+    
+    console.log('TEST: Admin authentication test completed');
   });
   
   test('should register a team via admin API', async () => {
-    // Setup admin client
-    const adminClient = await setupAdminClient();
+    // Setup admin client with the API key
+    const adminClient = createTestClient();
+    await adminClient.loginAsAdmin(adminApiKey);
     
     // Register a new team
     const teamName = `Test Team ${Date.now()}`;
@@ -46,8 +63,6 @@ describe('Admin API', () => {
     expect(result.team.email).toBe(teamEmail);
     expect(result.team.contactPerson).toBe(contactPerson);
     expect(result.team.apiKey).toBeDefined();
-    expect(result.team.apiKey).toMatch(/^sk_/);
-    expect(result.team.apiSecret).toBeDefined();
   });
   
   test('should not allow team registration without admin auth', async () => {
@@ -66,8 +81,9 @@ describe('Admin API', () => {
   });
   
   test('should not allow registration of teams with duplicate email', async () => {
-    // Setup admin client
-    const adminClient = await setupAdminClient();
+    // Setup admin client with the API key
+    const adminClient = createTestClient();
+    await adminClient.loginAsAdmin(adminApiKey);
     
     // Register first team
     const teamEmail = `same-email-${Date.now()}@test.com`;
@@ -93,8 +109,9 @@ describe('Admin API', () => {
   });
   
   test('should delete a team as admin', async () => {
-    // Setup admin client
-    const adminClient = await setupAdminClient();
+    // Setup admin client with the API key
+    const adminClient = createTestClient();
+    await adminClient.loginAsAdmin(adminApiKey);
     
     // Register a new team first
     const teamName = `Team To Delete ${Date.now()}`;
@@ -123,8 +140,9 @@ describe('Admin API', () => {
   });
   
   test('should not allow team deletion without admin auth', async () => {
-    // Setup admin client to create a team
-    const adminClient = await setupAdminClient();
+    // Setup admin client with the API key to create a team
+    const adminClient = createTestClient();
+    await adminClient.loginAsAdmin(adminApiKey);
     
     // Register a team first
     const teamName = `Team No Delete ${Date.now()}`;
@@ -152,8 +170,9 @@ describe('Admin API', () => {
   });
   
   test('should not allow deletion of non-existent team', async () => {
-    // Setup admin client
-    const adminClient = await setupAdminClient();
+    // Setup admin client with the API key
+    const adminClient = createTestClient();
+    await adminClient.loginAsAdmin(adminApiKey);
     
     // Try to delete a team with a non-existent ID (using a valid UUID format)
     const nonExistentId = '00000000-0000-4000-a000-000000000000'; // Valid UUID that doesn't exist
@@ -165,8 +184,9 @@ describe('Admin API', () => {
   });
   
   test('should not allow deletion of admin accounts', async () => {
-    // Setup admin client
-    const adminClient = await setupAdminClient();
+    // Setup admin client with the API key
+    const adminClient = createTestClient();
+    await adminClient.loginAsAdmin(adminApiKey);
     
     // Note: We can't directly test deleting the admin account through the API because:
     // 1. The admin is often filtered out from the team list endpoint for security
