@@ -28,6 +28,7 @@
     "setup:admin": "ts-node scripts/setup-admin.ts",
     "setup:all": "ts-node scripts/setup-everything.ts",
     "register:team": "ts-node scripts/register-team.ts",
+    "edit:team": "ts-node scripts/edit-team.ts",
     "delete:team": "ts-node scripts/delete-team.ts",
     "list:teams": "ts-node scripts/list-teams.ts",
     "setup:competition": "ts-node scripts/setup-competition.ts",

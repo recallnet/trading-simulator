@@ -236,6 +236,18 @@ When registering a team or creating a competition, the server **does not** need 
   - Register the team in the system
   - Display the credentials (keep this API key secure)
 
+- **Edit a team**:
+  ```
+  npm run edit:team
+  ```
+  
+  This script allows you to update existing team information:
+  - Find a team by email
+  - Set or update the team's wallet address
+  - Add bucket addresses to the team's bucket collection
+  - Supports both interactive mode and command-line arguments
+  - Validates addresses to ensure proper format (0x followed by 40 hex characters)
+
 - **List all teams**:
   ```
   npm run list:teams
