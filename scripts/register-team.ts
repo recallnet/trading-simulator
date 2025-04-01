@@ -8,13 +8,14 @@
  *   npm run register:team
  *   
  * Or with command line arguments:
- *   npm run register:team -- "Team Name" "team@email.com" "Contact Person"
+ *   npm run register:team -- "Team Name" "team@email.com" "Contact Person" "0xWalletAddress"
  * 
  * The script will:
  * 1. Connect to the database
- * 2. Create a new team with API credentials
- * 3. Display the API key (only shown once)
- * 4. Close the database connection
+ * 2. Create a new team with API credentials using the TeamManager service
+ * 3. Update the team with the wallet address using database connection
+ * 4. Display the API key (only shown once)
+ * 5. Close the database connection
  */
 import * as readline from 'readline';
 import * as dotenv from 'dotenv';
@@ -61,8 +62,13 @@ function safeLog(...args: any[]) {
 // Store original console.log
 const originalConsoleLog = console.log;
 
+// Validate Ethereum address
+function isValidEthereumAddress(address: string): boolean {
+  return /^0x[a-fA-F0-9]{40}$/.test(address);
+}
+
 /**
- * Register a new team using the TeamManager service
+ * Register a new team using TeamManager service and update with wallet address
  */
 async function registerTeam() {
   try {
@@ -73,43 +79,58 @@ async function registerTeam() {
     safeLog(`${colors.magenta}╚════════════════════════════════════════════════════════════════╝${colors.reset}`);
     
     safeLog(`\n${colors.cyan}This script will register a new team in the Trading Simulator.${colors.reset}`);
-    safeLog(`${colors.cyan}You'll need to provide the team name, email, and contact person.${colors.reset}`);
+    safeLog(`${colors.cyan}You'll need to provide the team name, email, contact person, and wallet address.${colors.reset}`);
     safeLog(`${colors.yellow}--------------------------------------------------------------${colors.reset}\n`);
     
     // Get team details from command line arguments or prompt for them
     let teamName = process.argv[2];
     let email = process.argv[3];
     let contactPerson = process.argv[4];
+    let walletAddress = process.argv[5];
     
     // Temporarily restore console.log for input
     console.log = originalConsoleLog;
     
     // Collect all input upfront before database operations
     if (!teamName) {
-      teamName = await prompt('Enter team name:');
+      teamName = await prompt('Enter team name: ');
       if (!teamName) {
         throw new Error('Team name is required');
       }
     }
     
     if (!email) {
-      email = await prompt('Enter team email:');
+      email = await prompt('Enter team email: ');
       if (!email) {
         throw new Error('Team email is required');
       }
     }
     
     if (!contactPerson) {
-      contactPerson = await prompt('Enter contact person name:');
+      contactPerson = await prompt('Enter contact person name: ');
       if (!contactPerson) {
         throw new Error('Contact person is required');
       }
+    }
+    
+    if (!walletAddress) {
+      walletAddress = await prompt('Enter wallet address (0x...): ');
+      if (!walletAddress) {
+        throw new Error('Wallet address is required');
+      }
+      
+      if (!isValidEthereumAddress(walletAddress)) {
+        throw new Error('Invalid Ethereum address format. Must be 0x followed by 40 hex characters.');
+      }
+    } else if (!isValidEthereumAddress(walletAddress)) {
+      throw new Error('Invalid Ethereum address format. Must be 0x followed by 40 hex characters.');
     }
     
     safeLog(`\n${colors.yellow}Registering team with the following details:${colors.reset}`);
     safeLog(`- Team Name: ${teamName}`);
     safeLog(`- Email: ${email}`);
     safeLog(`- Contact Person: ${contactPerson}`);
+    safeLog(`- Wallet Address: ${walletAddress}`);
     
     const confirmRegistration = await prompt(`${colors.yellow}Proceed with registration? (y/n):${colors.reset}`);
     
@@ -128,21 +149,41 @@ async function registerTeam() {
     
     safeLog(`\n${colors.blue}Registering team...${colors.reset}`);
     
-    // Register the team
+    // 1. Register the team using TeamManager to get a valid API key
     const team = await services.teamManager.registerTeam(teamName, email, contactPerson);
+    
+    // 2. Update the team with wallet address directly in the database
+    const db = DatabaseConnection.getInstance();
+    await db.query(
+      'UPDATE teams SET wallet_address = $1 WHERE id = $2',
+      [walletAddress, team.id]
+    );
+    
+    // 3. Fetch the updated team with wallet address
+    const result = await db.query(
+      'SELECT * FROM teams WHERE id = $1',
+      [team.id]
+    );
+    
+    if (!result.rows || result.rows.length === 0) {
+      throw new Error('Failed to retrieve updated team information');
+    }
+    
+    const updatedTeam = result.rows[0];
     
     safeLog(`\n${colors.green}✓ Team registered successfully!${colors.reset}`);
     safeLog(`\n${colors.cyan}Team Details:${colors.reset}`);
     safeLog(`${colors.cyan}----------------------------------------${colors.reset}`);
-    safeLog(`Team ID: ${team.id}`);
-    safeLog(`Team Name: ${team.name}`);
-    safeLog(`Email: ${team.email}`);
-    safeLog(`Contact: ${team.contactPerson}`);
+    safeLog(`Team ID: ${updatedTeam.id}`);
+    safeLog(`Team Name: ${updatedTeam.name}`);
+    safeLog(`Email: ${updatedTeam.email}`);
+    safeLog(`Contact: ${updatedTeam.contact_person}`);
+    safeLog(`Wallet Address: ${updatedTeam.wallet_address}`);
     safeLog(`${colors.cyan}----------------------------------------${colors.reset}`);
     
     safeLog(`\n${colors.yellow}API Credentials (SAVE THESE SECURELY):${colors.reset}`);
     safeLog(`${colors.yellow}----------------------------------------${colors.reset}`);
-    safeLog(`API Key: ${team.apiKey}`);
+    safeLog(`API Key: ${team.apiKey}`); // Using apiKey from the team object returned by TeamManager
     safeLog(`${colors.yellow}----------------------------------------${colors.reset}`);
     
     safeLog(`\n${colors.red}IMPORTANT: The API Key will only be shown once when the team is first created.${colors.reset}`);

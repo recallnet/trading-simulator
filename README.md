@@ -232,6 +232,7 @@ When registering a team or creating a competition, the server **does not** need 
   
   This script will:
   - Prompt for team name, email, and contact person
+  - Require a wallet address (0x format)
   - Generate a secure API key
   - Register the team in the system
   - Display the credentials (keep this API key secure)

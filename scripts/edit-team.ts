@@ -135,7 +135,7 @@ async function editTeam() {
     
     if (updateWallet && typeof updateWallet === 'string' && updateWallet.toLowerCase() === 'y' || walletAddress) {
       if (!walletAddress) {
-        walletAddress = await prompt('Enter new wallet address (0x...):');
+        walletAddress = await prompt('Enter new wallet address (0x...): ');
       }
       
       if (walletAddress && !isValidEthereumAddress(walletAddress)) {
@@ -147,7 +147,7 @@ async function editTeam() {
     
     if (updateBucket && typeof updateBucket === 'string' && updateBucket.toLowerCase() === 'y' || bucketAddress) {
       if (!bucketAddress) {
-        bucketAddress = await prompt('Enter bucket address to add (0x...):');
+        bucketAddress = await prompt('Enter bucket address to add (0x...): ');
       }
       
       if (bucketAddress && !isValidEthereumAddress(bucketAddress)) {
