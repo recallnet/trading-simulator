@@ -499,12 +499,13 @@ Below is a comprehensive list of all environment variables available in `.env.ex
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `DATABASE_URL` | **Required** | None | PostgreSQL connection string in the format `postgres://username:password@host:port/database` |
-| `DATABASE_HOST` | Optional | `localhost` | Database host when not using `DATABASE_URL` |
-| `DATABASE_PORT` | Optional | `5432` | Database port when not using `DATABASE_URL` |
-| `DATABASE_USERNAME` | Optional | `postgres` | Database username when not using `DATABASE_URL` |
-| `DATABASE_PASSWORD` | Optional | None | Database password when not using `DATABASE_URL` |
-| `DATABASE_NAME` | Optional | `trading_simulator` | Database name when not using `DATABASE_URL` |
+| `POSTGRES_URL` | Optional | None | PostgreSQL connection string in the format `postgresql://username:password@host:port/database?ssl=true` |
+| `DB_HOST` | Required if no URL | `localhost` | Database host when not using `POSTGRES_URL` |
+| `DB_PORT` | Optional | `5432` | Database port when not using `POSTGRES_URL` |
+| `DB_USERNAME` | Required if no URL | `postgres` | Database username when not using `POSTGRES_URL` |
+| `DB_PASSWORD` | Required if no URL | `postgres` | Database password when not using `POSTGRES_URL` |
+| `DB_NAME` | Required if no URL | `solana_trading_simulator` | Database name when not using `POSTGRES_URL` |
+| `DB_SSL` | Optional | `false` | Enable SSL for database connection (`true` or `false`) |
 
 ### Security Settings
 
@@ -558,7 +559,7 @@ Below is a comprehensive list of all environment variables available in `.env.ex
 |----------|----------|---------|-------------|
 | `PORTFOLIO_SNAPSHOT_INTERVAL_MS` | Optional | `120000` (2 minutes) | Interval for taking portfolio snapshots |
 | `PORTFOLIO_PRICE_FRESHNESS_MS` | Optional | `600000` (10 minutes) | Maximum age of price data before refreshing |
-| `PRICE_CACHE_DURATION_MS` | Optional | `60000` (1 minute) | Duration to cache price data in memory |
+| `PRICE_CACHE_MS` | Optional | `60000` (1 minute) | Duration to cache price data in memory |
 | `PRICE_BACKFILL_DAYS` | Optional | `7` | Number of days to backfill for price history |
 | `PRICE_HISTORY_INTERVAL_MINUTES` | Optional | `30` | Interval between price history data points |
 
@@ -591,8 +592,9 @@ The system follows specific rules for resolving settings when multiple related v
    - Zero (default)
 
 2. **Database Connection**: Uses the most comprehensive setting available:
-   - `DATABASE_URL` connection string
-   - Individual parameters (`DATABASE_HOST`, `DATABASE_PORT`, etc.)
+   - `POSTGRES_URL` connection string
+   - Individual parameters (`DB_HOST`, `DB_PORT`, etc.)
+   - SSL configuration (`DB_SSL`)
 
 3. **Security Settings**: Automatically generated if not provided, but can be explicitly set for production environments.
 
@@ -725,6 +727,9 @@ PORTFOLIO_SNAPSHOT_INTERVAL_MS=120000
 
 # Configure price freshness threshold in milliseconds (default: 10 minutes)
 PORTFOLIO_PRICE_FRESHNESS_MS=600000
+
+# Configure price cache duration in milliseconds (default: 1 minute)
+PRICE_CACHE_MS=60000
 ```
 
 You can adjust these intervals based on your needs:
@@ -865,7 +870,8 @@ Then edit the file to configure your environment. Key configuration options incl
 - `EVM_CHAINS`: Comma-separated list of supported EVM chains (defaults to eth,polygon,bsc,arbitrum,base,optimism,avalanche,linea)
 - `ALLOW_MOCK_PRICE_HISTORY`: Whether to allow mock price history data generation (defaults to true in development, false in production)
 - `ALLOW_CROSS_CHAIN_TRADING`: Whether to allow trades between different chains (defaults to false for security, set to true to enable cross-chain trading)
-- `DATABASE_URL`: PostgreSQL connection string
+- `POSTGRES_URL`: PostgreSQL connection string
+- `DB_SSL`: Enable SSL for database connection
 - `PORT`: The port to run the server on (defaults to 3000)
 
 #### 2. Configuring Initial Token Balances
