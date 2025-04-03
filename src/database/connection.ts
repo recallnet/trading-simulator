@@ -10,23 +10,40 @@ export class DatabaseConnection {
   private pool: Pool;
 
   private constructor() {
-    this.pool = new Pool({
-      user: config.database.username,
-      password: config.database.password,
-      host: config.database.host,
-      port: config.database.port,
-      database: config.database.database,
-      max: 20, // Maximum number of clients in the pool
-      idleTimeoutMillis: 30000, // How long a client is allowed to remain idle before being closed
-      connectionTimeoutMillis: 2000, // How long to wait for a connection to become available
-    });
+    // Check if a connection URL is provided
+    if (config.database.url) {
+      // Check if this is a Render database (always requires SSL)
+      const isRenderDb = config.database.url.includes('render.com');
+      
+      // Use connection URL which includes all connection parameters
+      this.pool = new Pool({
+        connectionString: config.database.url,
+        // Use secure SSL configuration with certificate validation
+        ssl: isRenderDb || config.database.ssl ? true : undefined
+      });
+      
+      console.log('[DatabaseConnection] Connected to PostgreSQL using connection URL');
+    } else {
+      // Use individual connection parameters
+      this.pool = new Pool({
+        user: config.database.username,
+        password: config.database.password,
+        host: config.database.host,
+        port: config.database.port,
+        database: config.database.database,
+        ssl: config.database.ssl ? true : undefined,
+        max: 20, // Maximum number of clients in the pool
+        idleTimeoutMillis: 30000, // How long a client is allowed to remain idle before being closed
+        connectionTimeoutMillis: 2000, // How long to wait for a connection to become available
+      });
+      
+      console.log(`[DatabaseConnection] Connected to PostgreSQL at ${config.database.host}:${config.database.port}`);
+    }
 
     this.pool.on('error', (err: Error) => {
       console.error('Unexpected error on idle client', err);
       process.exit(-1);
     });
-
-    console.log(`[DatabaseConnection] Connected to PostgreSQL at ${config.database.host}:${config.database.port}`);
   }
 
   /**

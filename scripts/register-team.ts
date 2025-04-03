@@ -132,7 +132,7 @@ async function registerTeam() {
     safeLog(`- Contact Person: ${contactPerson}`);
     safeLog(`- Wallet Address: ${walletAddress}`);
     
-    const confirmRegistration = await prompt(`${colors.yellow}Proceed with registration? (y/n):${colors.reset}`);
+    const confirmRegistration = await prompt(`${colors.yellow}Proceed with registration? (y/n): ${colors.reset}`);
     
     if (confirmRegistration.toLowerCase() !== 'y') {
       safeLog(`\n${colors.red}Registration cancelled.${colors.reset}`);
