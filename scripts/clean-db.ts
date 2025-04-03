@@ -1,6 +1,7 @@
 import * as readline from 'readline';
-import { Pool } from 'pg';
+import { DatabaseConnection } from '../src/database/connection';
 import { config } from '../src/config';
+import { DatabaseRow } from '../src/database/types';
 import dotenv from 'dotenv';
 import path from 'path';
 
@@ -60,34 +61,26 @@ const cleanDatabase = async () => {
       }
       
       try {
-        // Connect to the target database directly
-        const connectionConfig = {
-          user: config.database.username,
-          password: config.database.password,
-          host: config.database.host,
-          port: config.database.port,
-          database: config.database.database
-        };
-        
+        // Use the DatabaseConnection singleton instead of creating a new pool
         console.log(`\nConnecting to database: ${config.database.database}...`);
-        const pool = new Pool(connectionConfig);
+        const db = DatabaseConnection.getInstance();
         
         // Begin transaction
-        await pool.query('BEGIN');
+        await db.query('BEGIN');
         
         try {
           // Disable foreign key constraints temporarily
           console.log('\nDisabling foreign key constraints...');
-          await pool.query('SET CONSTRAINTS ALL DEFERRED');
+          await db.query('SET CONSTRAINTS ALL DEFERRED');
           
           // Get a list of all tables in our database
           console.log('\nGetting list of tables...');
-          const tablesResult = await pool.query(`
+          const tablesResult = await db.query(`
             SELECT tablename FROM pg_tables 
             WHERE schemaname = 'public'
           `);
           
-          const tables = tablesResult.rows.map(row => row.tablename);
+          const tables = tablesResult.rows.map((row: DatabaseRow) => row.tablename);
           
           if (tables.length === 0) {
             console.log(`\n${colors.yellow}No tables found in database.${colors.reset}`);
@@ -112,39 +105,43 @@ const cleanDatabase = async () => {
             for (const table of orderedTables) {
               if (tables.includes(table)) {
                 console.log(`  - Truncating table: ${table}`);
-                await pool.query(`TRUNCATE TABLE ${table} CASCADE`);
+                await db.query(`TRUNCATE TABLE ${table} CASCADE`);
               }
             }
             
             // Get sequences and reset them
             console.log('\nResetting sequences...');
-            const sequencesResult = await pool.query(`
+            const sequencesResult = await db.query(`
               SELECT sequence_name FROM information_schema.sequences
               WHERE sequence_schema = 'public'
             `);
             
-            for (const row of sequencesResult.rows) {
+            interface SequenceRow {
+              sequence_name: string;
+            }
+            
+            for (const row of sequencesResult.rows as SequenceRow[]) {
               const sequenceName = row.sequence_name;
               console.log(`  - Resetting sequence: ${sequenceName}`);
-              await pool.query(`ALTER SEQUENCE ${sequenceName} RESTART WITH 1`);
+              await db.query(`ALTER SEQUENCE ${sequenceName} RESTART WITH 1`);
             }
           }
           
           // Commit transaction
-          await pool.query('COMMIT');
+          await db.query('COMMIT');
           console.log(`\n${colors.green}✓ All table data has been successfully deleted${colors.reset}`);
           
         } catch (error) {
           // Rollback on error
-          await pool.query('ROLLBACK');
+          await db.query('ROLLBACK');
           throw error;
         } finally {
           // Re-enable foreign key constraints
-          await pool.query('SET CONSTRAINTS ALL IMMEDIATE');
+          await db.query('SET CONSTRAINTS ALL IMMEDIATE');
         }
         
         // Close the connection
-        await pool.end();
+        await db.close();
         console.log(`\n${colors.green}✓ Database cleanup completed successfully!${colors.reset}`);
         console.log(`\nYou can now run 'npm run db:init' to re-initialize the schema and seed data.`);
         

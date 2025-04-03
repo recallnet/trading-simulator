@@ -83,6 +83,8 @@ export const config = {
     username: process.env.DB_USERNAME || 'postgres',
     password: process.env.DB_PASSWORD || 'postgres',
     database: process.env.DB_NAME || 'solana_trading_simulator',
+    ssl: process.env.DB_SSL === 'true',
+    url: process.env.POSTGRES_URL,
   },
   redis: {
     url: process.env.REDIS_URL || 'redis://localhost:6379',
