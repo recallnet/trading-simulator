@@ -18,8 +18,8 @@ export class DatabaseConnection {
       // Use connection URL which includes all connection parameters
       this.pool = new Pool({
         connectionString: config.database.url,
-        // Force SSL for Render databases, otherwise follow config
-        ssl: isRenderDb ? { rejectUnauthorized: false } : (config.database.ssl ? { rejectUnauthorized: false } : undefined)
+        // Use secure SSL configuration with certificate validation
+        ssl: isRenderDb || config.database.ssl ? true : undefined
       });
       
       console.log('[DatabaseConnection] Connected to PostgreSQL using connection URL');
@@ -31,7 +31,7 @@ export class DatabaseConnection {
         host: config.database.host,
         port: config.database.port,
         database: config.database.database,
-        ssl: config.database.ssl ? { rejectUnauthorized: false } : undefined,
+        ssl: config.database.ssl ? true : undefined,
         max: 20, // Maximum number of clients in the pool
         idleTimeoutMillis: 30000, // How long a client is allowed to remain idle before being closed
         connectionTimeoutMillis: 2000, // How long to wait for a connection to become available

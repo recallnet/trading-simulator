@@ -9,7 +9,7 @@ async function ensureDatabaseExists(): Promise<void> {
   if (config.database.url) {
     const client = new Client({
       connectionString: config.database.url,
-      ssl: { rejectUnauthorized: false }
+      ssl: true
     });
     
     try {
@@ -47,7 +47,7 @@ async function ensureDatabaseExists(): Promise<void> {
     user: config.database.username,
     password: config.database.password,
     database: "postgres", // Connect to default database first
-    ssl: config.database.ssl ? { rejectUnauthorized: false } : undefined
+    ssl: config.database.ssl ? true : undefined
   });
 
   try {
