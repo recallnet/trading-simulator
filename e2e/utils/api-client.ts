@@ -127,14 +127,38 @@ export class ApiClient {
   }
   
   /**
-   * Register a new team
+   * Generate a random Ethereum address
+   * @returns A valid Ethereum address (0x + 40 hex characters)
    */
-  async registerTeam(name: string, email: string, contactPerson: string): Promise<any> {
+  private generateRandomEthAddress(): string {
+    const chars = '0123456789abcdef';
+    let address = '0x';
+    
+    // Generate 40 random hex characters
+    for (let i = 0; i < 40; i++) {
+      address += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    
+    return address;
+  }
+
+  /**
+   * Register a new team
+   * @param name Team name
+   * @param email Team email
+   * @param contactPerson Contact person name
+   * @param walletAddress Optional Ethereum wallet address (random valid address will be generated if not provided)
+   */
+  async registerTeam(name: string, email: string, contactPerson: string, walletAddress?: string): Promise<any> {
     try {
+      // Generate a random Ethereum address if one isn't provided
+      const address = walletAddress || this.generateRandomEthAddress();
+      
       const response = await this.axiosInstance.post('/api/admin/teams/register', {
         teamName: name,
         email,
-        contactPerson
+        contactPerson,
+        walletAddress: address
       });
       
       return response.data;

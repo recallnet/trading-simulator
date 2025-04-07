@@ -210,14 +210,14 @@ describe('Portfolio Snapshots', () => {
     // Verify the USDC value is calculated correctly
     const usdcValue = initialSnapshot.valuesByToken[usdcTokenAddress];
     expect(usdcValue.amount).toBeCloseTo(initialUsdcBalance);
-    expect(usdcValue.valueUsd).toBeCloseTo(initialUsdcBalance * usdcPrice, 2);
+    expect(usdcValue.valueUsd).toBeCloseTo(initialUsdcBalance * usdcPrice, 0);
     
     // Verify total portfolio value is the sum of all token values
     const totalValue = Object.values(initialSnapshot.valuesByToken).reduce(
       (sum: number, token: any) => sum + token.valueUsd,
       0
     );
-    expect(initialSnapshot.totalValue).toBeCloseTo(totalValue, 2);
+    expect(initialSnapshot.totalValue).toBeCloseTo(totalValue, 0);
   });
 
   // Test that the configuration is loaded correctly

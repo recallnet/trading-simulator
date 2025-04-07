@@ -17,14 +17,33 @@ export class TeamManager {
   }
 
   /**
+   * Validate an Ethereum address
+   * @param address The Ethereum address to validate
+   * @returns True if the address is valid
+   */
+  private isValidEthereumAddress(address: string): boolean {
+    return /^0x[a-fA-F0-9]{40}$/.test(address);
+  }
+
+  /**
    * Register a new team
    * @param name Team name
    * @param email Contact email
    * @param contactPerson Contact person name
+   * @param walletAddress Ethereum wallet address (must start with 0x)
    * @returns The created team with API credentials
    */
-  async registerTeam(name: string, email: string, contactPerson: string): Promise<Team> {
+  async registerTeam(name: string, email: string, contactPerson: string, walletAddress: string): Promise<Team> {
     try {
+      // Validate wallet address
+      if (!walletAddress) {
+        throw new Error('Wallet address is required');
+      }
+      
+      if (!this.isValidEthereumAddress(walletAddress)) {
+        throw new Error('Invalid Ethereum address format. Must be 0x followed by 40 hex characters.');
+      }
+      
       // Generate team ID
       const id = uuidv4();
       
@@ -41,6 +60,7 @@ export class TeamManager {
         email,
         contactPerson,
         apiKey: encryptedApiKey, // Store encrypted key in database
+        walletAddress,
         createdAt: new Date(),
         updatedAt: new Date()
       };

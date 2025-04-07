@@ -127,6 +127,7 @@ export interface Team {
   email: string;
   contactPerson: string;
   apiKey: string;
+  walletAddress: string;
   isAdmin?: boolean;
   createdAt: Date;
   updatedAt: Date;

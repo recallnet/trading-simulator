@@ -125,6 +125,7 @@ export class AdminController {
         email,
         contactPerson: 'System Administrator',
         apiKey: encryptedApiKey, 
+        walletAddress: '0x0000000000000000000000000000000000000000', // Placeholder address for admin
         isAdmin: true,   // Set admin flag
         createdAt: new Date(),
         updatedAt: new Date()
@@ -169,6 +170,7 @@ export class AdminController {
    *               - teamName
    *               - email
    *               - contactPerson
+   *               - walletAddress
    *             properties:
    *               teamName:
    *                 type: string
@@ -183,6 +185,10 @@ export class AdminController {
    *                 type: string
    *                 description: Name of the contact person
    *                 example: John Doe
+   *               walletAddress:
+   *                 type: string
+   *                 description: Ethereum wallet address (must start with 0x)
+   *                 example: 0x1234567890123456789012345678901234567890
    *     responses:
    *       201:
    *         description: Team registered successfully
@@ -212,6 +218,9 @@ export class AdminController {
    *                     contact_person:
    *                       type: string
    *                       description: Contact person name (snake_case version)
+   *                     walletAddress:
+   *                       type: string
+   *                       description: Ethereum wallet address
    *                     apiKey:
    *                       type: string
    *                       description: API key for the team to use with Bearer authentication. Admin should securely provide this to the team.
@@ -221,9 +230,9 @@ export class AdminController {
    *                       format: date-time
    *                       description: Account creation timestamp
    *       400:
-   *         description: Missing required parameters
+   *         description: Missing required parameters or invalid wallet address
    *       409:
-   *         description: Team with this email already exists
+   *         description: Team with this email or wallet address already exists
    *       500:
    *         description: Server error
    * 
@@ -233,13 +242,13 @@ export class AdminController {
    */
   static async registerTeam(req: Request, res: Response, next: NextFunction) {
     try {
-      const { teamName, email, contactPerson } = req.body;
+      const { teamName, email, contactPerson, walletAddress } = req.body;
       
       // Validate required parameters
-      if (!teamName || !email || !contactPerson) {
+      if (!teamName || !email || !contactPerson || !walletAddress) {
         return res.status(400).json({
           success: false,
-          error: 'Missing required parameters: teamName, email, contactPerson'
+          error: 'Missing required parameters: teamName, email, contactPerson, walletAddress'
         });
       }
       
@@ -257,7 +266,7 @@ export class AdminController {
       
       try {
         // Register the team
-        const team = await services.teamManager.registerTeam(teamName, email, contactPerson);
+        const team = await services.teamManager.registerTeam(teamName, email, contactPerson, walletAddress);
         
         // Format the response to include api key for the client
         return res.status(201).json({
@@ -268,6 +277,7 @@ export class AdminController {
             email: team.email,
             contactPerson: team.contactPerson,
             contact_person: team.contactPerson, // Add snake_case version for tests
+            walletAddress: team.walletAddress,
             apiKey: team.apiKey,
             createdAt: team.createdAt
           }
@@ -280,6 +290,25 @@ export class AdminController {
           return res.status(409).json({
             success: false,
             error: error.message
+          });
+        }
+        
+        // Check if this is an invalid wallet address error
+        if (error instanceof Error && 
+            (error.message.includes('Wallet address is required') || 
+             error.message.includes('Invalid Ethereum address'))) {
+          return res.status(400).json({
+            success: false,
+            error: error.message
+          });
+        }
+        
+        // Check if this is a duplicate wallet address error (UNIQUE constraint)
+        if (error instanceof Error && 
+            error.message.includes('duplicate key value violates unique constraint')) {
+          return res.status(409).json({
+            success: false,
+            error: 'A team with this wallet address already exists'
           });
         }
         

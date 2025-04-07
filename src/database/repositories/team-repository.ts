@@ -21,9 +21,9 @@ export class TeamRepository extends BaseRepository<Team> {
     try {
       const query = `
         INSERT INTO teams (
-          id, name, email, contact_person, api_key, is_admin, created_at, updated_at
+          id, name, email, contact_person, api_key, wallet_address, is_admin, created_at, updated_at
         ) VALUES (
-          $1, $2, $3, $4, $5, $6, $7, $8
+          $1, $2, $3, $4, $5, $6, $7, $8, $9
         ) RETURNING *
       `;
       
@@ -33,6 +33,7 @@ export class TeamRepository extends BaseRepository<Team> {
         team.email,
         team.contactPerson,
         team.apiKey,
+        team.walletAddress,
         team.isAdmin || false,
         team.createdAt,
         team.updatedAt
@@ -90,9 +91,10 @@ export class TeamRepository extends BaseRepository<Team> {
           email = $2,
           contact_person = $3,
           api_key = $4,
-          is_admin = $5,
-          updated_at = $6
-        WHERE id = $7
+          wallet_address = $5,
+          is_admin = $6,
+          updated_at = $7
+        WHERE id = $8
         RETURNING *
       `;
       
@@ -101,6 +103,7 @@ export class TeamRepository extends BaseRepository<Team> {
         team.email,
         team.contactPerson,
         team.apiKey,
+        team.walletAddress,
         team.isAdmin || false,
         new Date(),
         team.id
@@ -185,6 +188,7 @@ export class TeamRepository extends BaseRepository<Team> {
       email: data.email,
       contactPerson: data.contactPerson,
       apiKey: data.apiKey,
+      walletAddress: data.walletAddress,
       isAdmin: data.isAdmin || false,
       createdAt: new Date(data.createdAt),
       updatedAt: new Date(data.updatedAt)
