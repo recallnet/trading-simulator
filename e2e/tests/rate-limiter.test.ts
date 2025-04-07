@@ -192,7 +192,7 @@ describe('Rate Limiter Middleware', () => {
     // Now verify the price endpoint still works (300 requests/min limit)
     // This confirms different endpoints have different limits
     console.log('Verifying price endpoint still accessible (has higher limit)');
-    const priceResponse = await teamClient.request('get', `/api/price?token=${config.tokens.sol}`);
+    const priceResponse = await teamClient.request('get', `/api/price?token=${config.specificChainTokens.svm.sol}`);
     
     if (priceResponse.success === true) {
       console.log('Success: Price endpoint has different rate limit from account endpoint');

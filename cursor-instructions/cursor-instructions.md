@@ -646,7 +646,7 @@ INITIAL_ETH_ETH_BALANCE=1       # Initial ETH balance on Ethereum Mainnet
 INITIAL_ETH_USDC_BALANCE=5000   # Initial USDC balance on Ethereum Mainnet
 
 # Polygon Specific Balances
-INITIAL_POLYGON_MATIC_BALANCE=10  # Initial MATIC balance on Polygon
+INITIAL_POLYGON_ETH_BALANCE=10  # Initial ETH balance on Polygon
 INITIAL_POLYGON_USDC_BALANCE=5000 # Initial USDC balance on Polygon
 
 # Base Specific Balances

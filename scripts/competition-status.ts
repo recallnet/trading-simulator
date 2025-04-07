@@ -161,10 +161,27 @@ async function showCompetitionStatus() {
       // Sort leaderboard by value (descending)
       const sortedLeaderboard = [...leaderboard].sort((a, b) => b.value - a.value);
       
-      // Calculate highest and initial values for statistics
+      // Get initial snapshots for each team
+      const initialSnapshots = new Map<string, number>();
+      
+      // Get the first snapshot for each team in the competition
+      for (const entry of sortedLeaderboard) {
+        const snapshots = await repositories.competitionRepository.getTeamPortfolioSnapshots(competition.id, entry.teamId);
+        if (snapshots.length > 0) {
+          // Sort by timestamp and get the first one (initial snapshot)
+          const sortedSnapshots = snapshots.sort((a, b) => 
+            new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+          );
+          
+          if (sortedSnapshots.length > 0) {
+            initialSnapshots.set(entry.teamId, sortedSnapshots[0].totalValue);
+          }
+        }
+      }
+      
+      // Calculate highest value for statistics
       const highestValue = sortedLeaderboard[0].value;
       const lowestValue = sortedLeaderboard[sortedLeaderboard.length - 1].value;
-      const initialValue = 10000; // Assuming initial portfolio value is 10000
       
       // Display each team's position
       sortedLeaderboard.forEach((entry, index) => {
@@ -185,6 +202,9 @@ async function showCompetitionStatus() {
           positionPrefix = ` 🥉 `;
           positionColor = colors.green;
         }
+        
+        // Get initial value for this team, or fall back to current value if no initial snapshot
+        const initialValue = initialSnapshots.get(entry.teamId) || entry.value;
         
         // Calculate performance metrics
         const performanceVsInitial = ((entry.value / initialValue) - 1) * 100;
@@ -210,8 +230,18 @@ async function showCompetitionStatus() {
       console.log(`- Highest Value: $${formatCurrency(highestValue)}`);
       console.log(`- Lowest Value: $${formatCurrency(lowestValue)}`);
       console.log(`- Average Value: $${formatCurrency(leaderboard.reduce((sum, entry) => sum + entry.value, 0) / leaderboard.length)}`);
-      console.log(`- Best Performer: ${((highestValue / initialValue) - 1) * 100 >= 0 ? '+' : ''}${(((highestValue / initialValue) - 1) * 100).toFixed(2)}%`);
-      console.log(`- Worst Performer: ${((lowestValue / initialValue) - 1) * 100 >= 0 ? '+' : ''}${(((lowestValue / initialValue) - 1) * 100).toFixed(2)}%`);
+      
+      // Update best/worst performer stats to use initial values
+      const bestTeam = sortedLeaderboard[0];
+      const worstTeam = sortedLeaderboard[sortedLeaderboard.length - 1];
+      const bestInitial = initialSnapshots.get(bestTeam.teamId) || bestTeam.value;
+      const worstInitial = initialSnapshots.get(worstTeam.teamId) || worstTeam.value;
+      
+      const bestPerformance = ((bestTeam.value / bestInitial) - 1) * 100;
+      const worstPerformance = ((worstTeam.value / worstInitial) - 1) * 100;
+      
+      console.log(`- Best Performer: ${bestPerformance >= 0 ? '+' : ''}${bestPerformance.toFixed(2)}%`);
+      console.log(`- Worst Performer: ${worstPerformance >= 0 ? '+' : ''}${worstPerformance.toFixed(2)}%`);
     }
     
     console.log(`\n${colors.green}Use 'npm run end:competition' to end this competition.${colors.reset}`);

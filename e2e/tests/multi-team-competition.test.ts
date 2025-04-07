@@ -104,8 +104,8 @@ describe('Multi-Team Competition', () => {
     const referenceBalance = referenceBalanceResponse.balance;
     
     // Get common tokens from config
-    const usdcTokenAddress = config.tokens.usdc;
-    const solTokenAddress = config.tokens.sol;
+    const usdcTokenAddress = config.specificChainTokens.svm.usdc;
+    const solTokenAddress = config.specificChainTokens.svm.sol;
     
     // Track reference balances for key tokens
     const referenceUsdcBalance = parseFloat(referenceBalance[usdcTokenAddress]?.toString() || '0');

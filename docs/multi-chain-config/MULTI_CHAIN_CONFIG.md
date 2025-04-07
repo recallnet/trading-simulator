@@ -39,7 +39,7 @@ INITIAL_ETH_USDC_BALANCE=1000   # Initial USDC balance on Ethereum Mainnet
 INITIAL_ETH_USDT_BALANCE=0      # Initial USDT balance on Ethereum Mainnet
 
 # Polygon Specific Balances
-INITIAL_POLYGON_MATIC_BALANCE=10  # Initial MATIC balance on Polygon
+INITIAL_POLYGON_ETH_BALANCE=10  # Initial ETH balance on Polygon
 INITIAL_POLYGON_USDC_BALANCE=1000 # Initial USDC balance on Polygon
 INITIAL_POLYGON_USDT_BALANCE=0    # Initial USDT balance on Polygon
 
@@ -161,7 +161,7 @@ const getSpecificChainBalances = (): Record<SpecificChain, Record<string, number
   // Polygon
   if (process.env.INITIAL_POLYGON_MATIC_BALANCE || process.env.INITIAL_POLYGON_USDC_BALANCE || process.env.INITIAL_POLYGON_LINK_BALANCE) {
     result.polygon = {
-      matic: parseInt(process.env.INITIAL_POLYGON_MATIC_BALANCE || '0', 10),
+      matic: parseInt(process.env.INITIAL_POLYGON_ETH_BALANCE || '0', 10),
       usdc: parseInt(process.env.INITIAL_POLYGON_USDC_BALANCE || process.env.INITIAL_EVM_USDC_BALANCE || '0', 10),
       usdt: parseInt(process.env.INITIAL_POLYGON_USDT_BALANCE || process.env.INITIAL_EVM_USDT_BALANCE || '0', 10),
       link: parseInt(process.env.INITIAL_POLYGON_LINK_BALANCE || process.env.INITIAL_EVM_LINK_BALANCE || '0', 10)

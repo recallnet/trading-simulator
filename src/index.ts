@@ -25,7 +25,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Define protected routes
-const protectedRoutes = ['/api/account', '/api/trade', '/api/competition', '/api/price'];
+const protectedRoutes = ['/api/account', '/api/trade', '/api/competition', '/api/price', '/api/health'];
 
 // Apply authentication middleware to protected routes FIRST
 // This ensures req.teamId is set before rate limiting
@@ -46,8 +46,8 @@ app.use('/api/docs', docsRoutes.default);
 
 // Legacy health check endpoint for backward compatibility
 app.get('/health', (req, res) => {
-  res.status(200).json({ 
-    status: 'ok', 
+  res.status(200).json({
+    status: 'ok',
     timestamp: new Date().toISOString(),
     version: '1.0.0'
   });
@@ -65,14 +65,14 @@ app.use(errorHandler);
 const startServer = async () => {
   const PORT = config.server.port;
   let databaseInitialized = false;
-  
+
   try {
     // Initialize database
     console.log('Checking database connection...');
     await initializeDatabase();
     console.log('Database connection and schema verification completed');
     databaseInitialized = true;
-    
+
     // Start snapshot scheduler
     services.scheduler.startSnapshotScheduler();
     console.log('Portfolio snapshot scheduler started');
@@ -88,7 +88,7 @@ const startServer = async () => {
       process.exit(1);
     }
   }
-  
+
   // Start HTTP server
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`\n========================================`);

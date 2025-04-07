@@ -12,7 +12,7 @@ console.log(`Test is using these environment variables:`);
 console.log(`- INITIAL_BASE_USDC_BALANCE = ${process.env.INITIAL_BASE_USDC_BALANCE}`);
 console.log(`- ALLOW_CROSS_CHAIN_TRADING = ${process.env.ALLOW_CROSS_CHAIN_TRADING}`);
 console.log(`- Imported config from ../../src/config has initial balances:`, {
-  'evm.usdc': config.multiChainInitialBalances?.evm?.usdc,
+  'evm.usdc': config.specificChainBalances?.eth?.usdc,
   'base.usdc': config.specificChainBalances?.base?.usdc
 });
 console.log('===========================================================\n');

@@ -56,7 +56,7 @@ describe('Price Fetching', () => {
   
   test('should fetch prices for standard tokens', async () => {
     // Test price for SOL using authenticated client
-    const solResponse = await client.getPrice(config.tokens.sol);
+    const solResponse = await client.getPrice(config.specificChainTokens.svm.sol);
     expect(solResponse.success).toBe(true);
     expect(solResponse.price).toBeDefined();
     expect(typeof solResponse.price).toBe('number');
@@ -65,7 +65,7 @@ describe('Price Fetching', () => {
     console.log(`SOL price: $${solResponse.price}`);
     
     // Test price for USDC
-    const usdcResponse = await client.getPrice(config.tokens.usdc);
+    const usdcResponse = await client.getPrice(config.specificChainTokens.svm.usdc);
     expect(usdcResponse.success).toBe(true);
     expect(usdcResponse.price).toBeDefined();
     expect(typeof usdcResponse.price).toBe('number');
@@ -76,7 +76,7 @@ describe('Price Fetching', () => {
     console.log(`USDC price: $${usdcResponse.price}`);
     
     // Test price for USDT
-    const usdtResponse = await client.getPrice(config.tokens.usdt);
+    const usdtResponse = await client.getPrice(config.specificChainTokens.svm.usdt);
     expect(usdtResponse.success).toBe(true);
     expect(usdtResponse.price).toBeDefined();
     expect(typeof usdtResponse.price).toBe('number');
@@ -116,7 +116,7 @@ describe('Price Fetching', () => {
 
   test('should fetch prices for tokens across different chains', async () => {
     // Test SOL price (Solana chain)
-    const solToken = config.tokens.sol;
+    const solToken = config.specificChainTokens.svm.sol;
     const solResponse = await client.getPrice(solToken);
     expect(solResponse.success).toBeTruthy();
     expect(solResponse.price).toBeGreaterThan(0);
@@ -159,7 +159,7 @@ describe('Price Fetching', () => {
   
   test('should fetch USDC price from both chains', async () => {
     // Test Solana USDC
-    const solanaUsdcAddress = config.tokens.usdc;
+    const solanaUsdcAddress = config.specificChainTokens.svm.usdc;
     try {
       const solanaResponse = await client.getPrice(solanaUsdcAddress);
       
@@ -259,7 +259,7 @@ describe('Price Fetching', () => {
   
   test('should detect chain from token format', async () => {
     // Test Solana token detection
-    const solAddress = config.tokens.sol;
+    const solAddress = config.specificChainTokens.svm.sol;
     const solResponse = await client.getPrice(solAddress);
     expect(solResponse.chain).toBe('svm');
     
