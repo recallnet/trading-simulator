@@ -538,17 +538,13 @@ Below is a comprehensive list of all environment variables available in `.env.ex
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| **Blockchain Type Balances** |
+| **Chain-Specific Balances** |
 | `INITIAL_SVM_SOL_BALANCE` | Optional | `0` | Initial SOL balance on Solana |
 | `INITIAL_SVM_USDC_BALANCE` | Optional | `0` | Initial USDC balance on Solana |
 | `INITIAL_SVM_USDT_BALANCE` | Optional | `0` | Initial USDT balance on Solana |
-| `INITIAL_EVM_ETH_BALANCE` | Optional | `0` | Initial ETH balance for all EVM chains |
-| `INITIAL_EVM_USDC_BALANCE` | Optional | `0` | Initial USDC balance for all EVM chains |
-| `INITIAL_EVM_USDT_BALANCE` | Optional | `0` | Initial USDT balance for all EVM chains |
-| **Chain-Specific Balances** |
 | `INITIAL_ETH_ETH_BALANCE` | Optional | `0` | Initial ETH balance on Ethereum |
 | `INITIAL_ETH_USDC_BALANCE` | Optional | `0` | Initial USDC balance on Ethereum |
-| `INITIAL_POLYGON_MATIC_BALANCE` | Optional | `0` | Initial MATIC balance on Polygon |
+| `INITIAL_POLYGON_ETH_BALANCE` | Optional | `0` | Initial ETH balance on Polygon |
 | `INITIAL_POLYGON_USDC_BALANCE` | Optional | `0` | Initial USDC balance on Polygon |
 | `INITIAL_BASE_ETH_BALANCE` | Optional | `0` | Initial ETH balance on Base |
 | `INITIAL_BASE_USDC_BALANCE` | Optional | `0` | Initial USDC balance on Base |
@@ -588,7 +584,6 @@ The system follows specific rules for resolving settings when multiple related v
 
 1. **Initial Balances**: Uses the most specific setting available:
    - Chain-specific balances (e.g., `INITIAL_ETH_USDC_BALANCE`)
-   - Blockchain type balances (e.g., `INITIAL_EVM_USDC_BALANCE`)
    - Zero (default)
 
 2. **Database Connection**: Uses the most comprehensive setting available:
@@ -702,10 +697,9 @@ INITIAL_SVM_SOL_BALANCE=10
 INITIAL_SVM_USDC_BALANCE=5000
 INITIAL_SVM_USDT_BALANCE=1000
 
-# Ethereum (EVM) balances
-INITIAL_EVM_ETH_BALANCE=1
-INITIAL_EVM_USDC_BALANCE=5000
-INITIAL_EVM_USDT_BALANCE=1000
+# Mainnet-specific balances
+INITIAL_ETH_ETH_BALANCE=1
+INITIAL_ETH_USDC_BALANCE=5000
 
 # Base-specific balances
 INITIAL_BASE_USDC_BALANCE=5000  # Required for base-trades.test.ts
@@ -756,7 +750,7 @@ The trading simulator supports two modes of operation for cross-chain trading, c
 
 With `ALLOW_CROSS_CHAIN_TRADING=true`, users can:
 - Trade between tokens on different blockchain types (e.g., Solana SOL to Ethereum ETH)
-- Execute trades between any supported chains (e.g., Polygon MATIC to Base ETH)
+- Execute trades between any supported chains (e.g., Polygon USDC to Base ETH)
 - Maintain a diversified portfolio across multiple blockchains
 
 This mode is ideal for:
@@ -878,33 +872,22 @@ Then edit the file to configure your environment. Key configuration options incl
 
 By default, all token balances start at zero. You can configure initial balances for different tokens across multiple blockchains using the following environment variables in your `.env` file:
 
-**Multi-Chain Configuration**
-
-For granular control, you can set balances by blockchain type:
-
-```
-# Solana Virtual Machine (SVM) Balances
-INITIAL_SVM_SOL_BALANCE=10    # Initial SOL balance on Solana
-INITIAL_SVM_USDC_BALANCE=5000 # Initial USDC balance on Solana
-INITIAL_SVM_USDT_BALANCE=0    # Initial USDT balance on Solana
-
-# Ethereum Virtual Machine (EVM) Balances - applies to all EVM chains
-INITIAL_EVM_ETH_BALANCE=1     # Initial ETH balance for all EVM chains
-INITIAL_EVM_USDC_BALANCE=5000 # Initial USDC balance for all EVM chains
-INITIAL_EVM_USDT_BALANCE=0    # Initial USDT balance for all EVM chains
-```
-
 **Chain-Specific Configuration**
 
-For even more precise control, you can override balances for specific chains:
+Example chain-specific configurations:
 
 ```
 # Ethereum Mainnet specific balances
 INITIAL_ETH_ETH_BALANCE=2     # ETH on Ethereum Mainnet specifically
 INITIAL_ETH_USDC_BALANCE=3000 # USDC on Ethereum Mainnet specifically
 
+# Solana Virtual Machine (SVM) Balances
+INITIAL_SVM_SOL_BALANCE=10    # Initial SOL balance on Solana
+INITIAL_SVM_USDC_BALANCE=5000 # Initial USDC balance on Solana
+INITIAL_SVM_USDT_BALANCE=0    # Initial USDT balance on Solana
+
 # Polygon specific balances
-INITIAL_POLYGON_MATIC_BALANCE=50  # MATIC on Polygon
+INITIAL_POLYGON_ETH_BALANCE=50  # ETH on Polygon
 INITIAL_POLYGON_USDC_BALANCE=4000 # USDC on Polygon
 
 # Base specific balances
@@ -916,8 +899,7 @@ INITIAL_BASE_USDC_BALANCE=3500    # USDC on Base
 
 The system uses the following precedence for balances:
 1. Specific chain balances (e.g., `INITIAL_ETH_USDC_BALANCE`)
-2. General blockchain type balances (e.g., `INITIAL_EVM_USDC_BALANCE`)
-3. Zero (default)
+2. Zero (default)
 
 This allows fine-grained control over initial token balances across different blockchains.
 

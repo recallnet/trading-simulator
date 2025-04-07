@@ -20,22 +20,16 @@ export class BalanceManager {
    */
   async initializeTeamBalances(teamId: string): Promise<void> {
     console.log(`[BalanceManager] Initializing balances for team ${teamId}`);
-    
+
     try {
       const initialBalances = new Map<string, number>();
-      
-      // Add Solana (SVM) token balances
-      this.addChainTokensToBalances(initialBalances, BlockchainType.SVM);
-      
-      // Add Ethereum (EVM) token balances
-      this.addChainTokensToBalances(initialBalances, BlockchainType.EVM);
-      
+
       // Add specific chain token balances (more granular)
       this.addSpecificChainTokensToBalances(initialBalances);
-      
+
       // Save to database
       await repositories.balanceRepository.initializeTeamBalances(teamId, initialBalances);
-      
+
       // Update cache
       this.balanceCache.set(teamId, initialBalances);
     } catch (error) {
@@ -45,59 +39,35 @@ export class BalanceManager {
   }
 
   /**
-   * Helper method to add token balances for a specific chain
-   * @param balances The balances map to update
-   * @param chain The blockchain type
-   */
-  private addChainTokensToBalances(balances: Map<string, number>, chain: BlockchainType): void {
-    const chainTokens = config.blockchainTokens[chain];
-    const chainBalances = config.multiChainInitialBalances[chain];
-    
-    if (!chainTokens || !chainBalances) {
-      console.warn(`[BalanceManager] No configuration found for chain: ${chain}`);
-      return;
-    }
-    
-    // Add each configured token for this chain
-    Object.entries(chainTokens).forEach(([symbol, tokenAddress]) => {
-      // Use type assertion to handle the index access
-      const balance = chainBalances[symbol as keyof typeof chainBalances];
-      if (balance && balance > 0) {
-        console.log(`[BalanceManager] Setting initial balance for ${chain} ${symbol}: ${balance}`);
-        balances.set(tokenAddress, balance);
-      }
-    });
-  }
-
-  /**
    * Helper method to add token balances for specific chains
    * @param balances The balances map to update
    */
   private addSpecificChainTokensToBalances(balances: Map<string, number>): void {
     const specificChainBalances = config.specificChainBalances;
     const specificChainTokens = config.specificChainTokens;
-    
+
     if (!specificChainBalances || !specificChainTokens) {
       console.warn(`[BalanceManager] No specific chain configuration found`);
       return;
     }
-    
+
     // Process each specific chain that we have balances for
     Object.entries(specificChainBalances).forEach(([chain, tokenBalances]) => {
       const specificChain = chain as SpecificChain;
-      
+
       // Only process chains that we have token configurations for
-      if (specificChain === 'eth' || specificChain === 'polygon' || 
-          specificChain === 'base' || specificChain === 'svm') {
-        
+      if (specificChain === 'eth' || specificChain === 'polygon' ||
+        specificChain === 'base' || specificChain === 'svm' || 
+        specificChain === 'optimism' || specificChain === 'arbitrum') {
+
         // Type-safe access to the chain tokens
         const chainTokens = specificChainTokens[specificChain];
-        
+
         // Add each configured token for this specific chain
         Object.entries(tokenBalances).forEach(([symbol, balance]) => {
           // Type assertion for the symbol access
           const tokenAddress = chainTokens[symbol as keyof typeof chainTokens];
-          
+
           if (tokenAddress && balance > 0) {
             console.log(`[BalanceManager] Setting initial balance for specific chain ${chain} ${symbol}: ${balance}`);
             balances.set(tokenAddress, balance);
@@ -122,10 +92,10 @@ export class BalanceManager {
       if (cachedBalances && cachedBalances.has(tokenAddress)) {
         return cachedBalances.get(tokenAddress) || 0;
       }
-      
+
       // Get from database
       const balance = await repositories.balanceRepository.getBalance(teamId, tokenAddress);
-      
+
       // If balance exists, update cache
       if (balance) {
         if (!this.balanceCache.has(teamId)) {
@@ -134,7 +104,7 @@ export class BalanceManager {
         this.balanceCache.get(teamId)?.set(tokenAddress, balance.amount);
         return balance.amount;
       }
-      
+
       return 0;
     } catch (error) {
       console.error(`[BalanceManager] Error getting balance for team ${teamId}, token ${tokenAddress}:`, error);
@@ -151,14 +121,14 @@ export class BalanceManager {
     try {
       // Get from database
       const balances = await repositories.balanceRepository.getTeamBalances(teamId);
-      
+
       // Update cache
       const balanceMap = new Map<string, number>();
       balances.forEach(balance => {
         balanceMap.set(balance.token, balance.amount);
       });
       this.balanceCache.set(teamId, balanceMap);
-      
+
       return balances;
     } catch (error) {
       console.error(`[BalanceManager] Error getting all balances for team ${teamId}:`, error);
@@ -177,16 +147,16 @@ export class BalanceManager {
       if (amount < 0) {
         throw new Error('Balance cannot be negative');
       }
-      
+
       // Save to database
       await repositories.balanceRepository.saveBalance(teamId, tokenAddress, amount);
-      
+
       // Update cache
       if (!this.balanceCache.has(teamId)) {
         this.balanceCache.set(teamId, new Map<string, number>());
       }
       this.balanceCache.get(teamId)?.set(tokenAddress, amount);
-      
+
       console.log(`[BalanceManager] Updated balance for team ${teamId}, token ${tokenAddress}: ${amount}`);
     } catch (error) {
       console.error(`[BalanceManager] Error updating balance for team ${teamId}, token ${tokenAddress}:`, error);
@@ -226,22 +196,16 @@ export class BalanceManager {
   async resetTeamBalances(teamId: string): Promise<void> {
     try {
       const initialBalances = new Map<string, number>();
-      
-      // Add Solana (SVM) token balances
-      this.addChainTokensToBalances(initialBalances, BlockchainType.SVM);
-      
-      // Add Ethereum (EVM) token balances
-      this.addChainTokensToBalances(initialBalances, BlockchainType.EVM);
-      
+
       // Add specific chain token balances (more granular)
       this.addSpecificChainTokensToBalances(initialBalances);
-      
+
       // Reset in database
       await repositories.balanceRepository.resetTeamBalances(teamId, initialBalances);
-      
+
       // Update cache
       this.balanceCache.set(teamId, initialBalances);
-      
+
       console.log(`[BalanceManager] Reset balances for team ${teamId}`);
     } catch (error) {
       console.error(`[BalanceManager] Error resetting balances for team ${teamId}:`, error);

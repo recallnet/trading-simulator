@@ -8,9 +8,9 @@ import { config } from '../../config';
 export class SolanaProvider implements PriceSource {
   // Fixed prices for main tokens as fallback
   private readonly KNOWN_TOKENS: Record<string, number> = {
-    [config.tokens.sol]: 100.0, // SOL at $100
-    [config.tokens.usdc]: 1.0,  // USDC at $1
-    [config.tokens.usdt]: 1.0,  // USDT at $1
+    [config.specificChainTokens.svm.sol]: 100.0, // SOL at $100
+    [config.specificChainTokens.svm.usdc]: 1.0,  // USDC at $1
+    [config.specificChainTokens.svm.usdt]: 1.0,  // USDT at $1
   };
 
   getName(): string {

@@ -346,32 +346,6 @@ export class CompetitionController {
       // Build initial balances description based on config
       const initialBalanceDescriptions = [];
       
-      // SVM balances
-      const svmBalances = config.multiChainInitialBalances[BlockchainType.SVM];
-      if (svmBalances) {
-        const svmTokens = [];
-        if (svmBalances.sol > 0) svmTokens.push(`${svmBalances.sol} SOL`);
-        if (svmBalances.usdc > 0) svmTokens.push(`${svmBalances.usdc} USDC`);
-        if (svmBalances.usdt > 0) svmTokens.push(`${svmBalances.usdt} USDT`);
-        
-        if (svmTokens.length > 0) {
-          initialBalanceDescriptions.push(`Solana: ${svmTokens.join(', ')}`);
-        }
-      }
-      
-      // EVM balances (general)
-      const evmBalances = config.multiChainInitialBalances[BlockchainType.EVM];
-      if (evmBalances) {
-        const evmTokens = [];
-        if (evmBalances.eth > 0) evmTokens.push(`${evmBalances.eth} ETH`);
-        if (evmBalances.usdc > 0) evmTokens.push(`${evmBalances.usdc} USDC`);
-        if (evmBalances.usdt > 0) evmTokens.push(`${evmBalances.usdt} USDT`);
-        
-        if (evmTokens.length > 0) {
-          initialBalanceDescriptions.push(`Default for EVM chains: ${evmTokens.join(', ')}`);
-        }
-      }
-      
       // Chain-specific balances
       for (const chain of Object.keys(config.specificChainBalances)) {
         const chainBalances = config.specificChainBalances[chain as keyof typeof config.specificChainBalances];

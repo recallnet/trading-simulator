@@ -136,8 +136,8 @@ describe('Portfolio Snapshots', () => {
     await wait(500);
     
     // Execute a trade to change the portfolio composition
-    const usdcTokenAddress = config.tokens.usdc;
-    const solTokenAddress = config.tokens.sol;
+    const usdcTokenAddress = config.specificChainTokens.svm.usdc;
+    const solTokenAddress = config.specificChainTokens.svm.sol;
     
     await teamClient.executeTrade({
       fromToken: usdcTokenAddress,
@@ -194,7 +194,7 @@ describe('Portfolio Snapshots', () => {
     
     // Get initial balances
     const initialBalanceResponse = await teamClient.getBalance();
-    const usdcTokenAddress = config.tokens.usdc;
+    const usdcTokenAddress = config.specificChainTokens.svm.usdc;
     const initialUsdcBalance = parseFloat(initialBalanceResponse.balance[usdcTokenAddress]?.toString() || '0');
     
     // Get token price using direct service call instead of API
@@ -259,7 +259,7 @@ describe('Portfolio Snapshots', () => {
     console.log(`[Test] Price freshness setting from config: `, config.portfolio.priceFreshnessMs);
     
     // Ensure we have a token priced in the database first by querying the price directly
-    const usdcTokenAddress = config.tokens.usdc;
+    const usdcTokenAddress = config.specificChainTokens.svm.usdc;
     console.log(`[Test] Getting price for token ${usdcTokenAddress} to ensure it exists in DB`);
     
     // Use direct service call instead of API

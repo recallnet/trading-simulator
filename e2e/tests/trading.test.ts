@@ -45,13 +45,13 @@ describe('Trading API', () => {
     expect(initialBalanceResponse.balance).toBeDefined();
     
     // Initial USDC balance should be the starting amount (e.g., 10000)
-    const usdcTokenAddress = config.tokens.usdc;
+    const usdcTokenAddress = config.specificChainTokens.svm.usdc;
     const initialUsdcBalance = parseFloat(initialBalanceResponse.balance[usdcTokenAddress]?.toString() || '0');
     console.log(`Initial USDC balance: ${initialUsdcBalance}`);
     expect(initialUsdcBalance).toBeGreaterThan(0);
     
     // Use SOL token for trading (since we know it has a price in the test environment)
-    const solTokenAddress = config.tokens.sol;
+    const solTokenAddress = config.specificChainTokens.svm.sol;
     
     // Initial SOL balance might already exist from initial balance config
     const initialSolBalance = parseFloat(initialBalanceResponse.balance[solTokenAddress]?.toString() || '0');
@@ -171,7 +171,7 @@ describe('Trading API', () => {
     expect(initialBalanceResponse.balance).toBeDefined();
     
     // Initial USDC balance should be the starting amount
-    const usdcTokenAddress = config.tokens.usdc;
+    const usdcTokenAddress = config.specificChainTokens.svm.usdc;
     const initialUsdcBalance = parseFloat(initialBalanceResponse.balance[usdcTokenAddress]?.toString() || '0');
     console.log(`Initial USDC balance: ${initialUsdcBalance}`);
     expect(initialUsdcBalance).toBeGreaterThan(0);
@@ -246,7 +246,7 @@ describe('Trading API', () => {
     
     // Check initial balance
     const initialBalanceResponse = await teamClient.getBalance();
-    const usdcTokenAddress = config.tokens.usdc;
+    const usdcTokenAddress = config.specificChainTokens.svm.usdc;
     const initialUsdcBalance = parseFloat(initialBalanceResponse.balance[usdcTokenAddress].toString());
     
     // Try to execute a trade with invalid token address format
@@ -291,7 +291,7 @@ describe('Trading API', () => {
     // The test should now execute a transaction where from != to
     const solanaPriceResponse = await teamClient.executeTrade({
       fromToken: usdcTokenAddress,
-      toToken: config.tokens.sol, // Use SOL token which has a different address from USDC
+      toToken: config.specificChainTokens.svm.sol, // Use SOL token which has a different address from USDC
       amount: (initialUsdcBalance * 2).toString(), // Double the available balance
       fromChain: BlockchainType.SVM,
       toChain: BlockchainType.SVM
@@ -302,7 +302,7 @@ describe('Trading API', () => {
     
     // Try to execute a sell trade without having tokens
     const invalidSellResponse = await teamClient.executeTrade({
-      fromToken: config.tokens.sol, // Use SOL which we don't have in our balance
+      fromToken: config.specificChainTokens.svm.sol, // Use SOL which we don't have in our balance
       toToken: usdcTokenAddress,
       amount: '100',
       fromChain: BlockchainType.SVM,
@@ -334,7 +334,7 @@ describe('Trading API', () => {
     expect(initialBalanceResponse.balance).toBeDefined();
     
     // Initial USDC balance
-    const usdcTokenAddress = config.tokens.usdc;
+    const usdcTokenAddress = config.specificChainTokens.svm.usdc;
     const initialUsdcBalance = parseFloat(initialBalanceResponse.balance[usdcTokenAddress]?.toString() || '0');
     console.log(`Initial USDC balance: ${initialUsdcBalance}`);
     expect(initialUsdcBalance).toBeGreaterThan(0);
@@ -440,14 +440,14 @@ describe('Trading API', () => {
     expect(initialBalanceResponse.balance).toBeDefined();
     
     // Get Ethereum USDC token address from blockchain tokens config
-    const ethUsdcTokenAddress = config.blockchainTokens?.[BlockchainType.EVM]?.usdc;
+    const ethUsdcTokenAddress = config.specificChainTokens.eth.usdc;
     if (!ethUsdcTokenAddress) {
       console.log('Skipping test: Ethereum USDC token address not configured');
       return;
     }
     
     // Get Ethereum ETH token address
-    const ethTokenAddress = config.blockchainTokens?.[BlockchainType.EVM]?.eth;
+    const ethTokenAddress = config.specificChainTokens.eth.eth;
     if (!ethTokenAddress) {
       console.log('Skipping test: Ethereum ETH token address not configured');
       return;
@@ -472,7 +472,7 @@ describe('Trading API', () => {
     console.log(`Initial ETH balance: ${initialEthBalance}`);
     
     // If we have SVM USDC, we can try to trade it for ETH
-    const svmUsdcAddress = config.tokens.usdc;
+    const svmUsdcAddress = config.specificChainTokens.svm.usdc;
     const svmUsdcBalance = parseFloat(initialBalanceResponse.balance[svmUsdcAddress]?.toString() || '0');
     
     if (svmUsdcBalance > 0) {
@@ -543,13 +543,13 @@ describe('Trading API', () => {
     expect(initialBalanceResponse.success).toBe(true);
     
     // Initial USDC balance should be the starting amount (e.g., 10000)
-    const usdcTokenAddress = config.tokens.usdc;
+    const usdcTokenAddress = config.specificChainTokens.svm.usdc;
     const initialUsdcBalance = parseFloat(initialBalanceResponse.balance[usdcTokenAddress]?.toString() || '0');
     console.log(`Initial USDC balance: ${initialUsdcBalance}`);
     expect(initialUsdcBalance).toBeGreaterThan(0);
     
     // Use SOL token for trading (since we know it has a price in the test environment)
-    const solTokenAddress = config.tokens.sol;
+    const solTokenAddress = config.specificChainTokens.svm.sol;
     
     // Initial SOL balance
     const initialSolBalance = parseFloat(initialBalanceResponse.balance[solTokenAddress]?.toString() || '0');
@@ -608,7 +608,7 @@ describe('Trading API', () => {
     // First, we need to check if cross-chain trading is disabled
     try {
       // Get Ethereum ETH token address
-      const ethTokenAddress = config.blockchainTokens?.[BlockchainType.EVM]?.eth;
+      const ethTokenAddress = config.specificChainTokens.eth.eth;
       if (!ethTokenAddress) {
         console.log('Skipping cross-chain test: Ethereum ETH token address not configured');
         return;
