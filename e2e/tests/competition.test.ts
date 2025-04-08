@@ -1,4 +1,4 @@
-import { createTestClient, registerTeamAndGetClient, startTestCompetition, cleanupTestState, ADMIN_USERNAME, ADMIN_PASSWORD, ADMIN_EMAIL } from '../utils/test-helpers';
+import { createTestClient, registerTeamAndGetClient, startTestCompetition, createTestCompetition, startExistingTestCompetition, cleanupTestState, ADMIN_USERNAME, ADMIN_PASSWORD, ADMIN_EMAIL } from '../utils/test-helpers';
 import axios from 'axios';
 import { getBaseUrl } from '../utils/server';
 
@@ -46,6 +46,111 @@ describe('Competition API', () => {
     expect(competition.status).toBe('ACTIVE');
     expect(competition.teamIds).toContain(team1.id);
     expect(competition.teamIds).toContain(team2.id);
+  });
+  
+  test('should create a competition without starting it', async () => {
+    // Setup admin client
+    const adminClient = createTestClient();
+    await adminClient.loginAsAdmin(adminApiKey);
+    
+    // Create a competition without starting it
+    const competitionName = `Pending Competition ${Date.now()}`;
+    const competitionResponse = await createTestCompetition(
+      adminClient, 
+      competitionName
+    );
+    
+    // Verify competition was created in PENDING state
+    const competition = competitionResponse.competition;
+    expect(competition).toBeDefined();
+    expect(competition.name).toBe(competitionName);
+    expect(competition.status).toBe('PENDING');
+    expect(competition.startDate).toBeNull();
+    expect(competition.endDate).toBeNull();
+  });
+  
+  test('should start an existing competition with teams', async () => {
+    // Setup admin client
+    const adminClient = createTestClient();
+    await adminClient.loginAsAdmin(adminApiKey);
+    
+    // Register teams
+    const { team: team1 } = await registerTeamAndGetClient(adminClient, 'Team Delta');
+    const { team: team2 } = await registerTeamAndGetClient(adminClient, 'Team Echo');
+    
+    // Create a competition without starting it
+    const competitionName = `Two-Stage Competition ${Date.now()}`;
+    const createResponse = await createTestCompetition(
+      adminClient, 
+      competitionName
+    );
+    
+    // Verify competition was created in PENDING state
+    const pendingCompetition = createResponse.competition;
+    expect(pendingCompetition).toBeDefined();
+    expect(pendingCompetition.status).toBe('PENDING');
+    
+    // Now start the existing competition
+    const startResponse = await startExistingTestCompetition(
+      adminClient,
+      pendingCompetition.id,
+      [team1.id, team2.id]
+    );
+    
+    // Verify competition was started
+    const activeCompetition = startResponse.competition;
+    expect(activeCompetition).toBeDefined();
+    expect(activeCompetition.id).toBe(pendingCompetition.id);
+    expect(activeCompetition.name).toBe(competitionName);
+    expect(activeCompetition.status).toBe('ACTIVE');
+    expect(activeCompetition.startDate).toBeDefined();
+    expect(activeCompetition.teamIds).toContain(team1.id);
+    expect(activeCompetition.teamIds).toContain(team2.id);
+  });
+  
+  test('should not allow starting a non-pending competition', async () => {
+    // Setup admin client
+    const adminClient = createTestClient();
+    await adminClient.loginAsAdmin(adminApiKey);
+    
+    // Register teams
+    const { team: team1 } = await registerTeamAndGetClient(adminClient, 'Team Foxtrot');
+    const { team: team2 } = await registerTeamAndGetClient(adminClient, 'Team Golf');
+    
+    // Create and start a competition
+    const competitionName = `Already Active Competition ${Date.now()}`;
+    const startResponse = await startTestCompetition(
+      adminClient, 
+      competitionName, 
+      [team1.id]
+    );
+    
+    const activeCompetition = startResponse.competition;
+    expect(activeCompetition.status).toBe('ACTIVE');
+    
+    // Try to start the same competition again
+    try {
+      await startExistingTestCompetition(
+        adminClient,
+        activeCompetition.id,
+        [team1.id, team2.id]
+      );
+      
+      // Should not reach this line
+      expect(false).toBe(true);
+    } catch (error) {
+      // Expect an error because the competition is already active
+      expect(error).toBeDefined();
+      expect((error as Error).message).toContain('Failed to start existing competition');
+    }
+    
+    // Verify through direct API call to see the actual error
+    try {
+      await adminClient.startExistingCompetition(activeCompetition.id, [team1.id, team2.id]);
+    } catch (error: any) {
+      expect(error.success).toBe(false);
+      expect(error.error).toContain('ACTIVE');
+    }
   });
   
   test('teams can view competition status and leaderboard', async () => {

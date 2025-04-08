@@ -3,6 +3,7 @@ import { services } from '../services';
 import { ApiError } from '../middleware/errorHandler';
 import { v4 as uuidv4 } from 'uuid';
 import { repositories } from '../database';
+import { CompetitionStatus } from '../types';
 
 /**
  * Admin Controller
@@ -325,15 +326,15 @@ export class AdminController {
   }
   
   /**
-   * Start a competition
+   * Create a competition without starting it
    * 
    * @openapi
-   * /api/admin/competition/start:
+   * /api/admin/competition/create:
    *   post:
    *     tags:
    *       - Admin
-   *     summary: Start a competition
-   *     description: Create and start a new trading competition with specified teams
+   *     summary: Create a competition
+   *     description: Create a new competition without starting it. It will be in PENDING status and can be started later.
    *     security:
    *       - BearerAuth: []
    *     requestBody:
@@ -344,7 +345,6 @@ export class AdminController {
    *             type: object
    *             required:
    *               - name
-   *               - teamIds
    *             properties:
    *               name:
    *                 type: string
@@ -353,6 +353,102 @@ export class AdminController {
    *               description:
    *                 type: string
    *                 description: Competition description
+   *                 example: A trading competition for the spring semester
+   *     responses:
+   *       201:
+   *         description: Competition created successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 success:
+   *                   type: boolean
+   *                   description: Operation success status
+   *                 competition:
+   *                   type: object
+   *                   properties:
+   *                     id:
+   *                       type: string
+   *                       description: Competition ID
+   *                     name:
+   *                       type: string
+   *                       description: Competition name
+   *                     description:
+   *                       type: string
+   *                       description: Competition description
+   *                     status:
+   *                       type: string
+   *                       enum: [PENDING, ACTIVE, COMPLETED]
+   *                       description: Competition status
+   *                     createdAt:
+   *                       type: string
+   *                       format: date-time
+   *                       description: Competition creation date
+   *       400:
+   *         description: Missing required parameters
+   *       401:
+   *         description: Unauthorized - Admin authentication required
+   *       500:
+   *         description: Server error
+   *
+   * @param req Express request
+   * @param res Express response
+   * @param next Express next function
+   */
+  static async createCompetition(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { name, description } = req.body;
+      
+      // Validate required parameters
+      if (!name) {
+        throw new ApiError(400, 'Missing required parameter: name');
+      }
+      
+      // Create a new competition
+      const competition = await services.competitionManager.createCompetition(name, description);
+      
+      // Return the created competition
+      res.status(201).json({
+        success: true,
+        competition
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+  
+  /**
+   * Start a competition
+   * 
+   * @openapi
+   * /api/admin/competition/start:
+   *   post:
+   *     tags:
+   *       - Admin
+   *     summary: Start a competition
+   *     description: Start a new or existing competition with specified teams. If competitionId is provided, it will start an existing competition. Otherwise, it will create and start a new one.
+   *     security:
+   *       - BearerAuth: []
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             required:
+   *               - teamIds
+   *             properties:
+   *               competitionId:
+   *                 type: string
+   *                 description: ID of an existing competition to start. If not provided, a new competition will be created.
+   *               name:
+   *                 type: string
+   *                 description: Competition name (required when creating a new competition)
+   *                 example: Spring 2023 Trading Competition
+   *               description:
+   *                 type: string
+   *                 description: Competition description (used when creating a new competition)
    *                 example: A trading competition for the spring semester
    *               teamIds:
    *                 type: array
@@ -393,7 +489,7 @@ export class AdminController {
    *                       description: Competition end date (null if not ended)
    *                     status:
    *                       type: string
-   *                       enum: [pending, active, completed]
+   *                       enum: [PENDING, ACTIVE, COMPLETED]
    *                       description: Competition status
    *                     teamIds:
    *                       type: array
@@ -404,6 +500,8 @@ export class AdminController {
    *         description: Missing required parameters
    *       401:
    *         description: Unauthorized - Admin authentication required
+   *       404:
+   *         description: Competition not found when using competitionId
    *       500:
    *         description: Server error
    *
@@ -413,15 +511,37 @@ export class AdminController {
    */
   static async startCompetition(req: Request, res: Response, next: NextFunction) {
     try {
-      const { name, description, teamIds } = req.body;
+      const { competitionId, name, description, teamIds } = req.body;
       
       // Validate required parameters
-      if (!name || !teamIds || !Array.isArray(teamIds) || teamIds.length === 0) {
-        throw new ApiError(400, 'Missing required parameters: name, teamIds (array)');
+      if (!teamIds || !Array.isArray(teamIds) || teamIds.length === 0) {
+        throw new ApiError(400, 'Missing required parameter: teamIds (array)');
       }
       
-      // Create a new competition
-      const competition = await services.competitionManager.createCompetition(name, description);
+      let competition;
+      
+      // Check if we're starting an existing competition or creating a new one
+      if (competitionId) {
+        // Get the existing competition
+        competition = await services.competitionManager.getCompetition(competitionId);
+        
+        if (!competition) {
+          throw new ApiError(404, 'Competition not found');
+        }
+        
+        // Verify competition is in PENDING state
+        if (competition.status !== CompetitionStatus.PENDING) {
+          throw new ApiError(400, `Competition is already in ${competition.status} state and cannot be started`);
+        }
+      } else {
+        // We need name to create a new competition
+        if (!name) {
+          throw new ApiError(400, 'Missing required parameter: name (required when competitionId is not provided)');
+        }
+        
+        // Create a new competition
+        competition = await services.competitionManager.createCompetition(name, description);
+      }
       
       // Start the competition
       const startedCompetition = await services.competitionManager.startCompetition(competition.id, teamIds);
@@ -496,7 +616,7 @@ export class AdminController {
    *                       description: Competition end date
    *                     status:
    *                       type: string
-   *                       enum: [pending, active, completed]
+   *                       enum: [PENDING, ACTIVE, COMPLETED]
    *                       description: Competition status
    *                 leaderboard:
    *                   type: array
@@ -603,7 +723,7 @@ export class AdminController {
    *                       description: Competition end date (null if not ended)
    *                     status:
    *                       type: string
-   *                       enum: [pending, active, completed]
+   *                       enum: [PENDING, ACTIVE, COMPLETED]
    *                       description: Competition status
    *                 leaderboard:
    *                   type: array

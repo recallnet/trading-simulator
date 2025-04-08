@@ -63,7 +63,7 @@ export class CompetitionController {
    *                       description: Competition end date (null if not ended)
    *                     status:
    *                       type: string
-   *                       enum: [pending, active, completed]
+   *                       enum: [PENDING, ACTIVE, COMPLETED]
    *                       description: Competition status
    *                 leaderboard:
    *                   type: array
@@ -228,7 +228,7 @@ export class CompetitionController {
    *                       description: Competition end date (null if not ended)
    *                     status:
    *                       type: string
-   *                       enum: [pending, active, completed]
+   *                       enum: [PENDING, ACTIVE, COMPLETED]
    *                       description: Competition status
    *                 message:
    *                   type: string

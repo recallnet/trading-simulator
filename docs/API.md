@@ -1631,12 +1631,116 @@ To perform this operation, you must be authenticated by means of one of the foll
 BearerAuth
 </aside>
 
+## Create a competition
+
+> Code samples
+
+```javascript
+const inputBody = '{
+  "name": "Spring 2023 Trading Competition",
+  "description": "A trading competition for the spring semester"
+}';
+const headers = {
+  'Content-Type':'application/json',
+  'Accept':'application/json',
+  'Authorization':'Bearer {access-token}'
+};
+
+fetch('http://localhost:3000/api/admin/competition/create',
+{
+  method: 'POST',
+  body: inputBody,
+  headers: headers
+})
+.then(function(res) {
+    return res.json();
+}).then(function(body) {
+    console.log(body);
+});
+
+```
+
+`POST /api/admin/competition/create`
+
+Create a new competition without starting it. It will be in PENDING status and can be started later.
+
+> Body parameter
+
+```json
+{
+  "name": "Spring 2023 Trading Competition",
+  "description": "A trading competition for the spring semester"
+}
+```
+
+<h3 id="create-a-competition-parameters">Parameters</h3>
+
+|Name|In|Type|Required|Description|
+|---|---|---|---|---|
+|body|body|object|true|none|
+|» name|body|string|true|Competition name|
+|» description|body|string|false|Competition description|
+
+> Example responses
+
+> 201 Response
+
+```json
+{
+  "success": true,
+  "competition": {
+    "id": "string",
+    "name": "string",
+    "description": "string",
+    "status": "PENDING",
+    "createdAt": "2019-08-24T14:15:22Z"
+  }
+}
+```
+
+<h3 id="create-a-competition-responses">Responses</h3>
+
+|Status|Meaning|Description|Schema|
+|---|---|---|---|
+|201|[Created](https://tools.ietf.org/html/rfc7231#section-6.3.2)|Competition created successfully|Inline|
+|400|[Bad Request](https://tools.ietf.org/html/rfc7231#section-6.5.1)|Missing required parameters|None|
+|401|[Unauthorized](https://tools.ietf.org/html/rfc7235#section-3.1)|Unauthorized - Admin authentication required|None|
+|500|[Internal Server Error](https://tools.ietf.org/html/rfc7231#section-6.6.1)|Server error|None|
+
+<h3 id="create-a-competition-responseschema">Response Schema</h3>
+
+Status Code **201**
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|» success|boolean|false|none|Operation success status|
+|» competition|object|false|none|none|
+|»» id|string|false|none|Competition ID|
+|»» name|string|false|none|Competition name|
+|»» description|string|false|none|Competition description|
+|»» status|string|false|none|Competition status|
+|»» createdAt|string(date-time)|false|none|Competition creation date|
+
+#### Enumerated Values
+
+|Property|Value|
+|---|---|
+|status|PENDING|
+|status|ACTIVE|
+|status|COMPLETED|
+
+<aside class="warning">
+To perform this operation, you must be authenticated by means of one of the following methods:
+BearerAuth
+</aside>
+
 ## Start a competition
 
 > Code samples
 
 ```javascript
 const inputBody = '{
+  "competitionId": "string",
   "name": "Spring 2023 Trading Competition",
   "description": "A trading competition for the spring semester",
   "teamIds": [
@@ -1665,12 +1769,13 @@ fetch('http://localhost:3000/api/admin/competition/start',
 
 `POST /api/admin/competition/start`
 
-Create and start a new trading competition with specified teams
+Start a new or existing competition with specified teams. If competitionId is provided, it will start an existing competition. Otherwise, it will create and start a new one.
 
 > Body parameter
 
 ```json
 {
+  "competitionId": "string",
   "name": "Spring 2023 Trading Competition",
   "description": "A trading competition for the spring semester",
   "teamIds": [
@@ -1684,8 +1789,9 @@ Create and start a new trading competition with specified teams
 |Name|In|Type|Required|Description|
 |---|---|---|---|---|
 |body|body|object|true|none|
-|» name|body|string|true|Competition name|
-|» description|body|string|false|Competition description|
+|» competitionId|body|string|false|ID of an existing competition to start. If not provided, a new competition will be created.|
+|» name|body|string|false|Competition name (required when creating a new competition)|
+|» description|body|string|false|Competition description (used when creating a new competition)|
 |» teamIds|body|[string]|true|Array of team IDs to include in the competition|
 
 > Example responses
@@ -1701,7 +1807,7 @@ Create and start a new trading competition with specified teams
     "description": "string",
     "startDate": "2019-08-24T14:15:22Z",
     "endDate": "2019-08-24T14:15:22Z",
-    "status": "pending",
+    "status": "PENDING",
     "teamIds": [
       "string"
     ]
@@ -1716,6 +1822,7 @@ Create and start a new trading competition with specified teams
 |200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|Competition started successfully|Inline|
 |400|[Bad Request](https://tools.ietf.org/html/rfc7231#section-6.5.1)|Missing required parameters|None|
 |401|[Unauthorized](https://tools.ietf.org/html/rfc7235#section-3.1)|Unauthorized - Admin authentication required|None|
+|404|[Not Found](https://tools.ietf.org/html/rfc7231#section-6.5.4)|Competition not found when using competitionId|None|
 |500|[Internal Server Error](https://tools.ietf.org/html/rfc7231#section-6.6.1)|Server error|None|
 
 <h3 id="start-a-competition-responseschema">Response Schema</h3>
@@ -1738,9 +1845,9 @@ Status Code **200**
 
 |Property|Value|
 |---|---|
-|status|pending|
-|status|active|
-|status|completed|
+|status|PENDING|
+|status|ACTIVE|
+|status|COMPLETED|
 
 <aside class="warning">
 To perform this operation, you must be authenticated by means of one of the following methods:
@@ -1807,7 +1914,7 @@ End an active competition and finalize the results
     "description": "string",
     "startDate": "2019-08-24T14:15:22Z",
     "endDate": "2019-08-24T14:15:22Z",
-    "status": "pending"
+    "status": "PENDING"
   },
   "leaderboard": [
     {
@@ -1850,9 +1957,9 @@ Status Code **200**
 
 |Property|Value|
 |---|---|
-|status|pending|
-|status|active|
-|status|completed|
+|status|PENDING|
+|status|ACTIVE|
+|status|COMPLETED|
 
 <aside class="warning">
 To perform this operation, you must be authenticated by means of one of the following methods:
@@ -1991,7 +2098,7 @@ Get performance reports and leaderboard for a competition
     "description": "string",
     "startDate": "2019-08-24T14:15:22Z",
     "endDate": "2019-08-24T14:15:22Z",
-    "status": "pending"
+    "status": "PENDING"
   },
   "leaderboard": [
     {
@@ -2038,9 +2145,9 @@ Status Code **200**
 
 |Property|Value|
 |---|---|
-|status|pending|
-|status|active|
-|status|completed|
+|status|PENDING|
+|status|ACTIVE|
+|status|COMPLETED|
 
 <aside class="warning">
 To perform this operation, you must be authenticated by means of one of the following methods:

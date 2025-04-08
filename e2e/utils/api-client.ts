@@ -185,6 +185,38 @@ export class ApiClient {
   }
   
   /**
+   * Create a competition in PENDING state
+   */
+  async createCompetition(name: string, description?: string): Promise<any> {
+    try {
+      const response = await this.axiosInstance.post('/api/admin/competition/create', {
+        name,
+        description
+      });
+      
+      return response.data;
+    } catch (error) {
+      return this.handleApiError(error, 'create competition');
+    }
+  }
+  
+  /**
+   * Start an existing competition
+   */
+  async startExistingCompetition(competitionId: string, teamIds: string[]): Promise<any> {
+    try {
+      const response = await this.axiosInstance.post('/api/admin/competition/start', {
+        competitionId,
+        teamIds
+      });
+      
+      return response.data;
+    } catch (error) {
+      return this.handleApiError(error, 'start existing competition');
+    }
+  }
+  
+  /**
    * Create a team client with a provided API key
    */
   createTeamClient(apiKey: string): ApiClient {

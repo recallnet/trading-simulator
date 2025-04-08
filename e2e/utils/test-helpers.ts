@@ -79,6 +79,49 @@ export async function startTestCompetition(
 }
 
 /**
+ * Create a competition in PENDING state without starting it
+ */
+export async function createTestCompetition(
+  adminClient: ApiClient,
+  name: string,
+  description?: string
+): Promise<any> {
+  // Ensure database is initialized
+  await ensureDatabaseInitialized();
+  
+  const result = await adminClient.createCompetition(
+    name,
+    description || `Test competition description for ${name}`
+  );
+  
+  if (!result.success) {
+    throw new Error('Failed to create competition');
+  }
+  
+  return result;
+}
+
+/**
+ * Start an existing competition with given teams
+ */
+export async function startExistingTestCompetition(
+  adminClient: ApiClient,
+  competitionId: string,
+  teamIds: string[]
+): Promise<any> {
+  // Ensure database is initialized
+  await ensureDatabaseInitialized();
+  
+  const result = await adminClient.startExistingCompetition(competitionId, teamIds);
+  
+  if (!result.success) {
+    throw new Error('Failed to start existing competition');
+  }
+  
+  return result;
+}
+
+/**
  * Ensure the database is initialized before using it
  */
 async function ensureDatabaseInitialized(): Promise<void> {
