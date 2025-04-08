@@ -33,6 +33,15 @@ const errorHandler = (
       error: err.message
     });
   }
+  
+  // Handle disqualification errors
+  if (err.message && err.message.includes('disqualified')) {
+    return res.status(403).json({
+      success: false,
+      error: err.message,
+      disqualified: true
+    });
+  }
 
   // Handle other errors
   return res.status(500).json({

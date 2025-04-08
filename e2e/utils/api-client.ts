@@ -403,6 +403,35 @@ export class ApiClient {
   }
   
   /**
+   * Disqualify a team (admin only)
+   * @param teamId ID of the team to disqualify
+   * @param reason Reason for disqualification
+   */
+  async disqualifyTeam(teamId: string, reason: string): Promise<any> {
+    try {
+      const response = await this.axiosInstance.post(`/api/admin/teams/${teamId}/disqualify`, {
+        reason
+      });
+      return response.data;
+    } catch (error) {
+      return this.handleApiError(error, 'disqualify team');
+    }
+  }
+  
+  /**
+   * Reinstate a previously disqualified team (admin only)
+   * @param teamId ID of the team to reinstate
+   */
+  async reinstateTeam(teamId: string): Promise<any> {
+    try {
+      const response = await this.axiosInstance.post(`/api/admin/teams/${teamId}/reinstate`, {});
+      return response.data;
+    } catch (error) {
+      return this.handleApiError(error, 'reinstate team');
+    }
+  }
+  
+  /**
    * Generic API request method for custom endpoints
    * @param method HTTP method (get, post, put, delete)
    * @param path API path

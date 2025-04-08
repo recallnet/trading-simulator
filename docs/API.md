@@ -1053,7 +1053,8 @@ Get the leaderboard for the active competition or a specific competition
       "teamName": "string",
       "portfolioValue": 0
     }
-  ]
+  ],
+  "disqualifiedTeamsFiltered": true
 }
 ```
 
@@ -1089,6 +1090,7 @@ Status Code **200**
 |»» teamId|string|false|none|Team ID|
 |»» teamName|string|false|none|Team name|
 |»» portfolioValue|number|false|none|Current portfolio value in USD|
+|» disqualifiedTeamsFiltered|boolean|false|none|Indicates whether any disqualified teams were filtered out of the leaderboard results|
 
 #### Enumerated Values
 
@@ -2039,6 +2041,182 @@ Status Code **200**
 |status|pending|
 |status|active|
 |status|completed|
+
+<aside class="warning">
+To perform this operation, you must be authenticated by means of one of the following methods:
+BearerAuth
+</aside>
+
+## Disqualify a team
+
+> Code samples
+
+```javascript
+const inputBody = '{
+  "reason": "Violated competition rules by using external API"
+}';
+const headers = {
+  'Content-Type':'application/json',
+  'Accept':'application/json',
+  'Authorization':'Bearer {access-token}'
+};
+
+fetch('http://localhost:3000/api/admin/teams/{teamId}/disqualify',
+{
+  method: 'POST',
+  body: inputBody,
+  headers: headers
+})
+.then(function(res) {
+    return res.json();
+}).then(function(body) {
+    console.log(body);
+});
+
+```
+
+`POST /api/admin/teams/{teamId}/disqualify`
+
+Disqualify a team from the competition. The team will no longer be able to perform any actions.
+
+> Body parameter
+
+```json
+{
+  "reason": "Violated competition rules by using external API"
+}
+```
+
+<h3 id="disqualify-a-team-parameters">Parameters</h3>
+
+|Name|In|Type|Required|Description|
+|---|---|---|---|---|
+|teamId|path|string|true|ID of the team to disqualify|
+|body|body|object|true|none|
+|» reason|body|string|true|Reason for disqualification|
+
+> Example responses
+
+> 200 Response
+
+```json
+{
+  "success": true,
+  "message": "string",
+  "team": {
+    "id": "string",
+    "name": "string",
+    "disqualified": true,
+    "disqualificationReason": "string",
+    "disqualificationDate": "2019-08-24T14:15:22Z"
+  }
+}
+```
+
+<h3 id="disqualify-a-team-responses">Responses</h3>
+
+|Status|Meaning|Description|Schema|
+|---|---|---|---|
+|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|Team disqualified successfully|Inline|
+|400|[Bad Request](https://tools.ietf.org/html/rfc7231#section-6.5.1)|Missing required parameters|None|
+|401|[Unauthorized](https://tools.ietf.org/html/rfc7235#section-3.1)|Unauthorized - Admin authentication required|None|
+|403|[Forbidden](https://tools.ietf.org/html/rfc7231#section-6.5.3)|Cannot disqualify admin accounts|None|
+|404|[Not Found](https://tools.ietf.org/html/rfc7231#section-6.5.4)|Team not found|None|
+|500|[Internal Server Error](https://tools.ietf.org/html/rfc7231#section-6.6.1)|Server error|None|
+
+<h3 id="disqualify-a-team-responseschema">Response Schema</h3>
+
+Status Code **200**
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|» success|boolean|false|none|Operation success status|
+|» message|string|false|none|Success message|
+|» team|object|false|none|none|
+|»» id|string|false|none|Team ID|
+|»» name|string|false|none|Team name|
+|»» disqualified|boolean|false|none|Disqualification status|
+|»» disqualificationReason|string|false|none|Reason for disqualification|
+|»» disqualificationDate|string(date-time)|false|none|Date of disqualification|
+
+<aside class="warning">
+To perform this operation, you must be authenticated by means of one of the following methods:
+BearerAuth
+</aside>
+
+## Reinstate a team
+
+> Code samples
+
+```javascript
+
+const headers = {
+  'Accept':'application/json',
+  'Authorization':'Bearer {access-token}'
+};
+
+fetch('http://localhost:3000/api/admin/teams/{teamId}/reinstate',
+{
+  method: 'POST',
+
+  headers: headers
+})
+.then(function(res) {
+    return res.json();
+}).then(function(body) {
+    console.log(body);
+});
+
+```
+
+`POST /api/admin/teams/{teamId}/reinstate`
+
+Reinstate a previously disqualified team, allowing them to participate in the competition again.
+
+<h3 id="reinstate-a-team-parameters">Parameters</h3>
+
+|Name|In|Type|Required|Description|
+|---|---|---|---|---|
+|teamId|path|string|true|ID of the team to reinstate|
+
+> Example responses
+
+> 200 Response
+
+```json
+{
+  "success": true,
+  "message": "string",
+  "team": {
+    "id": "string",
+    "name": "string",
+    "disqualified": true
+  }
+}
+```
+
+<h3 id="reinstate-a-team-responses">Responses</h3>
+
+|Status|Meaning|Description|Schema|
+|---|---|---|---|
+|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|Team reinstated successfully|Inline|
+|400|[Bad Request](https://tools.ietf.org/html/rfc7231#section-6.5.1)|Team is not currently disqualified|None|
+|401|[Unauthorized](https://tools.ietf.org/html/rfc7235#section-3.1)|Unauthorized - Admin authentication required|None|
+|404|[Not Found](https://tools.ietf.org/html/rfc7231#section-6.5.4)|Team not found|None|
+|500|[Internal Server Error](https://tools.ietf.org/html/rfc7231#section-6.6.1)|Server error|None|
+
+<h3 id="reinstate-a-team-responseschema">Response Schema</h3>
+
+Status Code **200**
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|» success|boolean|false|none|Operation success status|
+|» message|string|false|none|Success message|
+|» team|object|false|none|none|
+|»» id|string|false|none|Team ID|
+|»» name|string|false|none|Team name|
+|»» disqualified|boolean|false|none|Disqualification status (should be false)|
 
 <aside class="warning">
 To perform this operation, you must be authenticated by means of one of the following methods:

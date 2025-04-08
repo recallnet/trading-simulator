@@ -129,6 +129,9 @@ export interface Team {
   apiKey: string;
   walletAddress: string;
   isAdmin?: boolean;
+  disqualified?: boolean;
+  disqualificationReason?: string;
+  disqualificationDate?: Date;
   createdAt: Date;
   updatedAt: Date;
 }

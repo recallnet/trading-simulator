@@ -11,9 +11,12 @@ import { repositories } from '../database';
 export class TeamManager {
   // In-memory cache for API keys to avoid database lookups on every request
   private apiKeyCache: Map<string, ApiAuth>;
+  // Cache for disqualified teams to avoid repeated database lookups
+  private disqualifiedTeamsCache: Map<string, { reason: string, date: Date }>;
 
   constructor() {
     this.apiKeyCache = new Map();
+    this.disqualifiedTeamsCache = new Map();
   }
 
   /**
@@ -129,11 +132,22 @@ export class TeamManager {
     }
   }
 
+  /**
+   * Validate an API key and check if the team is allowed to access
+   * @param apiKey The API key to validate
+   * @returns The team ID if valid and not disqualified, null otherwise
+   * @throws Error if the team is disqualified
+   */
   async validateApiKey(apiKey: string): Promise<string | null> {
     try {
       // First check cache
       const cachedAuth = this.apiKeyCache.get(apiKey);
       if (cachedAuth) {
+        // Check if the team is disqualified
+        if (this.disqualifiedTeamsCache.has(cachedAuth.teamId)) {
+          const disqualificationInfo = this.disqualifiedTeamsCache.get(cachedAuth.teamId);
+          throw new Error(`Your team has been disqualified from the competition: ${disqualificationInfo?.reason}`);
+        }
         return cachedAuth.teamId;
       }
       
@@ -145,7 +159,17 @@ export class TeamManager {
           const decryptedKey = this.decryptApiKey(team.apiKey);
           
           if (decryptedKey === apiKey) {
-            // Found matching team, add to cache
+            // Found matching team, check if disqualified
+            if (team.disqualified) {
+              // Cache the disqualification info
+              this.disqualifiedTeamsCache.set(team.id, {
+                reason: team.disqualificationReason || 'No reason provided',
+                date: team.disqualificationDate || new Date()
+              });
+              throw new Error(`Your team has been disqualified from the competition: ${team.disqualificationReason}`);
+            }
+            
+            // Add to cache
             this.apiKeyCache.set(apiKey, {
               teamId: team.id,
               key: apiKey
@@ -163,7 +187,7 @@ export class TeamManager {
       return null;
     } catch (error) {
       console.error('[TeamManager] Error validating API key:', error);
-      return null;
+      throw error; // Re-throw to allow middleware to handle it
     }
   }
 
@@ -291,6 +315,126 @@ export class TeamManager {
     } catch (error) {
       console.error(`[TeamManager] Error deleting team ${teamId}:`, error);
       throw new Error(`Failed to delete team: ${error instanceof Error ? error.message : error}`);
+    }
+  }
+
+  /**
+   * Disqualify a team from competition
+   * @param teamId Team ID to disqualify
+   * @param reason Reason for disqualification
+   * @returns The disqualified team or null if team not found
+   */
+  async disqualifyTeam(teamId: string, reason: string): Promise<Team | null> {
+    try {
+      console.log(`[TeamManager] Disqualifying team: ${teamId}, Reason: ${reason}`);
+      
+      // Call repository to disqualify the team
+      const disqualifiedTeam = await repositories.teamRepository.disqualifyTeam(teamId, reason);
+      
+      if (!disqualifiedTeam) {
+        console.log(`[TeamManager] Team not found for disqualification: ${teamId}`);
+        return null;
+      }
+      
+      // Update disqualification cache
+      this.disqualifiedTeamsCache.set(teamId, {
+        reason: reason,
+        date: disqualifiedTeam.disqualificationDate || new Date()
+      });
+      
+      console.log(`[TeamManager] Successfully disqualified team: ${disqualifiedTeam.name} (${teamId})`);
+      
+      return disqualifiedTeam;
+    } catch (error) {
+      console.error(`[TeamManager] Error disqualifying team ${teamId}:`, error);
+      throw new Error(`Failed to disqualify team: ${error instanceof Error ? error.message : error}`);
+    }
+  }
+
+  /**
+   * Reinstate a previously disqualified team
+   * @param teamId Team ID to reinstate
+   * @returns The reinstated team or null if team not found
+   */
+  async reinstateTeam(teamId: string): Promise<Team | null> {
+    try {
+      console.log(`[TeamManager] Reinstating team: ${teamId}`);
+      
+      // Call repository to reinstate the team
+      const reinstatedTeam = await repositories.teamRepository.reinstateTeam(teamId);
+      
+      if (!reinstatedTeam) {
+        console.log(`[TeamManager] Team not found for reinstatement: ${teamId}`);
+        return null;
+      }
+      
+      // Remove from disqualification cache
+      this.disqualifiedTeamsCache.delete(teamId);
+      
+      console.log(`[TeamManager] Successfully reinstated team: ${reinstatedTeam.name} (${teamId})`);
+      
+      return reinstatedTeam;
+    } catch (error) {
+      console.error(`[TeamManager] Error reinstating team ${teamId}:`, error);
+      throw new Error(`Failed to reinstate team: ${error instanceof Error ? error.message : error}`);
+    }
+  }
+
+  /**
+   * Get all disqualified teams
+   * @returns Array of disqualified teams
+   */
+  async getDisqualifiedTeams(): Promise<Team[]> {
+    try {
+      return await repositories.teamRepository.findDisqualifiedTeams();
+    } catch (error) {
+      console.error('[TeamManager] Error retrieving disqualified teams:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Check if a team is disqualified
+   * @param teamId Team ID to check
+   * @returns Object with disqualification status and reason if applicable
+   */
+  async isTeamDisqualified(teamId: string): Promise<{ isDisqualified: boolean; reason?: string; date?: Date }> {
+    try {
+      // Check cache first
+      if (this.disqualifiedTeamsCache.has(teamId)) {
+        const info = this.disqualifiedTeamsCache.get(teamId);
+        return {
+          isDisqualified: true,
+          reason: info?.reason,
+          date: info?.date
+        };
+      }
+      
+      // If not in cache, check database
+      const team = await repositories.teamRepository.findById(teamId);
+      
+      if (!team) {
+        return { isDisqualified: false };
+      }
+      
+      if (team.disqualified) {
+        // Update cache
+        this.disqualifiedTeamsCache.set(teamId, {
+          reason: team.disqualificationReason || 'No reason provided',
+          date: team.disqualificationDate || new Date()
+        });
+        
+        return {
+          isDisqualified: true,
+          reason: team.disqualificationReason,
+          date: team.disqualificationDate
+        };
+      }
+      
+      return { isDisqualified: false };
+    } catch (error) {
+      console.error(`[TeamManager] Error checking disqualification status for team ${teamId}:`, error);
+      return { isDisqualified: false };
     }
   }
 } 

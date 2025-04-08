@@ -82,6 +82,9 @@ export class CompetitionController {
    *                       portfolioValue:
    *                         type: number
    *                         description: Current portfolio value
+   *                 disqualifiedTeamsFiltered:
+   *                   type: boolean
+   *                   description: Indicates if any teams were filtered out
    *       400:
    *         description: No active competition and no competitionId provided
    *       401:
@@ -137,22 +140,37 @@ export class CompetitionController {
       // Get all teams (excluding admin teams)
       const teams = await services.teamManager.getAllTeams(false);
       
-      // Map team IDs to names
-      const teamMap = new Map(teams.map(team => [team.id, team.name]));
+      // Filter out disqualified teams and track if any were removed
+      const activeTeams = teams.filter(team => !team.disqualified);
+      const teamMap = new Map(activeTeams.map(team => [team.id, team]));
       
-      // Format leaderboard with team names
-      const formattedLeaderboard = leaderboard.map((entry, index) => ({
-        rank: index + 1,
-        teamId: entry.teamId,
-        teamName: teamMap.get(entry.teamId) || 'Unknown Team',
-        portfolioValue: entry.value
-      }));
+      // Track disqualified teams and create filtered leaderboard
+      const disqualifiedTeamIds = new Set(
+        teams
+          .filter(team => team.disqualified)
+          .map(team => team.id)
+      );
       
-      // Return the leaderboard
+      const filteredLeaderboard = leaderboard.filter(entry => !disqualifiedTeamIds.has(entry.teamId));
+      const hasFilteredTeams = filteredLeaderboard.length < leaderboard.length;
+      
+      // Format leaderboard with team names, recalculating ranks
+      const formattedLeaderboard = filteredLeaderboard.map((entry, index) => {
+        const team = teamMap.get(entry.teamId);
+        return {
+          rank: index + 1, // Recalculate rank after filtering
+          teamId: entry.teamId,
+          teamName: team ? team.name : 'Unknown Team',
+          portfolioValue: entry.value
+        };
+      });
+      
+      // Return the leaderboard with a flag indicating if teams were filtered
       res.status(200).json({
         success: true,
         competition,
-        leaderboard: formattedLeaderboard
+        leaderboard: formattedLeaderboard,
+        disqualifiedTeamsFiltered: hasFilteredTeams
       });
     } catch (error) {
       next(error);

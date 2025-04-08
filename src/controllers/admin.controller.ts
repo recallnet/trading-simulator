@@ -719,6 +719,16 @@ export class AdminController {
    *                       contact_person:
    *                         type: string
    *                         description: Contact person name
+   *                       disqualified:
+   *                         type: boolean
+   *                         description: Disqualification status
+   *                       disqualificationReason:
+   *                         type: string
+   *                         description: Reason for disqualification
+   *                       disqualificationDate:
+   *                         type: string
+   *                         format: date-time
+   *                         description: Date of disqualification
    *                       createdAt:
    *                         type: string
    *                         format: date-time
@@ -747,6 +757,9 @@ export class AdminController {
         name: team.name,
         email: team.email,
         contact_person: team.contactPerson,
+        disqualified: team.disqualified,
+        disqualificationReason: team.disqualificationReason,
+        disqualificationDate: team.disqualificationDate,
         createdAt: team.createdAt,
         updatedAt: team.updatedAt
       }));
@@ -983,6 +996,279 @@ export class AdminController {
         snapshots
       });
     } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Disqualify a team from competition
+   * 
+   * @openapi
+   * /api/admin/teams/{teamId}/disqualify:
+   *   post:
+   *     tags:
+   *       - Admin
+   *     summary: Disqualify a team
+   *     description: Disqualify a team from the competition. The team will no longer be able to perform any actions.
+   *     security:
+   *       - BearerAuth: []
+   *     parameters:
+   *       - in: path
+   *         name: teamId
+   *         schema:
+   *           type: string
+   *         required: true
+   *         description: ID of the team to disqualify
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             required:
+   *               - reason
+   *             properties:
+   *               reason:
+   *                 type: string
+   *                 description: Reason for disqualification
+   *                 example: Violated competition rules by using external API
+   *     responses:
+   *       200:
+   *         description: Team disqualified successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 success:
+   *                   type: boolean
+   *                   description: Operation success status
+   *                 message:
+   *                   type: string
+   *                   description: Success message
+   *                 team:
+   *                   type: object
+   *                   properties:
+   *                     id:
+   *                       type: string
+   *                       description: Team ID
+   *                     name:
+   *                       type: string
+   *                       description: Team name
+   *                     disqualified:
+   *                       type: boolean
+   *                       description: Disqualification status
+   *                     disqualificationReason:
+   *                       type: string
+   *                       description: Reason for disqualification
+   *                     disqualificationDate:
+   *                       type: string
+   *                       format: date-time
+   *                       description: Date of disqualification
+   *       400:
+   *         description: Missing required parameters
+   *       401:
+   *         description: Unauthorized - Admin authentication required
+   *       403:
+   *         description: Cannot disqualify admin accounts
+   *       404:
+   *         description: Team not found
+   *       500:
+   *         description: Server error
+   *
+   * @param req Express request
+   * @param res Express response
+   * @param next Express next function
+   */
+  static async disqualifyTeam(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { teamId } = req.params;
+      const { reason } = req.body;
+      
+      // Validate required parameters
+      if (!teamId) {
+        return res.status(400).json({
+          success: false,
+          error: 'Team ID is required'
+        });
+      }
+      
+      if (!reason) {
+        return res.status(400).json({
+          success: false,
+          error: 'Reason for disqualification is required'
+        });
+      }
+      
+      // Get the team first to check if it exists and is not an admin
+      const team = await services.teamManager.getTeam(teamId);
+      
+      if (!team) {
+        return res.status(404).json({
+          success: false,
+          error: 'Team not found'
+        });
+      }
+      
+      // Prevent disqualification of admin teams
+      if (team.isAdmin) {
+        return res.status(403).json({
+          success: false,
+          error: 'Cannot disqualify admin accounts'
+        });
+      }
+      
+      // Check if team is already disqualified
+      if (team.disqualified) {
+        return res.status(400).json({
+          success: false,
+          error: 'Team is already disqualified',
+          team: {
+            id: team.id,
+            name: team.name,
+            disqualified: team.disqualified,
+            disqualificationReason: team.disqualificationReason,
+            disqualificationDate: team.disqualificationDate
+          }
+        });
+      }
+      
+      // Disqualify the team
+      const disqualifiedTeam = await services.teamManager.disqualifyTeam(teamId, reason);
+      
+      if (disqualifiedTeam) {
+        return res.status(200).json({
+          success: true,
+          message: 'Team has been disqualified',
+          team: {
+            id: disqualifiedTeam.id,
+            name: disqualifiedTeam.name,
+            disqualified: disqualifiedTeam.disqualified,
+            disqualificationReason: disqualifiedTeam.disqualificationReason,
+            disqualificationDate: disqualifiedTeam.disqualificationDate
+          }
+        });
+      } else {
+        return res.status(500).json({
+          success: false,
+          error: 'Failed to disqualify team'
+        });
+      }
+    } catch (error) {
+      console.error('[AdminController] Error disqualifying team:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * Reinstate a previously disqualified team
+   * 
+   * @openapi
+   * /api/admin/teams/{teamId}/reinstate:
+   *   post:
+   *     tags:
+   *       - Admin
+   *     summary: Reinstate a team
+   *     description: Reinstate a previously disqualified team, allowing them to participate in the competition again.
+   *     security:
+   *       - BearerAuth: []
+   *     parameters:
+   *       - in: path
+   *         name: teamId
+   *         schema:
+   *           type: string
+   *         required: true
+   *         description: ID of the team to reinstate
+   *     responses:
+   *       200:
+   *         description: Team reinstated successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 success:
+   *                   type: boolean
+   *                   description: Operation success status
+   *                 message:
+   *                   type: string
+   *                   description: Success message
+   *                 team:
+   *                   type: object
+   *                   properties:
+   *                     id:
+   *                       type: string
+   *                       description: Team ID
+   *                     name:
+   *                       type: string
+   *                       description: Team name
+   *                     disqualified:
+   *                       type: boolean
+   *                       description: Disqualification status (should be false)
+   *       400:
+   *         description: Team is not currently disqualified
+   *       401:
+   *         description: Unauthorized - Admin authentication required
+   *       404:
+   *         description: Team not found
+   *       500:
+   *         description: Server error
+   *
+   * @param req Express request
+   * @param res Express response
+   * @param next Express next function
+   */
+  static async reinstateTeam(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { teamId } = req.params;
+      
+      // Validate required parameters
+      if (!teamId) {
+        return res.status(400).json({
+          success: false,
+          error: 'Team ID is required'
+        });
+      }
+      
+      // Get the team first to check if it exists
+      const team = await services.teamManager.getTeam(teamId);
+      
+      if (!team) {
+        return res.status(404).json({
+          success: false,
+          error: 'Team not found'
+        });
+      }
+      
+      // Check if team is disqualified
+      if (!team.disqualified) {
+        return res.status(400).json({
+          success: false,
+          error: 'Team is not currently disqualified'
+        });
+      }
+      
+      // Reinstate the team
+      const reinstatedTeam = await services.teamManager.reinstateTeam(teamId);
+      
+      if (reinstatedTeam) {
+        return res.status(200).json({
+          success: true,
+          message: 'Team has been reinstated',
+          team: {
+            id: reinstatedTeam.id,
+            name: reinstatedTeam.name,
+            disqualified: reinstatedTeam.disqualified
+          }
+        });
+      } else {
+        return res.status(500).json({
+          success: false,
+          error: 'Failed to reinstate team'
+        });
+      }
+    } catch (error) {
+      console.error('[AdminController] Error reinstating team:', error);
       next(error);
     }
   }

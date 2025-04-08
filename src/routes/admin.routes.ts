@@ -566,4 +566,134 @@ router.get('/competition/:competitionId/snapshots', AdminController.getCompetiti
  */
 router.get('/reports/performance', AdminController.getPerformanceReports);
 
+/**
+ * @openapi
+ * /api/admin/teams/{teamId}/disqualify:
+ *   post:
+ *     tags:
+ *       - Admin
+ *     summary: Disqualify a team
+ *     description: Disqualify a team from the competition. The team will no longer be able to perform any actions.
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: teamId
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: ID of the team to disqualify
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - reason
+ *             properties:
+ *               reason:
+ *                 type: string
+ *                 description: Reason for disqualification
+ *                 example: Violated competition rules by using external API
+ *     responses:
+ *       200:
+ *         description: Team disqualified successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   description: Operation success status
+ *                 message:
+ *                   type: string
+ *                   description: Success message
+ *                 team:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                       description: Team ID
+ *                     name:
+ *                       type: string
+ *                       description: Team name
+ *                     disqualified:
+ *                       type: boolean
+ *                       description: Disqualification status
+ *                     disqualificationReason:
+ *                       type: string
+ *                       description: Reason for disqualification
+ *                     disqualificationDate:
+ *                       type: string
+ *                       format: date-time
+ *                       description: Date of disqualification
+ *       400:
+ *         description: Missing required parameters
+ *       401:
+ *         description: Unauthorized - Admin authentication required
+ *       403:
+ *         description: Cannot disqualify admin accounts
+ *       404:
+ *         description: Team not found
+ *       500:
+ *         description: Server error
+ */
+router.post('/teams/:teamId/disqualify', AdminController.disqualifyTeam);
+
+/**
+ * @openapi
+ * /api/admin/teams/{teamId}/reinstate:
+ *   post:
+ *     tags:
+ *       - Admin
+ *     summary: Reinstate a team
+ *     description: Reinstate a previously disqualified team, allowing them to participate in the competition again.
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: teamId
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: ID of the team to reinstate
+ *     responses:
+ *       200:
+ *         description: Team reinstated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   description: Operation success status
+ *                 message:
+ *                   type: string
+ *                   description: Success message
+ *                 team:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                       description: Team ID
+ *                     name:
+ *                       type: string
+ *                       description: Team name
+ *                     disqualified:
+ *                       type: boolean
+ *                       description: Disqualification status (should be false)
+ *       400:
+ *         description: Team is not currently disqualified
+ *       401:
+ *         description: Unauthorized - Admin authentication required
+ *       404:
+ *         description: Team not found
+ *       500:
+ *         description: Server error
+ */
+router.post('/teams/:teamId/reinstate', AdminController.reinstateTeam);
+
 export default router; 
