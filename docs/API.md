@@ -1389,7 +1389,8 @@ This operation does not require authentication
 const inputBody = '{
   "teamName": "Team Alpha",
   "email": "team@example.com",
-  "contactPerson": "John Doe"
+  "contactPerson": "John Doe",
+  "walletAddress": 1.0392900530713021e+47
 }';
 const headers = {
   'Content-Type':'application/json',
@@ -1421,7 +1422,8 @@ Admin-only endpoint to register a new team. Admins create team accounts and dist
 {
   "teamName": "Team Alpha",
   "email": "team@example.com",
-  "contactPerson": "John Doe"
+  "contactPerson": "John Doe",
+  "walletAddress": 1.0392900530713021e+47
 }
 ```
 
@@ -1433,6 +1435,7 @@ Admin-only endpoint to register a new team. Admins create team accounts and dist
 |» teamName|body|string|true|Name of the team|
 |» email|body|string(email)|true|Team email address|
 |» contactPerson|body|string|true|Name of the contact person|
+|» walletAddress|body|string|true|Ethereum wallet address (must start with 0x)|
 
 > Example responses
 
@@ -1447,6 +1450,7 @@ Admin-only endpoint to register a new team. Admins create team accounts and dist
     "email": "string",
     "contactPerson": "string",
     "contact_person": "string",
+    "walletAddress": "string",
     "apiKey": "abc123def456_ghi789jkl012",
     "createdAt": "2019-08-24T14:15:22Z"
   }
@@ -1458,8 +1462,8 @@ Admin-only endpoint to register a new team. Admins create team accounts and dist
 |Status|Meaning|Description|Schema|
 |---|---|---|---|
 |201|[Created](https://tools.ietf.org/html/rfc7231#section-6.3.2)|Team registered successfully|Inline|
-|400|[Bad Request](https://tools.ietf.org/html/rfc7231#section-6.5.1)|Missing required parameters|None|
-|409|[Conflict](https://tools.ietf.org/html/rfc7231#section-6.5.8)|Team with this email already exists|None|
+|400|[Bad Request](https://tools.ietf.org/html/rfc7231#section-6.5.1)|Missing required parameters or invalid wallet address|None|
+|409|[Conflict](https://tools.ietf.org/html/rfc7231#section-6.5.8)|Team with this email or wallet address already exists|None|
 |500|[Internal Server Error](https://tools.ietf.org/html/rfc7231#section-6.6.1)|Server error|None|
 
 <h3 id="register-a-new-team-responseschema">Response Schema</h3>
@@ -1475,6 +1479,7 @@ Status Code **201**
 |»» email|string|false|none|Team email|
 |»» contactPerson|string|false|none|Contact person name|
 |»» contact_person|string|false|none|Contact person name (snake_case version)|
+|»» walletAddress|string|false|none|Ethereum wallet address|
 |»» apiKey|string|false|none|API key for the team to use with Bearer authentication. Admin should securely provide this to the team.|
 |»» createdAt|string(date-time)|false|none|Account creation timestamp|
 
