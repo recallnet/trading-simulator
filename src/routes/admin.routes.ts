@@ -100,6 +100,7 @@ router.use(adminAuthMiddleware(services.teamManager));
  *               - teamName
  *               - email
  *               - contactPerson
+ *               - walletAddress
  *             properties:
  *               teamName:
  *                 type: string
@@ -114,6 +115,10 @@ router.use(adminAuthMiddleware(services.teamManager));
  *                 type: string
  *                 description: Name of the contact person
  *                 example: John Doe
+ *               walletAddress:
+ *                 type: string
+ *                 description: Ethereum wallet address (must start with 0x)
+ *                 example: 0x1234567890123456789012345678901234567890
  *     responses:
  *       201:
  *         description: Team registered successfully
@@ -143,6 +148,9 @@ router.use(adminAuthMiddleware(services.teamManager));
  *                     contact_person:
  *                       type: string
  *                       description: Contact person name (snake_case version)
+ *                     walletAddress:
+ *                       type: string
+ *                       description: Ethereum wallet address
  *                     apiKey:
  *                       type: string
  *                       description: API key for the team to use with Bearer authentication. Admin should securely provide this to the team.
@@ -152,9 +160,9 @@ router.use(adminAuthMiddleware(services.teamManager));
  *                       format: date-time
  *                       description: Account creation timestamp
  *       400:
- *         description: Missing required parameters
+ *         description: Missing required parameters or invalid wallet address
  *       409:
- *         description: Team with this email already exists
+ *         description: Team with this email or wallet address already exists
  *       500:
  *         description: Server error
  */
