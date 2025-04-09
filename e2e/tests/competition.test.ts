@@ -210,4 +210,55 @@ describe('Competition API', () => {
     expect(statusOutResponse.success).toBe(true);
     expect(statusOutResponse.competition).toBeNull();
   });
+  
+  test('admin can access competition endpoints without being a participant', async () => {
+    // Setup admin client
+    const adminClient = createTestClient();
+    await adminClient.loginAsAdmin(adminApiKey);
+    
+    // Register a regular team
+    const { client: teamClient, team } = await registerTeamAndGetClient(adminClient, 'Regular Team');
+    
+    // Start a competition with only the regular team (admin is not a participant)
+    const competitionName = `Admin Access Test Competition ${Date.now()}`;
+    const competitionResponse = await startTestCompetition(adminClient, competitionName, [team.id]);
+    
+    // Admin checks competition status
+    const adminStatusResponse = await adminClient.getCompetitionStatus();
+    expect(adminStatusResponse.success).toBe(true);
+    expect(adminStatusResponse.active).toBe(true);
+    expect(adminStatusResponse.competition).toBeDefined();
+    expect(adminStatusResponse.competition.name).toBe(competitionName);
+    expect(adminStatusResponse.competition.status).toBe('ACTIVE');
+    
+    // Admin checks leaderboard
+    const adminLeaderboardResponse = await adminClient.getLeaderboard();
+    expect(adminLeaderboardResponse.success).toBe(true);
+    expect(adminLeaderboardResponse.competition).toBeDefined();
+    expect(adminLeaderboardResponse.leaderboard).toBeDefined();
+    expect(adminLeaderboardResponse.leaderboard).toBeInstanceOf(Array);
+    
+    // There should be one team in the leaderboard
+    expect(adminLeaderboardResponse.leaderboard.length).toBe(1);
+    expect(adminLeaderboardResponse.leaderboard[0].teamName).toBe('Regular Team');
+    
+    // Admin checks competition rules
+    const adminRulesResponse = await adminClient.getRules();
+    expect(adminRulesResponse.success).toBe(true);
+    expect(adminRulesResponse.rules).toBeDefined();
+    expect(adminRulesResponse.rules.tradingRules).toBeDefined();
+    expect(adminRulesResponse.rules.rateLimits).toBeDefined();
+    
+    // Regular team checks all the same endpoints to verify they work for participants too
+    const teamStatusResponse = await teamClient.getCompetitionStatus();
+    expect(teamStatusResponse.success).toBe(true);
+    expect(teamStatusResponse.active).toBe(true);
+    
+    const teamLeaderboardResponse = await teamClient.getLeaderboard();
+    expect(teamLeaderboardResponse.success).toBe(true);
+    
+    // Regular team checks rules
+    const teamRulesResponse = await teamClient.getRules();
+    expect(teamRulesResponse.success).toBe(true);
+  });
 }); 

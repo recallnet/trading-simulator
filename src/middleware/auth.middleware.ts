@@ -37,6 +37,15 @@ export const authMiddleware = (
       // Set team ID in request for use in route handlers
       req.teamId = teamId;
 
+      // Check if the team is an admin
+      const team = await teamManager.getTeam(teamId);
+      const isAdmin = team?.isAdmin === true;
+      
+      if (isAdmin) {
+        console.log(`[AuthMiddleware] Team ${teamId} is an admin, granting elevated access`);
+        req.isAdmin = true;
+      }
+
       // Check if there's an active competition
       const activeCompetition = await competitionManager.getActiveCompetition();
       
@@ -65,12 +74,13 @@ export const authMiddleware = (
   };
 };
 
-// Extend Express Request interface to include teamId and competitionId
+// Extend Express Request interface to include teamId, competitionId, and isAdmin
 declare global {
   namespace Express {
     interface Request {
       teamId?: string;
       competitionId?: string;
+      isAdmin?: boolean;
     }
   }
 } 

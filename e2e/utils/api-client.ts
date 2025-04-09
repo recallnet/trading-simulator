@@ -45,10 +45,14 @@ export class ApiClient {
       
       // For admin routes, use admin API key if available and different from regular API key
       if (this.adminApiKey && 
-          (config.url?.startsWith('/api/admin') || config.url?.includes('admin')) && 
-          this.adminApiKey !== this.apiKey) {
-        config.headers['Authorization'] = `Bearer ${this.adminApiKey}`;
-      }
+        (
+          config.url?.startsWith('/api/admin') || 
+          config.url?.includes('admin') || 
+          config.url?.includes('competition')
+        ) && 
+        this.adminApiKey !== this.apiKey) {
+      config.headers['Authorization'] = `Bearer ${this.adminApiKey}`;
+    }
       
       // Log request (simplified)
       console.log(`[ApiClient] Request to ${config.method?.toUpperCase()} ${config.url}`);
@@ -368,6 +372,18 @@ export class ApiClient {
       return response.data;
     } catch (error) {
       return this.handleApiError(error, 'get leaderboard');
+    }
+  }
+  
+  /**
+   * Get competition rules
+   */
+  async getRules(): Promise<any> {
+    try {
+      const response = await this.axiosInstance.get('/api/competition/rules');
+      return response.data;
+    } catch (error) {
+      return this.handleApiError(error, 'get competition rules');
     }
   }
   

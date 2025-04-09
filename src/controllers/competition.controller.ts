@@ -125,13 +125,21 @@ export class CompetitionController {
         throw new ApiError(401, 'Authentication required to view leaderboard');
       }
       
-      const isTeamInCompetition = await repositories.teamRepository.isTeamInCompetition(
-        teamId, 
-        competitionId
-      );
+      // Check if user is an admin (added by auth middleware)
+      const isAdmin = req.isAdmin === true;
       
-      if (!isTeamInCompetition) {
-        throw new ApiError(403, 'Your team is not participating in this competition');
+      // If not an admin, verify team is part of the competition
+      if (!isAdmin) {
+        const isTeamInCompetition = await repositories.teamRepository.isTeamInCompetition(
+          teamId, 
+          competitionId
+        );
+        
+        if (!isTeamInCompetition) {
+          throw new ApiError(403, 'Your team is not participating in this competition');
+        }
+      } else {
+        console.log(`[CompetitionController] Admin ${teamId} accessing leaderboard for competition ${competitionId}`);
       }
       
       // Get leaderboard
@@ -270,18 +278,26 @@ export class CompetitionController {
         });
       }
       
-      const isTeamInCompetition = await repositories.teamRepository.isTeamInCompetition(
-        teamId, 
-        activeCompetition.id
-      );
+      // Check if user is an admin (added by auth middleware)
+      const isAdmin = req.isAdmin === true;
       
-      if (!isTeamInCompetition) {
-        return res.status(200).json({
-          success: true,
-          active: false,
-          competition: null,
-          message: 'Your team is not participating in the active competition'
-        });
+      // If not an admin, verify team is part of the competition
+      if (!isAdmin) {
+        const isTeamInCompetition = await repositories.teamRepository.isTeamInCompetition(
+          teamId, 
+          activeCompetition.id
+        );
+        
+        if (!isTeamInCompetition) {
+          return res.status(200).json({
+            success: true,
+            active: false,
+            competition: null,
+            message: 'Your team is not participating in the active competition'
+          });
+        }
+      } else {
+        console.log(`[CompetitionController] Admin ${teamId} accessing status for active competition ${activeCompetition.id}`);
       }
       
       // Return the competition status
@@ -358,6 +374,39 @@ export class CompetitionController {
    */
   static async getRules(req: Request, res: Response, next: NextFunction) {
     try {
+      // Check if the team is authenticated
+      // @ts-ignore - teamId is added to the request by team-auth middleware
+      const teamId = req.teamId;
+      
+      // If no team ID, they can't be authenticated
+      if (!teamId) {
+        throw new ApiError(401, 'Authentication required to view competition rules');
+      }
+      
+      // Check if user is an admin (added by auth middleware)
+      const isAdmin = req.isAdmin === true;
+      
+      // If not an admin, verify team is part of the active competition
+      if (!isAdmin) {
+        // Get active competition
+        const activeCompetition = await services.competitionManager.getActiveCompetition();
+        
+        if (!activeCompetition) {
+          throw new ApiError(400, 'No active competition');
+        }
+        
+        const isTeamInCompetition = await repositories.teamRepository.isTeamInCompetition(
+          teamId,
+          activeCompetition.id
+        );
+        
+        if (!isTeamInCompetition) {
+          throw new ApiError(403, 'Your team is not participating in the active competition');
+        }
+      } else {
+        console.log(`[CompetitionController] Admin ${teamId} accessing competition rules`);
+      }
+      
       // Get available chains and tokens
       const evmChains = config.evmChains;
       

@@ -1229,7 +1229,7 @@ fetch('http://localhost:3000/api/competition/rules',
 
 `GET /api/competition/rules`
 
-Get the rules for all competitions
+Get the rules, rate limits, and other configuration details for the competition
 
 <h3 id="get-competition-rules-parameters">Parameters</h3>
 
@@ -1251,7 +1251,16 @@ Get the rules for all competitions
     "rateLimits": [
       "string"
     ],
-    "slippageFormula": "string"
+    "availableChains": {
+      "svm": true,
+      "evm": [
+        "string"
+      ]
+    },
+    "slippageFormula": "string",
+    "portfolioSnapshots": {
+      "interval": "string"
+    }
   }
 }
 ```
@@ -1260,8 +1269,10 @@ Get the rules for all competitions
 
 |Status|Meaning|Description|Schema|
 |---|---|---|---|
-|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|Competition rules|Inline|
+|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|Competition rules retrieved successfully|Inline|
+|400|[Bad Request](https://tools.ietf.org/html/rfc7231#section-6.5.1)|Bad request - No active competition|None|
 |401|[Unauthorized](https://tools.ietf.org/html/rfc7235#section-3.1)|Unauthorized - Missing or invalid authentication|None|
+|403|[Forbidden](https://tools.ietf.org/html/rfc7231#section-6.5.3)|Forbidden - Team not participating in the competition|None|
 |500|[Internal Server Error](https://tools.ietf.org/html/rfc7231#section-6.6.1)|Server error|None|
 
 <h3 id="get-competition-rules-responseschema">Response Schema</h3>
@@ -1272,9 +1283,14 @@ Status Code **200**
 |---|---|---|---|---|
 |» success|boolean|false|none|Operation success status|
 |» rules|object|false|none|none|
-|»» tradingRules|[string]|false|none|List of trading rules|
-|»» rateLimits|[string]|false|none|List of rate limits|
-|»» slippageFormula|string|false|none|Formula used to calculate slippage|
+|»» tradingRules|[string]|false|none|List of trading rules for the competition|
+|»» rateLimits|[string]|false|none|Rate limits for API endpoints|
+|»» availableChains|object|false|none|none|
+|»»» svm|boolean|false|none|Whether Solana (SVM) is available|
+|»»» evm|[string]|false|none|List of available EVM chains|
+|»» slippageFormula|string|false|none|Formula used for calculating slippage|
+|»» portfolioSnapshots|object|false|none|none|
+|»»» interval|string|false|none|Interval between portfolio snapshots|
 
 <aside class="warning">
 To perform this operation, you must be authenticated by means of one of the following methods:
