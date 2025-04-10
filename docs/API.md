@@ -1052,11 +1052,11 @@ Get the leaderboard for the active competition or a specific competition
       "teamId": "string",
       "teamName": "string",
       "portfolioValue": 0,
-      "disqualified": true,
-      "disqualificationReason": "string"
+      "active": true,
+      "deactivationReason": "string"
     }
   ],
-  "hasDisqualifiedTeams": true
+  "hasInactiveTeams": true
 }
 ```
 
@@ -1092,9 +1092,9 @@ Status Code **200**
 |»» teamId|string|false|none|Team ID|
 |»» teamName|string|false|none|Team name|
 |»» portfolioValue|number|false|none|Current portfolio value in USD|
-|»» disqualified|boolean|false|none|Whether the team has been disqualified|
-|»» disqualificationReason|string¦null|false|none|Reason for disqualification if applicable|
-|» hasDisqualifiedTeams|boolean|false|none|Indicates if any teams are disqualified|
+|»» active|boolean|false|none|Whether the team is active|
+|»» deactivationReason|string¦null|false|none|Reason for deactivation if applicable|
+|» hasInactiveTeams|boolean|false|none|Indicates if any teams are inactive|
 
 #### Enumerated Values
 
@@ -2179,7 +2179,7 @@ To perform this operation, you must be authenticated by means of one of the foll
 BearerAuth
 </aside>
 
-## Disqualify a team
+## Deactivate a team
 
 > Code samples
 
@@ -2193,7 +2193,7 @@ const headers = {
   'Authorization':'Bearer {access-token}'
 };
 
-fetch('http://localhost:3000/api/admin/teams/{teamId}/disqualify',
+fetch('http://localhost:3000/api/admin/teams/{teamId}/deactivate',
 {
   method: 'POST',
   body: inputBody,
@@ -2207,9 +2207,9 @@ fetch('http://localhost:3000/api/admin/teams/{teamId}/disqualify',
 
 ```
 
-`POST /api/admin/teams/{teamId}/disqualify`
+`POST /api/admin/teams/{teamId}/deactivate`
 
-Disqualify a team from the competition. The team will no longer be able to perform any actions.
+Deactivate a team from the competition. The team will no longer be able to perform any actions.
 
 > Body parameter
 
@@ -2219,13 +2219,13 @@ Disqualify a team from the competition. The team will no longer be able to perfo
 }
 ```
 
-<h3 id="disqualify-a-team-parameters">Parameters</h3>
+<h3 id="deactivate-a-team-parameters">Parameters</h3>
 
 |Name|In|Type|Required|Description|
 |---|---|---|---|---|
-|teamId|path|string|true|ID of the team to disqualify|
+|teamId|path|string|true|ID of the team to deactivate|
 |body|body|object|true|none|
-|» reason|body|string|true|Reason for disqualification|
+|» reason|body|string|true|Reason for deactivation|
 
 > Example responses
 
@@ -2234,49 +2234,47 @@ Disqualify a team from the competition. The team will no longer be able to perfo
 ```json
 {
   "success": true,
-  "message": "string",
   "team": {
     "id": "string",
     "name": "string",
-    "disqualified": true,
-    "disqualificationReason": "string",
-    "disqualificationDate": "2019-08-24T14:15:22Z"
+    "active": true,
+    "deactivationReason": "string",
+    "deactivationDate": "2019-08-24T14:15:22Z"
   }
 }
 ```
 
-<h3 id="disqualify-a-team-responses">Responses</h3>
+<h3 id="deactivate-a-team-responses">Responses</h3>
 
 |Status|Meaning|Description|Schema|
 |---|---|---|---|
-|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|Team disqualified successfully|Inline|
+|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|Team deactivated successfully|Inline|
 |400|[Bad Request](https://tools.ietf.org/html/rfc7231#section-6.5.1)|Missing required parameters|None|
 |401|[Unauthorized](https://tools.ietf.org/html/rfc7235#section-3.1)|Unauthorized - Admin authentication required|None|
-|403|[Forbidden](https://tools.ietf.org/html/rfc7231#section-6.5.3)|Cannot disqualify admin accounts|None|
+|403|[Forbidden](https://tools.ietf.org/html/rfc7231#section-6.5.3)|Cannot deactivate admin accounts|None|
 |404|[Not Found](https://tools.ietf.org/html/rfc7231#section-6.5.4)|Team not found|None|
 |500|[Internal Server Error](https://tools.ietf.org/html/rfc7231#section-6.6.1)|Server error|None|
 
-<h3 id="disqualify-a-team-responseschema">Response Schema</h3>
+<h3 id="deactivate-a-team-responseschema">Response Schema</h3>
 
 Status Code **200**
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
 |» success|boolean|false|none|Operation success status|
-|» message|string|false|none|Success message|
 |» team|object|false|none|none|
 |»» id|string|false|none|Team ID|
 |»» name|string|false|none|Team name|
-|»» disqualified|boolean|false|none|Disqualification status|
-|»» disqualificationReason|string|false|none|Reason for disqualification|
-|»» disqualificationDate|string(date-time)|false|none|Date of disqualification|
+|»» active|boolean|false|none|Active status (will be false)|
+|»» deactivationReason|string|false|none|Reason for deactivation|
+|»» deactivationDate|string(date-time)|false|none|Date of deactivation|
 
 <aside class="warning">
 To perform this operation, you must be authenticated by means of one of the following methods:
 BearerAuth
 </aside>
 
-## Reinstate a team
+## Reactivate a team
 
 > Code samples
 
@@ -2287,7 +2285,7 @@ const headers = {
   'Authorization':'Bearer {access-token}'
 };
 
-fetch('http://localhost:3000/api/admin/teams/{teamId}/reinstate',
+fetch('http://localhost:3000/api/admin/teams/{teamId}/reactivate',
 {
   method: 'POST',
 
@@ -2301,15 +2299,15 @@ fetch('http://localhost:3000/api/admin/teams/{teamId}/reinstate',
 
 ```
 
-`POST /api/admin/teams/{teamId}/reinstate`
+`POST /api/admin/teams/{teamId}/reactivate`
 
-Reinstate a previously disqualified team, allowing them to participate in the competition again.
+Reactivate a previously deactivated team, allowing them to participate in the competition again.
 
-<h3 id="reinstate-a-team-parameters">Parameters</h3>
+<h3 id="reactivate-a-team-parameters">Parameters</h3>
 
 |Name|In|Type|Required|Description|
 |---|---|---|---|---|
-|teamId|path|string|true|ID of the team to reinstate|
+|teamId|path|string|true|ID of the team to reactivate|
 
 > Example responses
 
@@ -2318,37 +2316,35 @@ Reinstate a previously disqualified team, allowing them to participate in the co
 ```json
 {
   "success": true,
-  "message": "string",
   "team": {
     "id": "string",
     "name": "string",
-    "disqualified": true
+    "active": true
   }
 }
 ```
 
-<h3 id="reinstate-a-team-responses">Responses</h3>
+<h3 id="reactivate-a-team-responses">Responses</h3>
 
 |Status|Meaning|Description|Schema|
 |---|---|---|---|
-|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|Team reinstated successfully|Inline|
-|400|[Bad Request](https://tools.ietf.org/html/rfc7231#section-6.5.1)|Team is not currently disqualified|None|
+|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|Team reactivated successfully|Inline|
+|400|[Bad Request](https://tools.ietf.org/html/rfc7231#section-6.5.1)|Team is already active|None|
 |401|[Unauthorized](https://tools.ietf.org/html/rfc7235#section-3.1)|Unauthorized - Admin authentication required|None|
 |404|[Not Found](https://tools.ietf.org/html/rfc7231#section-6.5.4)|Team not found|None|
 |500|[Internal Server Error](https://tools.ietf.org/html/rfc7231#section-6.6.1)|Server error|None|
 
-<h3 id="reinstate-a-team-responseschema">Response Schema</h3>
+<h3 id="reactivate-a-team-responseschema">Response Schema</h3>
 
 Status Code **200**
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
 |» success|boolean|false|none|Operation success status|
-|» message|string|false|none|Success message|
 |» team|object|false|none|none|
 |»» id|string|false|none|Team ID|
 |»» name|string|false|none|Team name|
-|»» disqualified|boolean|false|none|Disqualification status (should be false)|
+|»» active|boolean|false|none|Active status (will be true)|
 
 <aside class="warning">
 To perform this operation, you must be authenticated by means of one of the following methods:

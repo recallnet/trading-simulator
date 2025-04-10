@@ -839,16 +839,16 @@ export class AdminController {
    *                       contact_person:
    *                         type: string
    *                         description: Contact person name
-   *                       disqualified:
+   *                       active:
    *                         type: boolean
-   *                         description: Disqualification status
-   *                       disqualificationReason:
+   *                         description: Active status
+   *                       deactivationReason:
    *                         type: string
-   *                         description: Reason for disqualification
-   *                       disqualificationDate:
+   *                         description: Reason for deactivation (if inactive)
+   *                       deactivationDate:
    *                         type: string
    *                         format: date-time
-   *                         description: Date of disqualification
+   *                         description: Date of deactivation (if inactive)
    *                       createdAt:
    *                         type: string
    *                         format: date-time

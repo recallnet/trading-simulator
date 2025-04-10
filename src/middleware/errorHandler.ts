@@ -34,12 +34,12 @@ const errorHandler = (
     });
   }
   
-  // Handle disqualification errors
-  if (err.message && err.message.includes('disqualified')) {
+  // Handle inactive team errors
+  if (err.message && err.message.includes('inactive')) {
     return res.status(403).json({
       success: false,
       error: err.message,
-      disqualified: true
+      inactive: true
     });
   }
 
