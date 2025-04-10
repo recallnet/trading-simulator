@@ -877,9 +877,9 @@ export class AdminController {
         name: team.name,
         email: team.email,
         contact_person: team.contactPerson,
-        disqualified: team.disqualified,
-        disqualificationReason: team.disqualificationReason,
-        disqualificationDate: team.disqualificationDate,
+        active: team.active,
+        deactivationReason: team.deactivationReason,
+        deactivationDate: team.deactivationDate,
         createdAt: team.createdAt,
         updatedAt: team.updatedAt
       }));
@@ -1121,24 +1121,24 @@ export class AdminController {
   }
 
   /**
-   * Disqualify a team from competition
+   * Deactivate a team
    * 
    * @openapi
-   * /api/admin/teams/{teamId}/disqualify:
+   * /api/admin/teams/{teamId}/deactivate:
    *   post:
    *     tags:
    *       - Admin
-   *     summary: Disqualify a team
-   *     description: Disqualify a team from the competition. The team will no longer be able to perform any actions.
+   *     summary: Deactivate a team
+   *     description: Removes a team from active participation in competitions. The team account remains but will be unable to perform trades and will not appear on the leaderboard.
    *     security:
    *       - BearerAuth: []
    *     parameters:
-   *       - in: path
-   *         name: teamId
+   *       - name: teamId
+   *         in: path
+   *         description: ID of the team to deactivate
+   *         required: true
    *         schema:
    *           type: string
-   *         required: true
-   *         description: ID of the team to disqualify
    *     requestBody:
    *       required: true
    *       content:
@@ -1150,11 +1150,10 @@ export class AdminController {
    *             properties:
    *               reason:
    *                 type: string
-   *                 description: Reason for disqualification
-   *                 example: Violated competition rules by using external API
+   *                 description: Reason for deactivation
    *     responses:
    *       200:
-   *         description: Team disqualified successfully
+   *         description: Team deactivated successfully
    *         content:
    *           application/json:
    *             schema:
@@ -1163,9 +1162,6 @@ export class AdminController {
    *                 success:
    *                   type: boolean
    *                   description: Operation success status
-   *                 message:
-   *                   type: string
-   *                   description: Success message
    *                 team:
    *                   type: object
    *                   properties:
@@ -1175,22 +1171,20 @@ export class AdminController {
    *                     name:
    *                       type: string
    *                       description: Team name
-   *                     disqualified:
+   *                     active:
    *                       type: boolean
-   *                       description: Disqualification status
-   *                     disqualificationReason:
+   *                       description: Active status (will be false)
+   *                     deactivationReason:
    *                       type: string
-   *                       description: Reason for disqualification
-   *                     disqualificationDate:
+   *                       description: Reason for deactivation
+   *                     deactivationDate:
    *                       type: string
    *                       format: date-time
-   *                       description: Date of disqualification
+   *                       description: Timestamp of deactivation
    *       400:
-   *         description: Missing required parameters
-   *       401:
-   *         description: Unauthorized - Admin authentication required
+   *         description: Invalid parameters or team already inactive
    *       403:
-   *         description: Cannot disqualify admin accounts
+   *         description: Cannot deactivate admin accounts
    *       404:
    *         description: Team not found
    *       500:
@@ -1200,7 +1194,7 @@ export class AdminController {
    * @param res Express response
    * @param next Express next function
    */
-  static async disqualifyTeam(req: Request, res: Response, next: NextFunction) {
+  static async deactivateTeam(req: Request, res: Response, next: NextFunction) {
     try {
       const { teamId } = req.params;
       const { reason } = req.body;
@@ -1216,7 +1210,7 @@ export class AdminController {
       if (!reason) {
         return res.status(400).json({
           success: false,
-          error: 'Reason for disqualification is required'
+          error: 'Reason for deactivation is required'
         });
       }
       
@@ -1230,78 +1224,77 @@ export class AdminController {
         });
       }
       
-      // Prevent disqualification of admin teams
+      // Prevent deactivation of admin teams
       if (team.isAdmin) {
         return res.status(403).json({
           success: false,
-          error: 'Cannot disqualify admin accounts'
+          error: 'Cannot deactivate admin accounts'
         });
       }
       
-      // Check if team is already disqualified
-      if (team.disqualified) {
+      // Check if team is already inactive
+      if (team.active === false) {
         return res.status(400).json({
           success: false,
-          error: 'Team is already disqualified',
+          error: 'Team is already inactive',
           team: {
             id: team.id,
             name: team.name,
-            disqualified: team.disqualified,
-            disqualificationReason: team.disqualificationReason,
-            disqualificationDate: team.disqualificationDate
+            active: false,
+            deactivationReason: team.deactivationReason,
+            deactivationDate: team.deactivationDate
           }
         });
       }
       
-      // Disqualify the team
-      const disqualifiedTeam = await services.teamManager.disqualifyTeam(teamId, reason);
+      // Deactivate the team
+      const deactivatedTeam = await services.teamManager.deactivateTeam(teamId, reason);
       
-      if (disqualifiedTeam) {
-        return res.status(200).json({
-          success: true,
-          message: 'Team has been disqualified',
-          team: {
-            id: disqualifiedTeam.id,
-            name: disqualifiedTeam.name,
-            disqualified: disqualifiedTeam.disqualified,
-            disqualificationReason: disqualifiedTeam.disqualificationReason,
-            disqualificationDate: disqualifiedTeam.disqualificationDate
-          }
-        });
-      } else {
+      if (!deactivatedTeam) {
         return res.status(500).json({
           success: false,
-          error: 'Failed to disqualify team'
+          error: 'Failed to deactivate team'
         });
       }
+      
+      // Return the updated team info
+      res.status(200).json({
+        success: true,
+        team: {
+          id: deactivatedTeam.id,
+          name: deactivatedTeam.name,
+          active: false,
+          deactivationReason: deactivatedTeam.deactivationReason,
+          deactivationDate: deactivatedTeam.deactivationDate
+        }
+      });
     } catch (error) {
-      console.error('[AdminController] Error disqualifying team:', error);
       next(error);
     }
   }
-
+  
   /**
-   * Reinstate a previously disqualified team
+   * Reactivate a team
    * 
    * @openapi
-   * /api/admin/teams/{teamId}/reinstate:
+   * /api/admin/teams/{teamId}/reactivate:
    *   post:
    *     tags:
    *       - Admin
-   *     summary: Reinstate a team
-   *     description: Reinstate a previously disqualified team, allowing them to participate in the competition again.
+   *     summary: Reactivate a team
+   *     description: Restores a previously deactivated team to active status, allowing them to participate in competitions again.
    *     security:
    *       - BearerAuth: []
    *     parameters:
-   *       - in: path
-   *         name: teamId
+   *       - name: teamId
+   *         in: path
+   *         description: ID of the team to reactivate
+   *         required: true
    *         schema:
    *           type: string
-   *         required: true
-   *         description: ID of the team to reinstate
    *     responses:
    *       200:
-   *         description: Team reinstated successfully
+   *         description: Team reactivated successfully
    *         content:
    *           application/json:
    *             schema:
@@ -1310,9 +1303,6 @@ export class AdminController {
    *                 success:
    *                   type: boolean
    *                   description: Operation success status
-   *                 message:
-   *                   type: string
-   *                   description: Success message
    *                 team:
    *                   type: object
    *                   properties:
@@ -1322,13 +1312,11 @@ export class AdminController {
    *                     name:
    *                       type: string
    *                       description: Team name
-   *                     disqualified:
+   *                     active:
    *                       type: boolean
-   *                       description: Disqualification status (should be false)
+   *                       description: Active status (will be true)
    *       400:
-   *         description: Team is not currently disqualified
-   *       401:
-   *         description: Unauthorized - Admin authentication required
+   *         description: Team is already active
    *       404:
    *         description: Team not found
    *       500:
@@ -1338,7 +1326,7 @@ export class AdminController {
    * @param res Express response
    * @param next Express next function
    */
-  static async reinstateTeam(req: Request, res: Response, next: NextFunction) {
+  static async reactivateTeam(req: Request, res: Response, next: NextFunction) {
     try {
       const { teamId } = req.params;
       
@@ -1350,7 +1338,7 @@ export class AdminController {
         });
       }
       
-      // Get the team first to check if it exists
+      // Get the team first to check if it exists and is actually inactive
       const team = await services.teamManager.getTeam(teamId);
       
       if (!team) {
@@ -1360,35 +1348,161 @@ export class AdminController {
         });
       }
       
-      // Check if team is disqualified
-      if (!team.disqualified) {
+      // Check if team is already active
+      if (team.active !== false) {
         return res.status(400).json({
           success: false,
-          error: 'Team is not currently disqualified'
-        });
-      }
-      
-      // Reinstate the team
-      const reinstatedTeam = await services.teamManager.reinstateTeam(teamId);
-      
-      if (reinstatedTeam) {
-        return res.status(200).json({
-          success: true,
-          message: 'Team has been reinstated',
+          error: 'Team is already active',
           team: {
-            id: reinstatedTeam.id,
-            name: reinstatedTeam.name,
-            disqualified: reinstatedTeam.disqualified
+            id: team.id,
+            name: team.name,
+            active: true
           }
         });
-      } else {
+      }
+      
+      // Reactivate the team
+      const reactivatedTeam = await services.teamManager.reactivateTeam(teamId);
+      
+      if (!reactivatedTeam) {
         return res.status(500).json({
           success: false,
-          error: 'Failed to reinstate team'
+          error: 'Failed to reactivate team'
         });
       }
+      
+      // Return the updated team info
+      res.status(200).json({
+        success: true,
+        team: {
+          id: reactivatedTeam.id,
+          name: reactivatedTeam.name,
+          active: true
+        }
+      });
     } catch (error) {
-      console.error('[AdminController] Error reinstating team:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * Get a team by ID
+   * 
+   * @openapi
+   * /api/admin/teams/{teamId}:
+   *   get:
+   *     tags:
+   *       - Admin
+   *     summary: Get team by ID
+   *     description: Get detailed information for a specific team
+   *     security:
+   *       - BearerAuth: []
+   *     parameters:
+   *       - in: path
+   *         name: teamId
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: ID of the team to retrieve
+   *     responses:
+   *       200:
+   *         description: Team retrieved successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 success:
+   *                   type: boolean
+   *                   description: Operation success status
+   *                 team:
+   *                   type: object
+   *                   properties:
+   *                     id:
+   *                       type: string
+   *                       description: Team ID
+   *                     name:
+   *                       type: string
+   *                       description: Team name
+   *                     email:
+   *                       type: string
+   *                       format: email
+   *                       description: Team email
+   *                     contact_person:
+   *                       type: string
+   *                       description: Contact person name
+   *                     active:
+   *                       type: boolean
+   *                       description: Active status
+   *                     deactivationReason:
+   *                       type: string
+   *                       description: Reason for deactivation (if inactive)
+   *                     deactivationDate:
+   *                       type: string
+   *                       format: date-time
+   *                       description: Date of deactivation (if inactive)
+   *                     createdAt:
+   *                       type: string
+   *                       format: date-time
+   *                       description: Account creation timestamp
+   *                     updatedAt:
+   *                       type: string
+   *                       format: date-time
+   *                       description: Account last update timestamp
+   *       400:
+   *         description: Missing team ID
+   *       401:
+   *         description: Unauthorized - Admin authentication required
+   *       404:
+   *         description: Team not found
+   *       500:
+   *         description: Server error
+   *
+   * @param req Express request
+   * @param res Express response
+   * @param next Express next function
+   */
+  static async getTeam(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { teamId } = req.params;
+      
+      if (!teamId) {
+        return res.status(400).json({
+          success: false,
+          error: 'Team ID is required'
+        });
+      }
+      
+      // Get the team
+      const team = await services.teamManager.getTeam(teamId);
+      
+      if (!team) {
+        return res.status(404).json({
+          success: false,
+          error: 'Team not found'
+        });
+      }
+      
+      // Format the response
+      const formattedTeam = {
+        id: team.id,
+        name: team.name,
+        email: team.email,
+        contact_person: team.contactPerson,
+        active: team.active,
+        deactivationReason: team.deactivationReason,
+        deactivationDate: team.deactivationDate,
+        createdAt: team.createdAt,
+        updatedAt: team.updatedAt,
+        isAdmin: team.isAdmin
+      };
+      
+      // Return the team
+      res.status(200).json({
+        success: true,
+        team: formattedTeam
+      });
+    } catch (error) {
       next(error);
     }
   }

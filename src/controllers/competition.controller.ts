@@ -82,16 +82,19 @@ export class CompetitionController {
    *                       portfolioValue:
    *                         type: number
    *                         description: Current portfolio value
-   *                       disqualified:
+   *                       active:
    *                         type: boolean
-   *                         description: Whether the team has been disqualified
-   *                       disqualificationReason:
+   *                         description: Whether the team is active
+   *                       deactivationReason:
    *                         type: string
    *                         nullable: true
-   *                         description: Reason for disqualification if applicable
-   *                 hasDisqualifiedTeams:
+   *                         description: Reason for deactivation if applicable
+   *                 hasInactiveTeams:
    *                   type: boolean
-   *                   description: Indicates if any teams are disqualified
+   *                   description: Indicates if any teams are inactive
+   *                 inactiveTeamsFiltered:
+   *                   type: boolean
+   *                   description: Indicates if inactive teams are filtered out
    *       400:
    *         description: No active competition and no competitionId provided
    *       401:
@@ -157,36 +160,37 @@ export class CompetitionController {
       // Create map of all teams
       const teamMap = new Map(teams.map(team => [team.id, team]));
       
-      // Track teams with disqualification status
-      const disqualifiedTeamIds = new Set(
+      // Track teams with inactive status
+      const inactiveTeamIds = new Set(
         teams
-          .filter(team => team.disqualified)
+          .filter(team => team.active === false)
           .map(team => team.id)
       );
       
-      const hasDisqualifiedTeams = disqualifiedTeamIds.size > 0;
+      const hasInactiveTeams = inactiveTeamIds.size > 0;
       
-      // Format leaderboard with team names and disqualification status
+      // Format leaderboard with team names and active status
       const formattedLeaderboard = leaderboard.map((entry, index) => {
         const team = teamMap.get(entry.teamId);
-        const isDisqualified = team?.disqualified || false;
+        const isInactive = team?.active === false;
         
         return {
           rank: index + 1,
           teamId: entry.teamId,
           teamName: team ? team.name : 'Unknown Team',
           portfolioValue: entry.value,
-          disqualified: isDisqualified,
-          disqualificationReason: isDisqualified ? team?.disqualificationReason : null
+          active: team?.active !== false,
+          deactivationReason: isInactive ? team?.deactivationReason : null
         };
       });
       
-      // Return the complete leaderboard with disqualification flags
+      // Return the complete leaderboard with active/inactive flags
       res.status(200).json({
         success: true,
         competition,
         leaderboard: formattedLeaderboard,
-        hasDisqualifiedTeams
+        hasInactiveTeams,
+        inactiveTeamsFiltered: false
       });
     } catch (error) {
       next(error);

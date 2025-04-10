@@ -22,7 +22,7 @@ export class TeamRepository extends BaseRepository<Team> {
       const query = `
         INSERT INTO teams (
           id, name, email, contact_person, api_key, wallet_address, is_admin, 
-          disqualified, disqualification_reason, disqualification_date, 
+          active, deactivation_reason, deactivation_date, 
           created_at, updated_at
         ) VALUES (
           $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12
@@ -37,9 +37,9 @@ export class TeamRepository extends BaseRepository<Team> {
         team.apiKey,
         team.walletAddress,
         team.isAdmin || false,
-        team.disqualified || false,
-        team.disqualificationReason || null,
-        team.disqualificationDate || null,
+        team.active !== undefined ? team.active : false,
+        team.deactivationReason || null,
+        team.deactivationDate || null,
         team.createdAt,
         team.updatedAt
       ];
@@ -98,9 +98,9 @@ export class TeamRepository extends BaseRepository<Team> {
           api_key = $4,
           wallet_address = $5,
           is_admin = $6,
-          disqualified = $7,
-          disqualification_reason = $8,
-          disqualification_date = $9,
+          active = $7,
+          deactivation_reason = $8,
+          deactivation_date = $9,
           updated_at = $10
         WHERE id = $11
         RETURNING *
@@ -113,9 +113,9 @@ export class TeamRepository extends BaseRepository<Team> {
         team.apiKey,
         team.walletAddress,
         team.isAdmin || false,
-        team.disqualified || false,
-        team.disqualificationReason || null,
-        team.disqualificationDate || null,
+        team.active !== undefined ? team.active : false,
+        team.deactivationReason || null,
+        team.deactivationDate || null,
         new Date(),
         team.id
       ];
@@ -189,12 +189,12 @@ export class TeamRepository extends BaseRepository<Team> {
   }
 
   /**
-   * Disqualify a team from competition
-   * @param teamId Team ID to disqualify
-   * @param reason Reason for disqualification
+   * Deactivate a team
+   * @param teamId Team ID to deactivate
+   * @param reason Reason for deactivation
    * @param client Optional database client for transactions
    */
-  async disqualifyTeam(teamId: string, reason: string, client?: PoolClient): Promise<Team | null> {
+  async deactivateTeam(teamId: string, reason: string, client?: PoolClient): Promise<Team | null> {
     try {
       // First check if team exists
       const team = await this.findById(teamId, client);
@@ -204,9 +204,9 @@ export class TeamRepository extends BaseRepository<Team> {
 
       const query = `
         UPDATE teams SET
-          disqualified = true,
-          disqualification_reason = $1,
-          disqualification_date = $2,
+          active = false,
+          deactivation_reason = $1,
+          deactivation_date = $2,
           updated_at = $3
         WHERE id = $4
         RETURNING *
@@ -229,23 +229,29 @@ export class TeamRepository extends BaseRepository<Team> {
       
       return this.mapToEntity(this.toCamelCase(result.rows[0]));
     } catch (error) {
-      console.error('[TeamRepository] Error in disqualifyTeam:', error);
+      console.error('[TeamRepository] Error in deactivateTeam:', error);
       throw error;
     }
   }
-
+  
   /**
-   * Reinstate a previously disqualified team
-   * @param teamId Team ID to reinstate
+   * Reactivate a team
+   * @param teamId Team ID to reactivate
    * @param client Optional database client for transactions
    */
-  async reinstateTeam(teamId: string, client?: PoolClient): Promise<Team | null> {
+  async reactivateTeam(teamId: string, client?: PoolClient): Promise<Team | null> {
     try {
+      // First check if team exists
+      const team = await this.findById(teamId, client);
+      if (!team) {
+        return null;
+      }
+
       const query = `
         UPDATE teams SET
-          disqualified = false,
-          disqualification_reason = null,
-          disqualification_date = null,
+          active = true,
+          deactivation_reason = NULL,
+          deactivation_date = NULL,
           updated_at = $1
         WHERE id = $2
         RETURNING *
@@ -266,21 +272,21 @@ export class TeamRepository extends BaseRepository<Team> {
       
       return this.mapToEntity(this.toCamelCase(result.rows[0]));
     } catch (error) {
-      console.error('[TeamRepository] Error in reinstateTeam:', error);
+      console.error('[TeamRepository] Error in reactivateTeam:', error);
       throw error;
     }
   }
 
   /**
-   * Find all disqualified teams
+   * Find all inactive teams
    * @param client Optional database client for transactions
    */
-  async findDisqualifiedTeams(client?: PoolClient): Promise<Team[]> {
+  async findInactiveTeams(client?: PoolClient): Promise<Team[]> {
     try {
       const query = `
         SELECT * FROM teams
-        WHERE disqualified = true
-        ORDER BY disqualification_date DESC
+        WHERE active = false
+        ORDER BY deactivation_date DESC
       `;
       
       const result = client 
@@ -289,7 +295,7 @@ export class TeamRepository extends BaseRepository<Team> {
       
       return result.rows.map((row: any) => this.mapToEntity(this.toCamelCase(row)));
     } catch (error) {
-      console.error('[TeamRepository] Error in findDisqualifiedTeams:', error);
+      console.error('[TeamRepository] Error in findInactiveTeams:', error);
       throw error;
     }
   }
@@ -307,9 +313,9 @@ export class TeamRepository extends BaseRepository<Team> {
       apiKey: data.apiKey,
       walletAddress: data.walletAddress,
       isAdmin: data.isAdmin || false,
-      disqualified: data.disqualified || false,
-      disqualificationReason: data.disqualificationReason,
-      disqualificationDate: data.disqualificationDate ? new Date(data.disqualificationDate) : undefined,
+      active: data.active !== undefined ? data.active : false,
+      deactivationReason: data.deactivationReason,
+      deactivationDate: data.deactivationDate ? new Date(data.deactivationDate) : undefined,
       createdAt: new Date(data.createdAt),
       updatedAt: new Date(data.updatedAt)
     };

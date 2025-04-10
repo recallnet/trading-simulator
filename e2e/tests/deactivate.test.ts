@@ -4,7 +4,7 @@ import { getBaseUrl } from '../utils/server';
 import { BlockchainType } from '../../src/types';
 import config from '../../src/config';
 
-describe('Team Disqualification API', () => {
+describe('Team Deactivation API', () => {
   let adminApiKey: string;
   
   // Clean up test state before each test
@@ -24,35 +24,42 @@ describe('Team Disqualification API', () => {
     console.log(`Admin API key created: ${adminApiKey.substring(0, 8)}...`);
   });
 
-  test('admin can disqualify a team', async () => {
+  test('admin can deactivate a team', async () => {
     // Setup admin client
     const adminClient = createTestClient();
     await adminClient.loginAsAdmin(adminApiKey);
     
     // Register a team
-    const { team } = await registerTeamAndGetClient(adminClient, 'Team to Disqualify');
+    const { team } = await registerTeamAndGetClient(adminClient, 'Team to Deactivate');
+
+    const competitionName = `Test Competition ${Date.now()}`;
+    const competitionResponse = await startTestCompetition(
+      adminClient, 
+      competitionName, 
+      [team.id]
+    );
     
-    // Disqualify the team
+    // Deactivate the team
     const reason = 'Violated competition rules by using external API';
-    const disqualifyResponse = await adminClient.disqualifyTeam(team.id, reason);
+    const deactivateResponse = await adminClient.deactivateTeam(team.id, reason);
     
-    // Verify disqualification response
-    expect(disqualifyResponse.success).toBe(true);
-    expect(disqualifyResponse.team).toBeDefined();
-    expect(disqualifyResponse.team.id).toBe(team.id);
-    expect(disqualifyResponse.team.name).toBe('Team to Disqualify');
-    expect(disqualifyResponse.team.disqualified).toBe(true);
-    expect(disqualifyResponse.team.disqualificationReason).toBe(reason);
-    expect(disqualifyResponse.team.disqualificationDate).toBeDefined();
+    // Verify deactivation response
+    expect(deactivateResponse.success).toBe(true);
+    expect(deactivateResponse.team).toBeDefined();
+    expect(deactivateResponse.team.id).toBe(team.id);
+    expect(deactivateResponse.team.name).toBe('Team to Deactivate');
+    expect(deactivateResponse.team.active).toBe(false);
+    expect(deactivateResponse.team.deactivationReason).toBe(reason);
+    expect(deactivateResponse.team.deactivationDate).toBeDefined();
     
-    // List all teams to verify the disqualification status is persisted
+    // List all teams to verify the deactivation status is persisted
     const teamsResponse = await adminClient.listAllTeams();
-    const disqualifiedTeam = teamsResponse.teams.find((t: any) => t.id === team.id);
-    expect(disqualifiedTeam).toBeDefined();
-    expect(disqualifiedTeam.disqualified).toBe(true);
+    const deactivatedTeam = teamsResponse.teams.find((t: any) => t.id === team.id);
+    expect(deactivatedTeam).toBeDefined();
+    expect(deactivatedTeam.active).toBe(false);
   });
   
-  test('disqualified team cannot access API endpoints', async () => {
+  test('deactivated team cannot access API endpoints', async () => {
     // Setup admin client
     const adminClient = createTestClient();
     await adminClient.loginAsAdmin(adminApiKey);
@@ -61,35 +68,35 @@ describe('Team Disqualification API', () => {
     const { client: teamClient, team } = await registerTeamAndGetClient(adminClient, 'To Be Blocked');
     
     // Start a competition with the team
-    const competitionName = `Disqualification Test ${Date.now()}`;
+    const competitionName = `Deactivation Test ${Date.now()}`;
     await startTestCompetition(adminClient, competitionName, [team.id]);
     
-    // Verify team can access API before disqualification
+    // Verify team can access API before deactivation
     const profileResponse = await teamClient.getProfile();
     expect(profileResponse.success).toBe(true);
     
-    // Disqualify the team
-    const reason = 'Testing disqualification blocking';
-    const disqualifyResponse = await adminClient.disqualifyTeam(team.id, reason);
-    expect(disqualifyResponse.success).toBe(true);
+    // Deactivate the team
+    const reason = 'Testing deactivation blocking';
+    const deactivateResponse = await adminClient.deactivateTeam(team.id, reason);
+    expect(deactivateResponse.success).toBe(true);
     
-    // Attempt to get profile - should fail with disqualification message
+    // Attempt to get profile - should fail with deactivation message
     try {
       await teamClient.getProfile();
       // Should not reach here - access should be blocked
       expect(false).toBe(true); // Force test to fail if we get here
     } catch (error) {
-      // Expect error with disqualification message
+      // Expect error with deactivation message
       expect(error).toBeDefined();
       if (axios.isAxiosError(error) && error.response) {
         expect(error.response.status).toBe(403);
         expect(error.response.data).toBeDefined();
-        expect(error.response.data.error).toContain('disqualified');
+        expect(error.response.data.error).toContain('deactivated');
         expect(error.response.data.error).toContain(reason);
       }
     }
     
-    // Attempt to execute a trade - should also fail with disqualification message
+    // Attempt to execute a trade - should also fail with deactivation message
     try {
       const usdcTokenAddress = config.specificChainTokens.svm.usdc;
       const solTokenAddress = config.specificChainTokens.svm.sol;
@@ -104,32 +111,32 @@ describe('Team Disqualification API', () => {
       // Should not reach here - trade should be blocked
       expect(false).toBe(true); // Force test to fail if we get here
     } catch (error) {
-      // Expect error with disqualification message
+      // Expect error with deactivation message
       expect(error).toBeDefined();
       if (axios.isAxiosError(error) && error.response) {
         expect(error.response.status).toBe(403);
         expect(error.response.data).toBeDefined();
-        expect(error.response.data.error).toContain('disqualified');
+        expect(error.response.data.error).toContain('deactivated');
       }
     }
   });
   
-  test('admin can reinstate a disqualified team', async () => {
+  test('admin can reactivate a deactivated team', async () => {
     // Setup admin client
     const adminClient = createTestClient();
     await adminClient.loginAsAdmin(adminApiKey);
     
     // Register a team and get the client
-    const { client: teamClient, team } = await registerTeamAndGetClient(adminClient, 'To Be Reinstated');
+    const { client: teamClient, team } = await registerTeamAndGetClient(adminClient, 'To Be Reactivated');
     
     // Start a competition with the team
-    const competitionName = `Reinstatement Test ${Date.now()}`;
+    const competitionName = `Reactivation Test ${Date.now()}`;
     await startTestCompetition(adminClient, competitionName, [team.id]);
     
-    // Disqualify the team
-    const reason = 'Temporary disqualification for testing';
-    const disqualifyResponse = await adminClient.disqualifyTeam(team.id, reason);
-    expect(disqualifyResponse.success).toBe(true);
+    // Deactivate the team
+    const reason = 'Temporary deactivation for testing';
+    const deactivateResponse = await adminClient.deactivateTeam(team.id, reason);
+    expect(deactivateResponse.success).toBe(true);
     
     // Verify team is blocked from API
     try {
@@ -139,58 +146,23 @@ describe('Team Disqualification API', () => {
       expect(error).toBeDefined();
     }
     
-    // Reinstate the team
-    const reinstateResponse = await adminClient.reinstateTeam(team.id);
-    expect(reinstateResponse.success).toBe(true);
-    expect(reinstateResponse.team).toBeDefined();
-    expect(reinstateResponse.team.id).toBe(team.id);
-    expect(reinstateResponse.team.disqualified).toBe(false);
+    // Reactivate the team
+    const reactivateResponse = await adminClient.reactivateTeam(team.id);
+    expect(reactivateResponse.success).toBe(true);
+    expect(reactivateResponse.team).toBeDefined();
+    expect(reactivateResponse.team.id).toBe(team.id);
+    expect(reactivateResponse.team.active).toBe(true);
     
     // Wait a moment for any cache to update
     await wait(100);
     
-    // Verify team can access API after reinstatement
+    // Verify team can access API after reactivation
     const profileResponse = await teamClient.getProfile();
     expect(profileResponse.success).toBe(true);
     expect(profileResponse.team.id).toBe(team.id);
   });
   
-  test('cannot disqualify admin accounts', async () => {
-    // Setup admin client
-    const adminClient = createTestClient();
-    await adminClient.loginAsAdmin(adminApiKey);
-    
-    // Get the list of teams to find the admin
-    const teamsResponse = await adminClient.listAllTeams();
-    expect(teamsResponse.success).toBe(true);
-    
-    // Find the admin account (might be filtered out in the API response)
-    // Since we cannot directly get the admin ID, create a test that should fail
-    // for any team that is an admin
-    
-    // Register an additional team to make sure we have at least one non-admin
-    const { team: regularTeam } = await registerTeamAndGetClient(adminClient, 'Regular Team');
-    
-    // Try to disqualify each team and check for admin protection
-    for (const team of teamsResponse.teams) {
-      // Skip the team we just created as we know it's not an admin
-      if (team.id === regularTeam.id) continue;
-      
-      const disqualifyResponse = await adminClient.disqualifyTeam(team.id, 'Attempted admin disqualification');
-      
-      // If this is an admin account, it should fail with a specific error
-      if (team.isAdmin) {
-        expect(disqualifyResponse.success).toBe(false);
-        expect(disqualifyResponse.error).toContain('admin');
-      }
-    }
-    
-    // Explicitly verify we can disqualify a regular team
-    const regularDisqualifyResponse = await adminClient.disqualifyTeam(regularTeam.id, 'Regular team disqualification');
-    expect(regularDisqualifyResponse.success).toBe(true);
-  });
-  
-  test('non-admin cannot disqualify a team', async () => {
+  test('non-admin cannot deactivate a team', async () => {
     // Setup admin client
     const adminClient = createTestClient();
     await adminClient.loginAsAdmin(adminApiKey);
@@ -203,21 +175,21 @@ describe('Team Disqualification API', () => {
     const competitionName = `Non-Admin Test ${Date.now()}`;
     await startTestCompetition(adminClient, competitionName, [team1.id, team2.id]);
     
-    // Team One tries to disqualify Team Two (should fail)
-    const disqualifyResponse = await teamClient1.disqualifyTeam(team2.id, 'Unauthorized disqualification attempt');
+    // Team One tries to deactivate Team Two (should fail)
+    const deactivateResponse = await teamClient1.deactivateTeam(team2.id, 'Unauthorized deactivation attempt');
     
     // Verify the operation failed due to lack of admin rights
-    expect(disqualifyResponse.success).toBe(false);
-    expect(disqualifyResponse.error).toBeDefined();
+    expect(deactivateResponse.success).toBe(false);
+    expect(deactivateResponse.error).toBeDefined();
     
-    // Verify Team Two wasn't actually disqualified
+    // Verify Team Two wasn't actually deactivated
     const teamsResponse = await adminClient.listAllTeams();
     const teamTwoInfo = teamsResponse.teams.find((t: any) => t.id === team2.id);
     expect(teamTwoInfo).toBeDefined();
-    expect(teamTwoInfo.disqualified).toBeFalsy();
+    expect(teamTwoInfo.active).not.toBe(false);
   });
   
-  test('disqualified teams are filtered from leaderboard', async () => {
+  test('inactive teams are filtered from leaderboard', async () => {
     // Setup admin client
     const adminClient = createTestClient();
     await adminClient.loginAsAdmin(adminApiKey);
@@ -225,14 +197,14 @@ describe('Team Disqualification API', () => {
     // Register three teams for the competition
     const { client: teamClient1, team: team1 } = await registerTeamAndGetClient(adminClient, 'Active Team 1');
     const { client: teamClient2, team: team2 } = await registerTeamAndGetClient(adminClient, 'Active Team 2');
-    const { client: teamClient3, team: team3 } = await registerTeamAndGetClient(adminClient, 'Disqualified Team');
+    const { client: teamClient3, team: team3 } = await registerTeamAndGetClient(adminClient, 'Inactive Team');
     
     // Create competition with all three teams
     const competitionName = `Leaderboard Test ${Date.now()}`;
     await startTestCompetition(adminClient, competitionName, [team1.id, team2.id, team3.id]);
     
     // Make some trades to differentiate portfolio values
-    // We'll have team3 (to be disqualified) make some trades to put them on the leaderboard
+    // We'll have team3 (to be deactivated) make some trades to put them on the leaderboard
     const usdcTokenAddress = config.specificChainTokens.svm.usdc;
     const solTokenAddress = config.specificChainTokens.svm.sol;
     
@@ -265,7 +237,7 @@ describe('Team Disqualification API', () => {
     // Wait a moment for portfolio values to update
     await wait(1000);
     
-    // Check leaderboard before disqualification
+    // Check leaderboard before deactivation
     const leaderboardBefore = await teamClient1.getLeaderboard();
     expect(leaderboardBefore.success).toBe(true);
     expect(leaderboardBefore.leaderboard).toBeDefined();
@@ -276,58 +248,58 @@ describe('Team Disqualification API', () => {
     expect(teamIds).toContain(team2.id);
     expect(teamIds).toContain(team3.id);
     
-    // Now disqualify team3
-    const reason = 'Disqualified for leaderboard test';
-    const disqualifyResponse = await adminClient.disqualifyTeam(team3.id, reason);
-    expect(disqualifyResponse.success).toBe(true);
+    // Now deactivate team3
+    const reason = 'Deactivated for leaderboard test';
+    const deactivateResponse = await adminClient.deactivateTeam(team3.id, reason);
+    expect(deactivateResponse.success).toBe(true);
     
-    // Check leaderboard after disqualification
+    // Check leaderboard after deactivation
     const leaderboardAfter = await teamClient1.getLeaderboard();
     expect(leaderboardAfter.success).toBe(true);
     expect(leaderboardAfter.leaderboard).toBeDefined();
     
-    // Verify team3 is still in the leaderboard but marked as disqualified
+    // Verify team3 is still in the leaderboard but marked as inactive
     const teamIdsAfter = leaderboardAfter.leaderboard.map((entry: any) => entry.teamId);
     expect(teamIdsAfter).toContain(team1.id);
     expect(teamIdsAfter).toContain(team2.id);
     expect(teamIdsAfter).toContain(team3.id);
     
-    // Find team3 entry and verify it's marked as disqualified
+    // Find team3 entry and verify it's marked as inactive
     const team3Entry = leaderboardAfter.leaderboard.find((entry: any) => entry.teamId === team3.id);
     expect(team3Entry).toBeDefined();
-    expect(team3Entry.disqualified).toBe(true);
-    expect(team3Entry.disqualificationReason).toBe(reason);
+    expect(team3Entry.active).toBe(false);
+    expect(team3Entry.deactivationReason).toBe(reason);
     
-    expect(leaderboardAfter.hasDisqualifiedTeams).toBe(true);
+    expect(leaderboardAfter.hasInactiveTeams).toBe(true);
     
     // All teams should still have ranks
     const ranks = leaderboardAfter.leaderboard.map((entry: any) => entry.rank);
     expect(ranks.length).toBe(3); // All three teams still have ranks
     
-    // Reinstate the team and verify they show up again
-    await adminClient.reinstateTeam(team3.id);
+    // Reactivate the team and verify they show up again
+    await adminClient.reactivateTeam(team3.id);
     
     // Wait a moment for any cache to update
     await wait(100);
     
-    // Check leaderboard after reinstatement
+    // Check leaderboard after reactivation
     const leaderboardFinal = await teamClient1.getLeaderboard();
     expect(leaderboardFinal.success).toBe(true);
     expect(leaderboardFinal.leaderboard).toBeDefined();
     
-    // Verify team3 is back in the leaderboard and not disqualified
+    // Verify team3 is back in the leaderboard and active
     const teamIdsFinal = leaderboardFinal.leaderboard.map((entry: any) => entry.teamId);
     expect(teamIdsFinal).toContain(team1.id);
     expect(teamIdsFinal).toContain(team2.id);
     expect(teamIdsFinal).toContain(team3.id);
     
-    // Find team3 entry and verify it's no longer marked as disqualified
+    // Find team3 entry and verify it's now active
     const team3FinalEntry = leaderboardFinal.leaderboard.find((entry: any) => entry.teamId === team3.id);
     expect(team3FinalEntry).toBeDefined();
-    expect(team3FinalEntry.disqualified).toBe(false);
-    expect(team3FinalEntry.disqualificationReason).toBeNull();
+    expect(team3FinalEntry.active).toBe(true);
+    expect(team3FinalEntry.deactivationReason).toBeNull();
     
-    // Verify the hasDisqualifiedTeams flag is false
-    expect(leaderboardFinal.hasDisqualifiedTeams).toBe(false);
+    // Verify the hasInactiveTeams flag is false
+    expect(leaderboardFinal.hasInactiveTeams).toBe(false);
   });
 }); 

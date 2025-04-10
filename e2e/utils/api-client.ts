@@ -451,31 +451,31 @@ export class ApiClient {
   }
   
   /**
-   * Disqualify a team (admin only)
-   * @param teamId ID of the team to disqualify
-   * @param reason Reason for disqualification
+   * Deactivate a team (admin only)
+   * @param teamId ID of the team to deactivate
+   * @param reason Reason for deactivation
    */
-  async disqualifyTeam(teamId: string, reason: string): Promise<any> {
+  async deactivateTeam(teamId: string, reason: string): Promise<any> {
     try {
-      const response = await this.axiosInstance.post(`/api/admin/teams/${teamId}/disqualify`, {
+      const response = await this.axiosInstance.post(`/api/admin/teams/${teamId}/deactivate`, {
         reason
       });
       return response.data;
     } catch (error) {
-      return this.handleApiError(error, 'disqualify team');
+      return this.handleApiError(error, 'deactivate team');
     }
   }
   
   /**
-   * Reinstate a previously disqualified team (admin only)
-   * @param teamId ID of the team to reinstate
+   * Reactivate a team (admin only)
+   * @param teamId ID of the team to reactivate
    */
-  async reinstateTeam(teamId: string): Promise<any> {
+  async reactivateTeam(teamId: string): Promise<any> {
     try {
-      const response = await this.axiosInstance.post(`/api/admin/teams/${teamId}/reinstate`, {});
+      const response = await this.axiosInstance.post(`/api/admin/teams/${teamId}/reactivate`);
       return response.data;
     } catch (error) {
-      return this.handleApiError(error, 'reinstate team');
+      return this.handleApiError(error, 'reactivate team');
     }
   }
   

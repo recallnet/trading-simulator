@@ -11,12 +11,12 @@ import { repositories } from '../database';
 export class TeamManager {
   // In-memory cache for API keys to avoid database lookups on every request
   private apiKeyCache: Map<string, ApiAuth>;
-  // Cache for disqualified teams to avoid repeated database lookups
-  private disqualifiedTeamsCache: Map<string, { reason: string, date: Date }>;
+  // Cache for inactive teams to avoid repeated database lookups
+  private inactiveTeamsCache: Map<string, { reason: string, date: Date }>;
 
   constructor() {
     this.apiKeyCache = new Map();
-    this.disqualifiedTeamsCache = new Map();
+    this.inactiveTeamsCache = new Map();
   }
 
   /**
@@ -135,18 +135,18 @@ export class TeamManager {
   /**
    * Validate an API key and check if the team is allowed to access
    * @param apiKey The API key to validate
-   * @returns The team ID if valid and not disqualified, null otherwise
-   * @throws Error if the team is disqualified
+   * @returns The team ID if valid and not inactive, null otherwise
+   * @throws Error if the team is inactive
    */
   async validateApiKey(apiKey: string): Promise<string | null> {
     try {
       // First check cache
       const cachedAuth = this.apiKeyCache.get(apiKey);
       if (cachedAuth) {
-        // Check if the team is disqualified
-        if (this.disqualifiedTeamsCache.has(cachedAuth.teamId)) {
-          const disqualificationInfo = this.disqualifiedTeamsCache.get(cachedAuth.teamId);
-          throw new Error(`Your team has been disqualified from the competition: ${disqualificationInfo?.reason}`);
+        // Check if the team is inactive
+        if (this.inactiveTeamsCache.has(cachedAuth.teamId)) {
+          const deactivationInfo = this.inactiveTeamsCache.get(cachedAuth.teamId);
+          throw new Error(`Your team has been deactivated from the competition: ${deactivationInfo?.reason}`);
         }
         return cachedAuth.teamId;
       }
@@ -159,14 +159,14 @@ export class TeamManager {
           const decryptedKey = this.decryptApiKey(team.apiKey);
           
           if (decryptedKey === apiKey) {
-            // Found matching team, check if disqualified
-            if (team.disqualified) {
-              // Cache the disqualification info
-              this.disqualifiedTeamsCache.set(team.id, {
-                reason: team.disqualificationReason || 'No reason provided',
-                date: team.disqualificationDate || new Date()
+            // Found matching team, check if inactive
+            if (team.active === false && (!team.isAdmin)) {
+              // Cache the deactivation info
+              this.inactiveTeamsCache.set(team.id, {
+                reason: team.deactivationReason || 'No reason provided',
+                date: team.deactivationDate || new Date()
               });
-              throw new Error(`Your team has been disqualified from the competition: ${team.disqualificationReason}`);
+              throw new Error(`Your team has been deactivated from the competition: ${team.deactivationReason}`);
             }
             
             // Add to cache
@@ -319,92 +319,92 @@ export class TeamManager {
   }
 
   /**
-   * Disqualify a team from competition
-   * @param teamId Team ID to disqualify
-   * @param reason Reason for disqualification
-   * @returns The disqualified team or null if team not found
+   * Deactivate a team
+   * @param teamId Team ID to deactivate
+   * @param reason Reason for deactivation
+   * @returns The deactivated team or null if team not found
    */
-  async disqualifyTeam(teamId: string, reason: string): Promise<Team | null> {
+  async deactivateTeam(teamId: string, reason: string): Promise<Team | null> {
     try {
-      console.log(`[TeamManager] Disqualifying team: ${teamId}, Reason: ${reason}`);
+      console.log(`[TeamManager] Deactivating team: ${teamId}, Reason: ${reason}`);
       
-      // Call repository to disqualify the team
-      const disqualifiedTeam = await repositories.teamRepository.disqualifyTeam(teamId, reason);
+      // Call repository to deactivate the team
+      const deactivatedTeam = await repositories.teamRepository.deactivateTeam(teamId, reason);
       
-      if (!disqualifiedTeam) {
-        console.log(`[TeamManager] Team not found for disqualification: ${teamId}`);
+      if (!deactivatedTeam) {
+        console.log(`[TeamManager] Team not found for deactivation: ${teamId}`);
         return null;
       }
       
-      // Update disqualification cache
-      this.disqualifiedTeamsCache.set(teamId, {
+      // Update deactivation cache
+      this.inactiveTeamsCache.set(teamId, {
         reason: reason,
-        date: disqualifiedTeam.disqualificationDate || new Date()
+        date: deactivatedTeam.deactivationDate || new Date()
       });
       
-      console.log(`[TeamManager] Successfully disqualified team: ${disqualifiedTeam.name} (${teamId})`);
+      console.log(`[TeamManager] Successfully deactivated team: ${deactivatedTeam.name} (${teamId})`);
       
-      return disqualifiedTeam;
+      return deactivatedTeam;
     } catch (error) {
-      console.error(`[TeamManager] Error disqualifying team ${teamId}:`, error);
-      throw new Error(`Failed to disqualify team: ${error instanceof Error ? error.message : error}`);
+      console.error(`[TeamManager] Error deactivating team ${teamId}:`, error);
+      throw new Error(`Failed to deactivate team: ${error instanceof Error ? error.message : error}`);
     }
   }
-
+  
   /**
-   * Reinstate a previously disqualified team
-   * @param teamId Team ID to reinstate
-   * @returns The reinstated team or null if team not found
+   * Reactivate a team
+   * @param teamId Team ID to reactivate
+   * @returns The reactivated team or null if team not found
    */
-  async reinstateTeam(teamId: string): Promise<Team | null> {
+  async reactivateTeam(teamId: string): Promise<Team | null> {
     try {
-      console.log(`[TeamManager] Reinstating team: ${teamId}`);
+      console.log(`[TeamManager] Reactivating team: ${teamId}`);
       
-      // Call repository to reinstate the team
-      const reinstatedTeam = await repositories.teamRepository.reinstateTeam(teamId);
+      // Call repository to reactivate the team
+      const reactivatedTeam = await repositories.teamRepository.reactivateTeam(teamId);
       
-      if (!reinstatedTeam) {
-        console.log(`[TeamManager] Team not found for reinstatement: ${teamId}`);
+      if (!reactivatedTeam) {
+        console.log(`[TeamManager] Team not found for reactivation: ${teamId}`);
         return null;
       }
       
-      // Remove from disqualification cache
-      this.disqualifiedTeamsCache.delete(teamId);
+      // Remove from inactive cache
+      this.inactiveTeamsCache.delete(teamId);
       
-      console.log(`[TeamManager] Successfully reinstated team: ${reinstatedTeam.name} (${teamId})`);
+      console.log(`[TeamManager] Successfully reactivated team: ${reactivatedTeam.name} (${teamId})`);
       
-      return reinstatedTeam;
+      return reactivatedTeam;
     } catch (error) {
-      console.error(`[TeamManager] Error reinstating team ${teamId}:`, error);
-      throw new Error(`Failed to reinstate team: ${error instanceof Error ? error.message : error}`);
+      console.error(`[TeamManager] Error reactivating team ${teamId}:`, error);
+      throw new Error(`Failed to reactivate team: ${error instanceof Error ? error.message : error}`);
     }
   }
 
   /**
-   * Get all disqualified teams
-   * @returns Array of disqualified teams
+   * Get all inactive teams
+   * @returns Array of inactive teams
    */
-  async getDisqualifiedTeams(): Promise<Team[]> {
+  async getInactiveTeams(): Promise<Team[]> {
     try {
-      return await repositories.teamRepository.findDisqualifiedTeams();
+      return await repositories.teamRepository.findInactiveTeams();
     } catch (error) {
-      console.error('[TeamManager] Error retrieving disqualified teams:', error);
+      console.error('[TeamManager] Error retrieving inactive teams:', error);
       return [];
     }
   }
 
   /**
-   * Check if a team is disqualified
+   * Check if a team is inactive
    * @param teamId Team ID to check
-   * @returns Object with disqualification status and reason if applicable
+   * @returns Object with inactive status and reason if applicable
    */
-  async isTeamDisqualified(teamId: string): Promise<{ isDisqualified: boolean; reason?: string; date?: Date }> {
+  async isTeamInactive(teamId: string): Promise<{ isInactive: boolean; reason?: string; date?: Date }> {
     try {
       // Check cache first
-      if (this.disqualifiedTeamsCache.has(teamId)) {
-        const info = this.disqualifiedTeamsCache.get(teamId);
+      if (this.inactiveTeamsCache.has(teamId)) {
+        const info = this.inactiveTeamsCache.get(teamId);
         return {
-          isDisqualified: true,
+          isInactive: true,
           reason: info?.reason,
           date: info?.date
         };
@@ -414,27 +414,27 @@ export class TeamManager {
       const team = await repositories.teamRepository.findById(teamId);
       
       if (!team) {
-        return { isDisqualified: false };
+        return { isInactive: false };
       }
       
-      if (team.disqualified) {
+      if (team.active === false) {
         // Update cache
-        this.disqualifiedTeamsCache.set(teamId, {
-          reason: team.disqualificationReason || 'No reason provided',
-          date: team.disqualificationDate || new Date()
+        this.inactiveTeamsCache.set(teamId, {
+          reason: team.deactivationReason || 'No reason provided',
+          date: team.deactivationDate || new Date()
         });
         
         return {
-          isDisqualified: true,
-          reason: team.disqualificationReason,
-          date: team.disqualificationDate
+          isInactive: true,
+          reason: team.deactivationReason,
+          date: team.deactivationDate
         };
       }
       
-      return { isDisqualified: false };
+      return { isInactive: false };
     } catch (error) {
-      console.error(`[TeamManager] Error checking disqualification status for team ${teamId}:`, error);
-      return { isDisqualified: false };
+      console.error(`[TeamManager] Error checking inactive status for team ${teamId}:`, error);
+      return { isInactive: false };
     }
   }
 } 

@@ -647,12 +647,12 @@ router.get('/reports/performance', AdminController.getPerformanceReports);
 
 /**
  * @openapi
- * /api/admin/teams/{teamId}/disqualify:
+ * /api/admin/teams/{teamId}/deactivate:
  *   post:
  *     tags:
  *       - Admin
- *     summary: Disqualify a team
- *     description: Disqualify a team from the competition. The team will no longer be able to perform any actions.
+ *     summary: Deactivate a team
+ *     description: Deactivate a team from the competition. The team will no longer be able to perform any actions.
  *     security:
  *       - BearerAuth: []
  *     parameters:
@@ -661,7 +661,7 @@ router.get('/reports/performance', AdminController.getPerformanceReports);
  *         schema:
  *           type: string
  *         required: true
- *         description: ID of the team to disqualify
+ *         description: ID of the team to deactivate
  *     requestBody:
  *       required: true
  *       content:
@@ -673,11 +673,11 @@ router.get('/reports/performance', AdminController.getPerformanceReports);
  *             properties:
  *               reason:
  *                 type: string
- *                 description: Reason for disqualification
+ *                 description: Reason for deactivation
  *                 example: Violated competition rules by using external API
  *     responses:
  *       200:
- *         description: Team disqualified successfully
+ *         description: Team deactivated successfully
  *         content:
  *           application/json:
  *             schema:
@@ -686,9 +686,6 @@ router.get('/reports/performance', AdminController.getPerformanceReports);
  *                 success:
  *                   type: boolean
  *                   description: Operation success status
- *                 message:
- *                   type: string
- *                   description: Success message
  *                 team:
  *                   type: object
  *                   properties:
@@ -698,37 +695,37 @@ router.get('/reports/performance', AdminController.getPerformanceReports);
  *                     name:
  *                       type: string
  *                       description: Team name
- *                     disqualified:
+ *                     active:
  *                       type: boolean
- *                       description: Disqualification status
- *                     disqualificationReason:
+ *                       description: Active status (will be false)
+ *                     deactivationReason:
  *                       type: string
- *                       description: Reason for disqualification
- *                     disqualificationDate:
+ *                       description: Reason for deactivation
+ *                     deactivationDate:
  *                       type: string
  *                       format: date-time
- *                       description: Date of disqualification
+ *                       description: Date of deactivation
  *       400:
  *         description: Missing required parameters
  *       401:
  *         description: Unauthorized - Admin authentication required
  *       403:
- *         description: Cannot disqualify admin accounts
+ *         description: Cannot deactivate admin accounts
  *       404:
  *         description: Team not found
  *       500:
  *         description: Server error
  */
-router.post('/teams/:teamId/disqualify', AdminController.disqualifyTeam);
+router.post('/teams/:teamId/deactivate', AdminController.deactivateTeam);
 
 /**
  * @openapi
- * /api/admin/teams/{teamId}/reinstate:
+ * /api/admin/teams/{teamId}/reactivate:
  *   post:
  *     tags:
  *       - Admin
- *     summary: Reinstate a team
- *     description: Reinstate a previously disqualified team, allowing them to participate in the competition again.
+ *     summary: Reactivate a team
+ *     description: Reactivate a previously deactivated team, allowing them to participate in the competition again.
  *     security:
  *       - BearerAuth: []
  *     parameters:
@@ -737,10 +734,10 @@ router.post('/teams/:teamId/disqualify', AdminController.disqualifyTeam);
  *         schema:
  *           type: string
  *         required: true
- *         description: ID of the team to reinstate
+ *         description: ID of the team to reactivate
  *     responses:
  *       200:
- *         description: Team reinstated successfully
+ *         description: Team reactivated successfully
  *         content:
  *           application/json:
  *             schema:
@@ -749,9 +746,6 @@ router.post('/teams/:teamId/disqualify', AdminController.disqualifyTeam);
  *                 success:
  *                   type: boolean
  *                   description: Operation success status
- *                 message:
- *                   type: string
- *                   description: Success message
  *                 team:
  *                   type: object
  *                   properties:
@@ -761,11 +755,11 @@ router.post('/teams/:teamId/disqualify', AdminController.disqualifyTeam);
  *                     name:
  *                       type: string
  *                       description: Team name
- *                     disqualified:
+ *                     active:
  *                       type: boolean
- *                       description: Disqualification status (should be false)
+ *                       description: Active status (will be true)
  *       400:
- *         description: Team is not currently disqualified
+ *         description: Team is already active
  *       401:
  *         description: Unauthorized - Admin authentication required
  *       404:
@@ -773,6 +767,6 @@ router.post('/teams/:teamId/disqualify', AdminController.disqualifyTeam);
  *       500:
  *         description: Server error
  */
-router.post('/teams/:teamId/reinstate', AdminController.reinstateTeam);
+router.post('/teams/:teamId/reactivate', AdminController.reactivateTeam);
 
 export default router; 

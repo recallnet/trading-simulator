@@ -1,6 +1,7 @@
 import { createTestClient, registerTeamAndGetClient, startTestCompetition, createTestCompetition, startExistingTestCompetition, cleanupTestState, ADMIN_USERNAME, ADMIN_PASSWORD, ADMIN_EMAIL } from '../utils/test-helpers';
 import axios from 'axios';
 import { getBaseUrl } from '../utils/server';
+import { getPool } from '../utils/db-manager';
 
 describe('Competition API', () => {
   let adminApiKey: string;
@@ -267,5 +268,89 @@ describe('Competition API', () => {
     // Regular team checks rules
     const teamRulesResponse = await teamClient.getRules();
     expect(teamRulesResponse.success).toBe(true);
+  });
+  
+  test('teams are activated when added to a competition', async () => {
+    // Setup admin client
+    const adminClient = createTestClient();
+    await adminClient.loginAsAdmin(adminApiKey);
+    
+    // Register a new team - should be inactive by default
+    const { client: teamClient, team } = await registerTeamAndGetClient(adminClient, 'Team To Activate');
+    
+    // Team should not be able to access restricted endpoints when inactive
+    try {
+      await teamClient.getProfile();
+      // Should not reach here if properly inactive
+      expect(false).toBe(true);
+    } catch (error) {
+      // Expect error due to inactive status
+      expect(error).toBeDefined();
+    }
+    
+    // Start a competition with the team
+    const competitionName = `Activation Test ${Date.now()}`;
+    await startTestCompetition(adminClient, competitionName, [team.id]);
+    
+    // Check leaderboard to verify team is now active
+    const leaderboardResponse = await adminClient.getLeaderboard();
+    expect(leaderboardResponse.success).toBe(true);
+    expect(leaderboardResponse.leaderboard).toBeDefined();
+    
+    // Find the team in the leaderboard
+    const teamInLeaderboard = leaderboardResponse.leaderboard.find(
+      (entry: any) => entry.teamId === team.id
+    );
+    expect(teamInLeaderboard).toBeDefined();
+    expect(teamInLeaderboard.active).toBe(true);
+    
+    // Team should now be able to access endpoints
+    const profileResponse = await teamClient.getProfile();
+    expect(profileResponse.success).toBe(true);
+    expect(profileResponse.team).toBeDefined();
+  });
+  
+  test('teams are deactivated when a competition ends', async () => {
+    // Setup admin client
+    const adminClient = createTestClient();
+    await adminClient.loginAsAdmin(adminApiKey);
+    
+    // Register a new team
+    const { client: teamClient, team } = await registerTeamAndGetClient(adminClient, 'Team To Deactivate');
+    
+    // Start a competition with the team
+    const competitionName = `Deactivation Test ${Date.now()}`;
+    const competition = await startTestCompetition(adminClient, competitionName, [team.id]);
+    
+    // Team should be able to access endpoints while competition is active
+    const profileResponse = await teamClient.getProfile();
+    expect(profileResponse.success).toBe(true);
+    expect(profileResponse.team).toBeDefined();
+    
+    // End the competition
+    const endResponse = await adminClient.endCompetition(competition.competition.id);
+    expect(endResponse.competition.status).toBe('COMPLETED');
+    
+    // Give a small delay for deactivation to complete
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    // Directly check the database to verify the team is deactivated
+    const pool = getPool();
+    const dbResult = await pool.query('SELECT active, deactivation_reason FROM teams WHERE id = $1', [team.id]);
+    
+    // Verify team is marked as inactive in the database
+    expect(dbResult.rows.length).toBe(1);
+    expect(dbResult.rows[0].active).toBe(false);
+    expect(dbResult.rows[0].deactivation_reason).toContain('Competition');
+    
+    // Team should no longer be able to access restricted endpoints
+    try {
+      await teamClient.getProfile();
+      // Should not reach here if properly inactive
+      expect(false).toBe(true);
+    } catch (error) {
+      // Expect error due to inactive status
+      expect(error).toBeDefined();
+    }
   });
 }); 

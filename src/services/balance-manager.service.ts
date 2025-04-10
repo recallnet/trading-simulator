@@ -1,4 +1,4 @@
-import { Balance, BlockchainType, SpecificChain } from '../types';
+import { Balance, SpecificChain } from '../types';
 import { config } from '../config';
 import { repositories } from '../database';
 

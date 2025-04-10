@@ -5,6 +5,7 @@ import { TradeSimulator } from './trade-simulator.service';
 import { PriceTracker } from './price-tracker.service';
 import { repositories } from '../database';
 import { config } from '../config';
+import { services } from '../services';
 
 // Define the shape of portfolio snapshot data
 interface PortfolioSnapshot {
@@ -116,12 +117,17 @@ export class CompetitionManager {
       throw new Error(`Another competition is already active: ${activeCompetition.id}`);
     }
 
-    // Reset balances for all teams
+    // Process all team additions and activations
     for (const teamId of teamIds) {
+      // Reset balances
       await this.balanceManager.resetTeamBalances(teamId);
       
       // Register team in the competition
       await repositories.competitionRepository.addTeamToCompetition(competitionId, teamId);
+      
+      // Activate the team using existing reactivateTeam method
+      await repositories.teamRepository.reactivateTeam(teamId);
+      console.log(`[CompetitionManager] Activated team: ${teamId}`);
     }
 
     // Update competition status
@@ -163,6 +169,22 @@ export class CompetitionManager {
 
     // Take final portfolio snapshots
     await this.takePortfolioSnapshots(competitionId);
+
+    // Get teams in the competition
+    const competitionTeams = await repositories.competitionRepository.getCompetitionTeams(competitionId);
+    
+    // Deactivate all teams in the competition
+    console.log(`[CompetitionManager] Deactivating ${competitionTeams.length} teams for ended competition`);
+    for (const teamId of competitionTeams) {
+      try {
+        await services.teamManager.deactivateTeam(
+          teamId, 
+          `Competition ${competition.name} (${competitionId}) ended`
+        );
+      } catch (error) {
+        console.error(`[CompetitionManager] Error deactivating team ${teamId}:`, error);
+      }
+    }
 
     // Update competition status
     competition.status = CompetitionStatus.COMPLETED;
