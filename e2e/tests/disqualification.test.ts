@@ -286,18 +286,23 @@ describe('Team Disqualification API', () => {
     expect(leaderboardAfter.success).toBe(true);
     expect(leaderboardAfter.leaderboard).toBeDefined();
     
-    // Verify team3 is not in the leaderboard anymore
+    // Verify team3 is still in the leaderboard but marked as disqualified
     const teamIdsAfter = leaderboardAfter.leaderboard.map((entry: any) => entry.teamId);
     expect(teamIdsAfter).toContain(team1.id);
     expect(teamIdsAfter).toContain(team2.id);
-    expect(teamIdsAfter).not.toContain(team3.id);
+    expect(teamIdsAfter).toContain(team3.id);
     
-    // Verify the disqualifiedTeamsFiltered flag is true
-    expect(leaderboardAfter.disqualifiedTeamsFiltered).toBe(true);
+    // Find team3 entry and verify it's marked as disqualified
+    const team3Entry = leaderboardAfter.leaderboard.find((entry: any) => entry.teamId === team3.id);
+    expect(team3Entry).toBeDefined();
+    expect(team3Entry.disqualified).toBe(true);
+    expect(team3Entry.disqualificationReason).toBe(reason);
     
-    // Check that rank calculation is correct (should be 1 and 2 with no gaps)
+    expect(leaderboardAfter.hasDisqualifiedTeams).toBe(true);
+    
+    // All teams should still have ranks
     const ranks = leaderboardAfter.leaderboard.map((entry: any) => entry.rank);
-    expect(ranks).toEqual([1, 2]); // Should have ranks 1 and 2 only
+    expect(ranks.length).toBe(3); // All three teams still have ranks
     
     // Reinstate the team and verify they show up again
     await adminClient.reinstateTeam(team3.id);
@@ -310,13 +315,19 @@ describe('Team Disqualification API', () => {
     expect(leaderboardFinal.success).toBe(true);
     expect(leaderboardFinal.leaderboard).toBeDefined();
     
-    // Verify team3 is back in the leaderboard
+    // Verify team3 is back in the leaderboard and not disqualified
     const teamIdsFinal = leaderboardFinal.leaderboard.map((entry: any) => entry.teamId);
     expect(teamIdsFinal).toContain(team1.id);
     expect(teamIdsFinal).toContain(team2.id);
     expect(teamIdsFinal).toContain(team3.id);
     
-    // Verify the disqualifiedTeamsFiltered flag is false
-    expect(leaderboardFinal.disqualifiedTeamsFiltered).toBe(false);
+    // Find team3 entry and verify it's no longer marked as disqualified
+    const team3FinalEntry = leaderboardFinal.leaderboard.find((entry: any) => entry.teamId === team3.id);
+    expect(team3FinalEntry).toBeDefined();
+    expect(team3FinalEntry.disqualified).toBe(false);
+    expect(team3FinalEntry.disqualificationReason).toBeNull();
+    
+    // Verify the hasDisqualifiedTeams flag is false
+    expect(leaderboardFinal.hasDisqualifiedTeams).toBe(false);
   });
 }); 

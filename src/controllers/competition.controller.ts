@@ -1,9 +1,9 @@
-import { Request, Response, NextFunction } from 'express';
+import { Response, NextFunction } from 'express';
 import { services } from '../services';
 import { repositories } from '../database';
 import { ApiError } from '../middleware/errorHandler';
 import { config, features } from '../config';
-import { BlockchainType } from '../types';
+import { AuthenticatedRequest } from '../types';
 
 /**
  * Competition Controller
@@ -82,9 +82,16 @@ export class CompetitionController {
    *                       portfolioValue:
    *                         type: number
    *                         description: Current portfolio value
-   *                 disqualifiedTeamsFiltered:
+   *                       disqualified:
+   *                         type: boolean
+   *                         description: Whether the team has been disqualified
+   *                       disqualificationReason:
+   *                         type: string
+   *                         nullable: true
+   *                         description: Reason for disqualification if applicable
+   *                 hasDisqualifiedTeams:
    *                   type: boolean
-   *                   description: Indicates if any teams were filtered out
+   *                   description: Indicates if any teams are disqualified
    *       400:
    *         description: No active competition and no competitionId provided
    *       401:
@@ -96,11 +103,11 @@ export class CompetitionController {
    *       500:
    *         description: Server error
    *
-   * @param req Express request
+   * @param req AuthenticatedRequest object with team authentication information
    * @param res Express response
    * @param next Express next function
    */
-  static async getLeaderboard(req: Request, res: Response, next: NextFunction) {
+  static async getLeaderboard(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
       // Get active competition or use competitionId from query
       const competitionId = req.query.competitionId as string || 
@@ -117,7 +124,6 @@ export class CompetitionController {
       }
       
       // Check if the team is part of the competition
-      // @ts-ignore - teamId is added to the request by team-auth middleware
       const teamId = req.teamId;
       
       // If no team ID, they can't be in the competition
@@ -148,37 +154,39 @@ export class CompetitionController {
       // Get all teams (excluding admin teams)
       const teams = await services.teamManager.getAllTeams(false);
       
-      // Filter out disqualified teams and track if any were removed
-      const activeTeams = teams.filter(team => !team.disqualified);
-      const teamMap = new Map(activeTeams.map(team => [team.id, team]));
+      // Create map of all teams
+      const teamMap = new Map(teams.map(team => [team.id, team]));
       
-      // Track disqualified teams and create filtered leaderboard
+      // Track teams with disqualification status
       const disqualifiedTeamIds = new Set(
         teams
           .filter(team => team.disqualified)
           .map(team => team.id)
       );
       
-      const filteredLeaderboard = leaderboard.filter(entry => !disqualifiedTeamIds.has(entry.teamId));
-      const hasFilteredTeams = filteredLeaderboard.length < leaderboard.length;
+      const hasDisqualifiedTeams = disqualifiedTeamIds.size > 0;
       
-      // Format leaderboard with team names, recalculating ranks
-      const formattedLeaderboard = filteredLeaderboard.map((entry, index) => {
+      // Format leaderboard with team names and disqualification status
+      const formattedLeaderboard = leaderboard.map((entry, index) => {
         const team = teamMap.get(entry.teamId);
+        const isDisqualified = team?.disqualified || false;
+        
         return {
-          rank: index + 1, // Recalculate rank after filtering
+          rank: index + 1,
           teamId: entry.teamId,
           teamName: team ? team.name : 'Unknown Team',
-          portfolioValue: entry.value
+          portfolioValue: entry.value,
+          disqualified: isDisqualified,
+          disqualificationReason: isDisqualified ? team?.disqualificationReason : null
         };
       });
       
-      // Return the leaderboard with a flag indicating if teams were filtered
+      // Return the complete leaderboard with disqualification flags
       res.status(200).json({
         success: true,
         competition,
         leaderboard: formattedLeaderboard,
-        disqualifiedTeamsFiltered: hasFilteredTeams
+        hasDisqualifiedTeams
       });
     } catch (error) {
       next(error);
@@ -247,64 +255,92 @@ export class CompetitionController {
    *       500:
    *         description: Server error
    *
-   * @param req Express request
+   * @param req AuthenticatedRequest object with team authentication information
    * @param res Express response
    * @param next Express next function
    */
-  static async getStatus(req: Request, res: Response, next: NextFunction) {
+  static async getStatus(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
+      console.log('[CompetitionController] Processing getStatus request');
+      
       // Get active competition
       const activeCompetition = await services.competitionManager.getActiveCompetition();
       
-      if (!activeCompetition) {
+      // Get team ID from request (if authenticated)
+      const teamId = req.teamId;
+      
+      // If not authenticated, just return basic status
+      if (!teamId) {
+        const info = activeCompetition 
+          ? { 
+              id: activeCompetition.id,
+              name: activeCompetition.name, 
+              status: activeCompetition.status 
+            }
+          : null;
+        
+        console.log(`[CompetitionController] Returning basic competition status (no auth)`);
+        
         return res.status(200).json({
           success: true,
-          active: false,
-          message: 'No active competition'
+          active: !!activeCompetition,
+          competition: info,
+          message: "Authenticate to get full competition details"
         });
       }
       
-      // Check if the team is part of the competition
-      // @ts-ignore - teamId is added to the request by team-auth middleware
-      const teamId = req.teamId;
-      
-      // If no team ID, they can't be in the competition
-      if (!teamId) {
+      // No active competition, return empty response
+      if (!activeCompetition) {
+        console.log('[CompetitionController] No active competition found');
+        
         return res.status(200).json({
           success: true,
           active: false,
           competition: null,
-          message: 'Authentication required to view competition details'
+          message: "No active competition found"
         });
       }
       
-      // Check if user is an admin (added by auth middleware)
+      console.log(`[CompetitionController] Found active competition: ${activeCompetition.id}`);
+      
+      // Check if the team is part of the competition
+      const isTeamInCompetition = await repositories.teamRepository.isTeamInCompetition(
+        teamId,
+        activeCompetition.id
+      );
+      
+      // Check if the team is an admin
       const isAdmin = req.isAdmin === true;
       
-      // If not an admin, verify team is part of the competition
-      if (!isAdmin) {
-        const isTeamInCompetition = await repositories.teamRepository.isTeamInCompetition(
-          teamId, 
-          activeCompetition.id
-        );
+      // If team is not in competition and not an admin, return limited info
+      if (!isTeamInCompetition && !isAdmin) {
+        console.log(`[CompetitionController] Team ${teamId} is not in competition ${activeCompetition.id}`);
         
-        if (!isTeamInCompetition) {
-          return res.status(200).json({
-            success: true,
-            active: false,
-            competition: null,
-            message: 'Your team is not participating in the active competition'
-          });
-        }
-      } else {
-        console.log(`[CompetitionController] Admin ${teamId} accessing status for active competition ${activeCompetition.id}`);
+        return res.status(200).json({
+          success: true,
+          active: true,
+          competition: {
+            id: activeCompetition.id,
+            name: activeCompetition.name,
+            status: activeCompetition.status,
+            startDate: activeCompetition.startDate
+          },
+          message: "Your team is not participating in this competition"
+        });
       }
       
-      // Return the competition status
+      // Return full competition details for participants and admins
+      if (isAdmin) {
+        console.log(`[CompetitionController] Admin ${teamId} accessing competition status`);
+      } else {
+        console.log(`[CompetitionController] Team ${teamId} is participating in competition ${activeCompetition.id}`);
+      }
+      
       res.status(200).json({
         success: true,
         active: true,
-        competition: activeCompetition
+        competition: activeCompetition,
+        participating: true
       });
     } catch (error) {
       next(error);
@@ -368,14 +404,13 @@ export class CompetitionController {
    *       500:
    *         description: Server error
    *
-   * @param req Express request
+   * @param req AuthenticatedRequest object with team authentication information
    * @param res Express response
    * @param next Express next function
    */
-  static async getRules(req: Request, res: Response, next: NextFunction) {
+  static async getRules(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
       // Check if the team is authenticated
-      // @ts-ignore - teamId is added to the request by team-auth middleware
       const teamId = req.teamId;
       
       // If no team ID, they can't be authenticated

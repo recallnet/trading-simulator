@@ -89,9 +89,16 @@ const router = Router();
  *                       portfolioValue:
  *                         type: number
  *                         description: Current portfolio value in USD
- *                 disqualifiedTeamsFiltered:
+ *                       disqualified:
+ *                         type: boolean
+ *                         description: Whether the team has been disqualified 
+ *                       disqualificationReason:
+ *                         type: string
+ *                         nullable: true
+ *                         description: Reason for disqualification if applicable
+ *                 hasDisqualifiedTeams:
  *                   type: boolean
- *                   description: Indicates whether any disqualified teams were filtered out of the leaderboard results
+ *                   description: Indicates if any teams are disqualified
  *       400:
  *         description: Bad request - No active competition and no competitionId provided
  *       401:

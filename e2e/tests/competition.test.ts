@@ -188,7 +188,7 @@ describe('Competition API', () => {
     expect(teamInLeaderboard).toBeDefined();
   });
   
-  test('teams cannot access competitions they are not part of', async () => {
+  test('teams receive basic information for competitions they are not part of', async () => {
     // Setup admin client
     const adminClient = createTestClient();
     await adminClient.loginAsAdmin(adminApiKey);
@@ -204,11 +204,18 @@ describe('Competition API', () => {
     const statusInResponse = await teamInClient.getCompetitionStatus();
     expect(statusInResponse.success).toBe(true);
     expect(statusInResponse.competition).toBeDefined();
+    expect(statusInResponse.participating).toBe(true);
     
-    // Team not in competition checks status - should show no active competition
+    // Team not in competition checks status - should show limited competition info
     const statusOutResponse = await teamOutClient.getCompetitionStatus();
     expect(statusOutResponse.success).toBe(true);
-    expect(statusOutResponse.competition).toBeNull();
+    expect(statusOutResponse.active).toBe(true);
+    expect(statusOutResponse.competition).toBeDefined();
+    expect(statusOutResponse.competition.id).toBeDefined();
+    expect(statusOutResponse.competition.name).toBeDefined();
+    expect(statusOutResponse.competition.status).toBeDefined();
+    expect(statusOutResponse.message).toBe("Your team is not participating in this competition");
+    expect(statusOutResponse.participating).toBeUndefined();
   });
   
   test('admin can access competition endpoints without being a participant', async () => {
