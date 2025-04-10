@@ -1051,10 +1051,12 @@ Get the leaderboard for the active competition or a specific competition
       "rank": 0,
       "teamId": "string",
       "teamName": "string",
-      "portfolioValue": 0
+      "portfolioValue": 0,
+      "disqualified": true,
+      "disqualificationReason": "string"
     }
   ],
-  "disqualifiedTeamsFiltered": true
+  "hasDisqualifiedTeams": true
 }
 ```
 
@@ -1090,7 +1092,9 @@ Status Code **200**
 |»» teamId|string|false|none|Team ID|
 |»» teamName|string|false|none|Team name|
 |»» portfolioValue|number|false|none|Current portfolio value in USD|
-|» disqualifiedTeamsFiltered|boolean|false|none|Indicates whether any disqualified teams were filtered out of the leaderboard results|
+|»» disqualified|boolean|false|none|Whether the team has been disqualified|
+|»» disqualificationReason|string¦null|false|none|Reason for disqualification if applicable|
+|» hasDisqualifiedTeams|boolean|false|none|Indicates if any teams are disqualified|
 
 #### Enumerated Values
 

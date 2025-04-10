@@ -1857,13 +1857,22 @@
                           "portfolioValue": {
                             "type": "number",
                             "description": "Current portfolio value in USD"
+                          },
+                          "disqualified": {
+                            "type": "boolean",
+                            "description": "Whether the team has been disqualified"
+                          },
+                          "disqualificationReason": {
+                            "type": "string",
+                            "nullable": true,
+                            "description": "Reason for disqualification if applicable"
                           }
                         }
                       }
                     },
-                    "disqualifiedTeamsFiltered": {
+                    "hasDisqualifiedTeams": {
                       "type": "boolean",
-                      "description": "Indicates whether any disqualified teams were filtered out of the leaderboard results"
+                      "description": "Indicates if any teams are disqualified"
                     }
                   }
                 }
