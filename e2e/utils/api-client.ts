@@ -252,6 +252,37 @@ export class ApiClient {
   }
   
   /**
+   * Get account balances (alias for getBalance to match test expectations)
+   */
+  async getBalances(): Promise<any> {
+    return this.getBalance();
+  }
+
+  /**
+   * Get portfolio value and information
+   */
+  async getPortfolio(): Promise<any> {
+    try {
+      const response = await this.axiosInstance.get('/api/account/portfolio');
+      return response.data;
+    } catch (error) {
+      return this.handleApiError(error, 'get portfolio');
+    }
+  }
+  
+  /**
+   * Get competition rules
+   */
+  async getCompetitionRules(): Promise<any> {
+    try {
+      const response = await this.axiosInstance.get('/api/competition/rules');
+      return response.data;
+    } catch (error) {
+      return this.handleApiError(error, 'get competition rules');
+    }
+  }
+  
+  /**
    * Get trade history
    */
   async getTradeHistory(): Promise<any> {

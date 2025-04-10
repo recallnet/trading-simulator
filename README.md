@@ -531,6 +531,7 @@ Below is a comprehensive list of all environment variables available in `.env.ex
 |----------|----------|---------|-------------|
 | `EVM_CHAINS` | Optional | `eth,polygon,bsc,arbitrum,base,optimism,avalanche,linea` | Comma-separated list of supported EVM chains |
 | `ALLOW_CROSS_CHAIN_TRADING` | Optional | `false` | Enable trading between different chains |
+| `MAX_TRADE_PERCENTAGE` | Optional | `25` | Maximum trade size as percentage of portfolio value |
 | `EVM_CHAIN_PRIORITY` | Optional | `eth,polygon,base,arbitrum` | Chain priority for price lookups (first chain checked first) |
 | `ALLOW_MOCK_PRICE_HISTORY` | Optional | `true` in dev, `false` in prod | Allow generation of mock price history data |
 
