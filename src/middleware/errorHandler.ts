@@ -33,6 +33,15 @@ const errorHandler = (
       error: err.message
     });
   }
+  
+  // Handle inactive team errors
+  if (err.message && err.message.includes('inactive')) {
+    return res.status(403).json({
+      success: false,
+      error: err.message,
+      inactive: true
+    });
+  }
 
   // Handle other errors
   return res.status(500).json({

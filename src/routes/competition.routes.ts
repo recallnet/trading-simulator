@@ -89,6 +89,16 @@ const router = Router();
  *                       portfolioValue:
  *                         type: number
  *                         description: Current portfolio value in USD
+ *                       active:
+ *                         type: boolean
+ *                         description: Whether the team is active 
+ *                       deactivationReason:
+ *                         type: string
+ *                         nullable: true
+ *                         description: Reason for deactivation if applicable
+ *                 hasInactiveTeams:
+ *                   type: boolean
+ *                   description: Indicates if any teams are inactive
  *       400:
  *         description: Bad request - No active competition and no competitionId provided
  *       401:
@@ -187,7 +197,7 @@ router.get('/status', CompetitionController.getStatus);
  *     tags:
  *       - Competition
  *     summary: Get competition rules
- *     description: Get the rules for all competitions
+ *     description: Get the rules, rate limits, and other configuration details for the competition
  *     security:
  *       - BearerAuth: []
  *     parameters:
@@ -200,7 +210,7 @@ router.get('/status', CompetitionController.getStatus);
  *         example: "Bearer abc123def456_ghi789jkl012"
  *     responses:
  *       200:
- *         description: Competition rules
+ *         description: Competition rules retrieved successfully
  *         content:
  *           application/json:
  *             schema:
@@ -216,17 +226,38 @@ router.get('/status', CompetitionController.getStatus);
  *                       type: array
  *                       items:
  *                         type: string
- *                       description: List of trading rules
+ *                       description: List of trading rules for the competition
  *                     rateLimits:
  *                       type: array
  *                       items:
  *                         type: string
- *                       description: List of rate limits
+ *                       description: Rate limits for API endpoints
+ *                     availableChains:
+ *                       type: object
+ *                       properties:
+ *                         svm:
+ *                           type: boolean
+ *                           description: Whether Solana (SVM) is available
+ *                         evm:
+ *                           type: array
+ *                           items:
+ *                             type: string
+ *                           description: List of available EVM chains
  *                     slippageFormula:
  *                       type: string
- *                       description: Formula used to calculate slippage
+ *                       description: Formula used for calculating slippage
+ *                     portfolioSnapshots:
+ *                       type: object
+ *                       properties:
+ *                         interval:
+ *                           type: string
+ *                           description: Interval between portfolio snapshots
+ *       400:
+ *         description: Bad request - No active competition
  *       401:
  *         description: Unauthorized - Missing or invalid authentication
+ *       403:
+ *         description: Forbidden - Team not participating in the competition
  *       500:
  *         description: Server error
  */

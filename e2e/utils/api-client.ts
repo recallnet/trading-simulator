@@ -45,10 +45,14 @@ export class ApiClient {
       
       // For admin routes, use admin API key if available and different from regular API key
       if (this.adminApiKey && 
-          (config.url?.startsWith('/api/admin') || config.url?.includes('admin')) && 
-          this.adminApiKey !== this.apiKey) {
-        config.headers['Authorization'] = `Bearer ${this.adminApiKey}`;
-      }
+        (
+          config.url?.startsWith('/api/admin') || 
+          config.url?.includes('admin') || 
+          config.url?.includes('competition')
+        ) && 
+        this.adminApiKey !== this.apiKey) {
+      config.headers['Authorization'] = `Bearer ${this.adminApiKey}`;
+    }
       
       // Log request (simplified)
       console.log(`[ApiClient] Request to ${config.method?.toUpperCase()} ${config.url}`);
@@ -127,14 +131,38 @@ export class ApiClient {
   }
   
   /**
-   * Register a new team
+   * Generate a random Ethereum address
+   * @returns A valid Ethereum address (0x + 40 hex characters)
    */
-  async registerTeam(name: string, email: string, contactPerson: string): Promise<any> {
+  private generateRandomEthAddress(): string {
+    const chars = '0123456789abcdef';
+    let address = '0x';
+    
+    // Generate 40 random hex characters
+    for (let i = 0; i < 40; i++) {
+      address += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    
+    return address;
+  }
+
+  /**
+   * Register a new team
+   * @param name Team name
+   * @param email Team email
+   * @param contactPerson Contact person name
+   * @param walletAddress Optional Ethereum wallet address (random valid address will be generated if not provided)
+   */
+  async registerTeam(name: string, email: string, contactPerson: string, walletAddress?: string): Promise<any> {
     try {
+      // Generate a random Ethereum address if one isn't provided
+      const address = walletAddress || this.generateRandomEthAddress();
+      
       const response = await this.axiosInstance.post('/api/admin/teams/register', {
         teamName: name,
         email,
-        contactPerson
+        contactPerson,
+        walletAddress: address
       });
       
       return response.data;
@@ -157,6 +185,38 @@ export class ApiClient {
       return response.data;
     } catch (error) {
       return this.handleApiError(error, 'start competition');
+    }
+  }
+  
+  /**
+   * Create a competition in PENDING state
+   */
+  async createCompetition(name: string, description?: string): Promise<any> {
+    try {
+      const response = await this.axiosInstance.post('/api/admin/competition/create', {
+        name,
+        description
+      });
+      
+      return response.data;
+    } catch (error) {
+      return this.handleApiError(error, 'create competition');
+    }
+  }
+  
+  /**
+   * Start an existing competition
+   */
+  async startExistingCompetition(competitionId: string, teamIds: string[]): Promise<any> {
+    try {
+      const response = await this.axiosInstance.post('/api/admin/competition/start', {
+        competitionId,
+        teamIds
+      });
+      
+      return response.data;
+    } catch (error) {
+      return this.handleApiError(error, 'start existing competition');
     }
   }
   
@@ -316,6 +376,18 @@ export class ApiClient {
   }
   
   /**
+   * Get competition rules
+   */
+  async getRules(): Promise<any> {
+    try {
+      const response = await this.axiosInstance.get('/api/competition/rules');
+      return response.data;
+    } catch (error) {
+      return this.handleApiError(error, 'get competition rules');
+    }
+  }
+  
+  /**
    * Get token price
    * 
    * @param token The token address
@@ -375,6 +447,35 @@ export class ApiClient {
       return response.data;
     } catch (error) {
       return this.handleApiError(error, 'end competition');
+    }
+  }
+  
+  /**
+   * Deactivate a team (admin only)
+   * @param teamId ID of the team to deactivate
+   * @param reason Reason for deactivation
+   */
+  async deactivateTeam(teamId: string, reason: string): Promise<any> {
+    try {
+      const response = await this.axiosInstance.post(`/api/admin/teams/${teamId}/deactivate`, {
+        reason
+      });
+      return response.data;
+    } catch (error) {
+      return this.handleApiError(error, 'deactivate team');
+    }
+  }
+  
+  /**
+   * Reactivate a team (admin only)
+   * @param teamId ID of the team to reactivate
+   */
+  async reactivateTeam(teamId: string): Promise<any> {
+    try {
+      const response = await this.axiosInstance.post(`/api/admin/teams/${teamId}/reactivate`);
+      return response.data;
+    } catch (error) {
+      return this.handleApiError(error, 'reactivate team');
     }
   }
   

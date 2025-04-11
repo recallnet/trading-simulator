@@ -1,9 +1,9 @@
-import { Request, Response, NextFunction } from 'express';
+import { Response, NextFunction } from 'express';
 import { services } from '../services';
 import { repositories } from '../database';
 import { ApiError } from '../middleware/errorHandler';
 import { config, features } from '../config';
-import { BlockchainType } from '../types';
+import { AuthenticatedRequest } from '../types';
 
 /**
  * Competition Controller
@@ -63,7 +63,7 @@ export class CompetitionController {
    *                       description: Competition end date (null if not ended)
    *                     status:
    *                       type: string
-   *                       enum: [pending, active, completed]
+   *                       enum: [PENDING, ACTIVE, COMPLETED]
    *                       description: Competition status
    *                 leaderboard:
    *                   type: array
@@ -82,6 +82,19 @@ export class CompetitionController {
    *                       portfolioValue:
    *                         type: number
    *                         description: Current portfolio value
+   *                       active:
+   *                         type: boolean
+   *                         description: Whether the team is active
+   *                       deactivationReason:
+   *                         type: string
+   *                         nullable: true
+   *                         description: Reason for deactivation if applicable
+   *                 hasInactiveTeams:
+   *                   type: boolean
+   *                   description: Indicates if any teams are inactive
+   *                 inactiveTeamsFiltered:
+   *                   type: boolean
+   *                   description: Indicates if inactive teams are filtered out
    *       400:
    *         description: No active competition and no competitionId provided
    *       401:
@@ -93,11 +106,11 @@ export class CompetitionController {
    *       500:
    *         description: Server error
    *
-   * @param req Express request
+   * @param req AuthenticatedRequest object with team authentication information
    * @param res Express response
    * @param next Express next function
    */
-  static async getLeaderboard(req: Request, res: Response, next: NextFunction) {
+  static async getLeaderboard(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
       // Get active competition or use competitionId from query
       const competitionId = req.query.competitionId as string || 
@@ -114,7 +127,6 @@ export class CompetitionController {
       }
       
       // Check if the team is part of the competition
-      // @ts-ignore - teamId is added to the request by team-auth middleware
       const teamId = req.teamId;
       
       // If no team ID, they can't be in the competition
@@ -122,13 +134,21 @@ export class CompetitionController {
         throw new ApiError(401, 'Authentication required to view leaderboard');
       }
       
-      const isTeamInCompetition = await repositories.teamRepository.isTeamInCompetition(
-        teamId, 
-        competitionId
-      );
+      // Check if user is an admin (added by auth middleware)
+      const isAdmin = req.isAdmin === true;
       
-      if (!isTeamInCompetition) {
-        throw new ApiError(403, 'Your team is not participating in this competition');
+      // If not an admin, verify team is part of the competition
+      if (!isAdmin) {
+        const isTeamInCompetition = await repositories.teamRepository.isTeamInCompetition(
+          teamId, 
+          competitionId
+        );
+        
+        if (!isTeamInCompetition) {
+          throw new ApiError(403, 'Your team is not participating in this competition');
+        }
+      } else {
+        console.log(`[CompetitionController] Admin ${teamId} accessing leaderboard for competition ${competitionId}`);
       }
       
       // Get leaderboard
@@ -137,22 +157,40 @@ export class CompetitionController {
       // Get all teams (excluding admin teams)
       const teams = await services.teamManager.getAllTeams(false);
       
-      // Map team IDs to names
-      const teamMap = new Map(teams.map(team => [team.id, team.name]));
+      // Create map of all teams
+      const teamMap = new Map(teams.map(team => [team.id, team]));
       
-      // Format leaderboard with team names
-      const formattedLeaderboard = leaderboard.map((entry, index) => ({
-        rank: index + 1,
-        teamId: entry.teamId,
-        teamName: teamMap.get(entry.teamId) || 'Unknown Team',
-        portfolioValue: entry.value
-      }));
+      // Track teams with inactive status
+      const inactiveTeamIds = new Set(
+        teams
+          .filter(team => team.active === false)
+          .map(team => team.id)
+      );
       
-      // Return the leaderboard
+      const hasInactiveTeams = inactiveTeamIds.size > 0;
+      
+      // Format leaderboard with team names and active status
+      const formattedLeaderboard = leaderboard.map((entry, index) => {
+        const team = teamMap.get(entry.teamId);
+        const isInactive = team?.active === false;
+        
+        return {
+          rank: index + 1,
+          teamId: entry.teamId,
+          teamName: team ? team.name : 'Unknown Team',
+          portfolioValue: entry.value,
+          active: team?.active !== false,
+          deactivationReason: isInactive ? team?.deactivationReason : null
+        };
+      });
+      
+      // Return the complete leaderboard with active/inactive flags
       res.status(200).json({
         success: true,
         competition,
-        leaderboard: formattedLeaderboard
+        leaderboard: formattedLeaderboard,
+        hasInactiveTeams,
+        inactiveTeamsFiltered: false
       });
     } catch (error) {
       next(error);
@@ -210,7 +248,7 @@ export class CompetitionController {
    *                       description: Competition end date (null if not ended)
    *                     status:
    *                       type: string
-   *                       enum: [pending, active, completed]
+   *                       enum: [PENDING, ACTIVE, COMPLETED]
    *                       description: Competition status
    *                 message:
    *                   type: string
@@ -221,56 +259,92 @@ export class CompetitionController {
    *       500:
    *         description: Server error
    *
-   * @param req Express request
+   * @param req AuthenticatedRequest object with team authentication information
    * @param res Express response
    * @param next Express next function
    */
-  static async getStatus(req: Request, res: Response, next: NextFunction) {
+  static async getStatus(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
+      console.log('[CompetitionController] Processing getStatus request');
+      
       // Get active competition
       const activeCompetition = await services.competitionManager.getActiveCompetition();
       
-      if (!activeCompetition) {
+      // Get team ID from request (if authenticated)
+      const teamId = req.teamId;
+      
+      // If not authenticated, just return basic status
+      if (!teamId) {
+        const info = activeCompetition 
+          ? { 
+              id: activeCompetition.id,
+              name: activeCompetition.name, 
+              status: activeCompetition.status 
+            }
+          : null;
+        
+        console.log(`[CompetitionController] Returning basic competition status (no auth)`);
+        
         return res.status(200).json({
           success: true,
-          active: false,
-          message: 'No active competition'
+          active: !!activeCompetition,
+          competition: info,
+          message: "Authenticate to get full competition details"
         });
       }
       
-      // Check if the team is part of the competition
-      // @ts-ignore - teamId is added to the request by team-auth middleware
-      const teamId = req.teamId;
-      
-      // If no team ID, they can't be in the competition
-      if (!teamId) {
+      // No active competition, return empty response
+      if (!activeCompetition) {
+        console.log('[CompetitionController] No active competition found');
+        
         return res.status(200).json({
           success: true,
           active: false,
           competition: null,
-          message: 'Authentication required to view competition details'
+          message: "No active competition found"
         });
       }
       
+      console.log(`[CompetitionController] Found active competition: ${activeCompetition.id}`);
+      
+      // Check if the team is part of the competition
       const isTeamInCompetition = await repositories.teamRepository.isTeamInCompetition(
-        teamId, 
+        teamId,
         activeCompetition.id
       );
       
-      if (!isTeamInCompetition) {
+      // Check if the team is an admin
+      const isAdmin = req.isAdmin === true;
+      
+      // If team is not in competition and not an admin, return limited info
+      if (!isTeamInCompetition && !isAdmin) {
+        console.log(`[CompetitionController] Team ${teamId} is not in competition ${activeCompetition.id}`);
+        
         return res.status(200).json({
           success: true,
-          active: false,
-          competition: null,
-          message: 'Your team is not participating in the active competition'
+          active: true,
+          competition: {
+            id: activeCompetition.id,
+            name: activeCompetition.name,
+            status: activeCompetition.status,
+            startDate: activeCompetition.startDate
+          },
+          message: "Your team is not participating in this competition"
         });
       }
       
-      // Return the competition status
+      // Return full competition details for participants and admins
+      if (isAdmin) {
+        console.log(`[CompetitionController] Admin ${teamId} accessing competition status`);
+      } else {
+        console.log(`[CompetitionController] Team ${teamId} is participating in competition ${activeCompetition.id}`);
+      }
+      
       res.status(200).json({
         success: true,
         active: true,
-        competition: activeCompetition
+        competition: activeCompetition,
+        participating: true
       });
     } catch (error) {
       next(error);
@@ -334,12 +408,44 @@ export class CompetitionController {
    *       500:
    *         description: Server error
    *
-   * @param req Express request
+   * @param req AuthenticatedRequest object with team authentication information
    * @param res Express response
    * @param next Express next function
    */
-  static async getRules(req: Request, res: Response, next: NextFunction) {
+  static async getRules(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
+      // Check if the team is authenticated
+      const teamId = req.teamId;
+      
+      // If no team ID, they can't be authenticated
+      if (!teamId) {
+        throw new ApiError(401, 'Authentication required to view competition rules');
+      }
+      
+      // Check if user is an admin (added by auth middleware)
+      const isAdmin = req.isAdmin === true;
+      
+      // If not an admin, verify team is part of the active competition
+      if (!isAdmin) {
+        // Get active competition
+        const activeCompetition = await services.competitionManager.getActiveCompetition();
+        
+        if (!activeCompetition) {
+          throw new ApiError(400, 'No active competition');
+        }
+        
+        const isTeamInCompetition = await repositories.teamRepository.isTeamInCompetition(
+          teamId,
+          activeCompetition.id
+        );
+        
+        if (!isTeamInCompetition) {
+          throw new ApiError(403, 'Your team is not participating in the active competition');
+        }
+      } else {
+        console.log(`[CompetitionController] Admin ${teamId} accessing competition rules`);
+      }
+      
       // Get available chains and tokens
       const evmChains = config.evmChains;
       

@@ -11,9 +11,21 @@ import { repositories } from '../database';
 export class TeamManager {
   // In-memory cache for API keys to avoid database lookups on every request
   private apiKeyCache: Map<string, ApiAuth>;
+  // Cache for inactive teams to avoid repeated database lookups
+  private inactiveTeamsCache: Map<string, { reason: string, date: Date }>;
 
   constructor() {
     this.apiKeyCache = new Map();
+    this.inactiveTeamsCache = new Map();
+  }
+
+  /**
+   * Validate an Ethereum address
+   * @param address The Ethereum address to validate
+   * @returns True if the address is valid
+   */
+  private isValidEthereumAddress(address: string): boolean {
+    return /^0x[a-fA-F0-9]{40}$/.test(address);
   }
 
   /**
@@ -21,10 +33,20 @@ export class TeamManager {
    * @param name Team name
    * @param email Contact email
    * @param contactPerson Contact person name
+   * @param walletAddress Ethereum wallet address (must start with 0x)
    * @returns The created team with API credentials
    */
-  async registerTeam(name: string, email: string, contactPerson: string): Promise<Team> {
+  async registerTeam(name: string, email: string, contactPerson: string, walletAddress: string): Promise<Team> {
     try {
+      // Validate wallet address
+      if (!walletAddress) {
+        throw new Error('Wallet address is required');
+      }
+      
+      if (!this.isValidEthereumAddress(walletAddress)) {
+        throw new Error('Invalid Ethereum address format. Must be 0x followed by 40 hex characters.');
+      }
+      
       // Generate team ID
       const id = uuidv4();
       
@@ -41,6 +63,7 @@ export class TeamManager {
         email,
         contactPerson,
         apiKey: encryptedApiKey, // Store encrypted key in database
+        walletAddress,
         createdAt: new Date(),
         updatedAt: new Date()
       };
@@ -109,11 +132,22 @@ export class TeamManager {
     }
   }
 
+  /**
+   * Validate an API key and check if the team is allowed to access
+   * @param apiKey The API key to validate
+   * @returns The team ID if valid and not inactive, null otherwise
+   * @throws Error if the team is inactive
+   */
   async validateApiKey(apiKey: string): Promise<string | null> {
     try {
       // First check cache
       const cachedAuth = this.apiKeyCache.get(apiKey);
       if (cachedAuth) {
+        // Check if the team is inactive
+        if (this.inactiveTeamsCache.has(cachedAuth.teamId)) {
+          const deactivationInfo = this.inactiveTeamsCache.get(cachedAuth.teamId);
+          throw new Error(`Your team has been deactivated from the competition: ${deactivationInfo?.reason}`);
+        }
         return cachedAuth.teamId;
       }
       
@@ -125,7 +159,17 @@ export class TeamManager {
           const decryptedKey = this.decryptApiKey(team.apiKey);
           
           if (decryptedKey === apiKey) {
-            // Found matching team, add to cache
+            // Found matching team, check if inactive
+            if (team.active === false && (!team.isAdmin)) {
+              // Cache the deactivation info
+              this.inactiveTeamsCache.set(team.id, {
+                reason: team.deactivationReason || 'No reason provided',
+                date: team.deactivationDate || new Date()
+              });
+              throw new Error(`Your team has been deactivated from the competition: ${team.deactivationReason}`);
+            }
+            
+            // Add to cache
             this.apiKeyCache.set(apiKey, {
               teamId: team.id,
               key: apiKey
@@ -143,7 +187,7 @@ export class TeamManager {
       return null;
     } catch (error) {
       console.error('[TeamManager] Error validating API key:', error);
-      return null;
+      throw error; // Re-throw to allow middleware to handle it
     }
   }
 
@@ -271,6 +315,126 @@ export class TeamManager {
     } catch (error) {
       console.error(`[TeamManager] Error deleting team ${teamId}:`, error);
       throw new Error(`Failed to delete team: ${error instanceof Error ? error.message : error}`);
+    }
+  }
+
+  /**
+   * Deactivate a team
+   * @param teamId Team ID to deactivate
+   * @param reason Reason for deactivation
+   * @returns The deactivated team or null if team not found
+   */
+  async deactivateTeam(teamId: string, reason: string): Promise<Team | null> {
+    try {
+      console.log(`[TeamManager] Deactivating team: ${teamId}, Reason: ${reason}`);
+      
+      // Call repository to deactivate the team
+      const deactivatedTeam = await repositories.teamRepository.deactivateTeam(teamId, reason);
+      
+      if (!deactivatedTeam) {
+        console.log(`[TeamManager] Team not found for deactivation: ${teamId}`);
+        return null;
+      }
+      
+      // Update deactivation cache
+      this.inactiveTeamsCache.set(teamId, {
+        reason: reason,
+        date: deactivatedTeam.deactivationDate || new Date()
+      });
+      
+      console.log(`[TeamManager] Successfully deactivated team: ${deactivatedTeam.name} (${teamId})`);
+      
+      return deactivatedTeam;
+    } catch (error) {
+      console.error(`[TeamManager] Error deactivating team ${teamId}:`, error);
+      throw new Error(`Failed to deactivate team: ${error instanceof Error ? error.message : error}`);
+    }
+  }
+  
+  /**
+   * Reactivate a team
+   * @param teamId Team ID to reactivate
+   * @returns The reactivated team or null if team not found
+   */
+  async reactivateTeam(teamId: string): Promise<Team | null> {
+    try {
+      console.log(`[TeamManager] Reactivating team: ${teamId}`);
+      
+      // Call repository to reactivate the team
+      const reactivatedTeam = await repositories.teamRepository.reactivateTeam(teamId);
+      
+      if (!reactivatedTeam) {
+        console.log(`[TeamManager] Team not found for reactivation: ${teamId}`);
+        return null;
+      }
+      
+      // Remove from inactive cache
+      this.inactiveTeamsCache.delete(teamId);
+      
+      console.log(`[TeamManager] Successfully reactivated team: ${reactivatedTeam.name} (${teamId})`);
+      
+      return reactivatedTeam;
+    } catch (error) {
+      console.error(`[TeamManager] Error reactivating team ${teamId}:`, error);
+      throw new Error(`Failed to reactivate team: ${error instanceof Error ? error.message : error}`);
+    }
+  }
+
+  /**
+   * Get all inactive teams
+   * @returns Array of inactive teams
+   */
+  async getInactiveTeams(): Promise<Team[]> {
+    try {
+      return await repositories.teamRepository.findInactiveTeams();
+    } catch (error) {
+      console.error('[TeamManager] Error retrieving inactive teams:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Check if a team is inactive
+   * @param teamId Team ID to check
+   * @returns Object with inactive status and reason if applicable
+   */
+  async isTeamInactive(teamId: string): Promise<{ isInactive: boolean; reason?: string; date?: Date }> {
+    try {
+      // Check cache first
+      if (this.inactiveTeamsCache.has(teamId)) {
+        const info = this.inactiveTeamsCache.get(teamId);
+        return {
+          isInactive: true,
+          reason: info?.reason,
+          date: info?.date
+        };
+      }
+      
+      // If not in cache, check database
+      const team = await repositories.teamRepository.findById(teamId);
+      
+      if (!team) {
+        return { isInactive: false };
+      }
+      
+      if (team.active === false) {
+        // Update cache
+        this.inactiveTeamsCache.set(teamId, {
+          reason: team.deactivationReason || 'No reason provided',
+          date: team.deactivationDate || new Date()
+        });
+        
+        return {
+          isInactive: true,
+          reason: team.deactivationReason,
+          date: team.deactivationDate
+        };
+      }
+      
+      return { isInactive: false };
+    } catch (error) {
+      console.error(`[TeamManager] Error checking inactive status for team ${teamId}:`, error);
+      return { isInactive: false };
     }
   }
 } 

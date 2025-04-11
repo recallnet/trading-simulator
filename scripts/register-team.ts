@@ -149,36 +149,17 @@ async function registerTeam() {
     
     safeLog(`\n${colors.blue}Registering team...${colors.reset}`);
     
-    // 1. Register the team using TeamManager to get a valid API key
-    const team = await services.teamManager.registerTeam(teamName, email, contactPerson);
-    
-    // 2. Update the team with wallet address directly in the database
-    const db = DatabaseConnection.getInstance();
-    await db.query(
-      'UPDATE teams SET wallet_address = $1 WHERE id = $2',
-      [walletAddress, team.id]
-    );
-    
-    // 3. Fetch the updated team with wallet address
-    const result = await db.query(
-      'SELECT * FROM teams WHERE id = $1',
-      [team.id]
-    );
-    
-    if (!result.rows || result.rows.length === 0) {
-      throw new Error('Failed to retrieve updated team information');
-    }
-    
-    const updatedTeam = result.rows[0];
+    // Register the team using the updated TeamManager service method
+    const team = await services.teamManager.registerTeam(teamName, email, contactPerson, walletAddress);
     
     safeLog(`\n${colors.green}✓ Team registered successfully!${colors.reset}`);
     safeLog(`\n${colors.cyan}Team Details:${colors.reset}`);
     safeLog(`${colors.cyan}----------------------------------------${colors.reset}`);
-    safeLog(`Team ID: ${updatedTeam.id}`);
-    safeLog(`Team Name: ${updatedTeam.name}`);
-    safeLog(`Email: ${updatedTeam.email}`);
-    safeLog(`Contact: ${updatedTeam.contact_person}`);
-    safeLog(`Wallet Address: ${updatedTeam.wallet_address}`);
+    safeLog(`Team ID: ${team.id}`);
+    safeLog(`Team Name: ${team.name}`);
+    safeLog(`Email: ${team.email}`);
+    safeLog(`Contact: ${team.contactPerson}`);
+    safeLog(`Wallet Address: ${team.walletAddress}`);
     safeLog(`${colors.cyan}----------------------------------------${colors.reset}`);
     
     safeLog(`\n${colors.yellow}API Credentials (SAVE THESE SECURELY):${colors.reset}`);

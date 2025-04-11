@@ -1051,9 +1051,12 @@ Get the leaderboard for the active competition or a specific competition
       "rank": 0,
       "teamId": "string",
       "teamName": "string",
-      "portfolioValue": 0
+      "portfolioValue": 0,
+      "active": true,
+      "deactivationReason": "string"
     }
-  ]
+  ],
+  "hasInactiveTeams": true
 }
 ```
 
@@ -1089,6 +1092,9 @@ Status Code **200**
 |»» teamId|string|false|none|Team ID|
 |»» teamName|string|false|none|Team name|
 |»» portfolioValue|number|false|none|Current portfolio value in USD|
+|»» active|boolean|false|none|Whether the team is active|
+|»» deactivationReason|string¦null|false|none|Reason for deactivation if applicable|
+|» hasInactiveTeams|boolean|false|none|Indicates if any teams are inactive|
 
 #### Enumerated Values
 
@@ -1227,7 +1233,7 @@ fetch('http://localhost:3000/api/competition/rules',
 
 `GET /api/competition/rules`
 
-Get the rules for all competitions
+Get the rules, rate limits, and other configuration details for the competition
 
 <h3 id="get-competition-rules-parameters">Parameters</h3>
 
@@ -1249,7 +1255,16 @@ Get the rules for all competitions
     "rateLimits": [
       "string"
     ],
-    "slippageFormula": "string"
+    "availableChains": {
+      "svm": true,
+      "evm": [
+        "string"
+      ]
+    },
+    "slippageFormula": "string",
+    "portfolioSnapshots": {
+      "interval": "string"
+    }
   }
 }
 ```
@@ -1258,8 +1273,10 @@ Get the rules for all competitions
 
 |Status|Meaning|Description|Schema|
 |---|---|---|---|
-|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|Competition rules|Inline|
+|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|Competition rules retrieved successfully|Inline|
+|400|[Bad Request](https://tools.ietf.org/html/rfc7231#section-6.5.1)|Bad request - No active competition|None|
 |401|[Unauthorized](https://tools.ietf.org/html/rfc7235#section-3.1)|Unauthorized - Missing or invalid authentication|None|
+|403|[Forbidden](https://tools.ietf.org/html/rfc7231#section-6.5.3)|Forbidden - Team not participating in the competition|None|
 |500|[Internal Server Error](https://tools.ietf.org/html/rfc7231#section-6.6.1)|Server error|None|
 
 <h3 id="get-competition-rules-responseschema">Response Schema</h3>
@@ -1270,9 +1287,14 @@ Status Code **200**
 |---|---|---|---|---|
 |» success|boolean|false|none|Operation success status|
 |» rules|object|false|none|none|
-|»» tradingRules|[string]|false|none|List of trading rules|
-|»» rateLimits|[string]|false|none|List of rate limits|
-|»» slippageFormula|string|false|none|Formula used to calculate slippage|
+|»» tradingRules|[string]|false|none|List of trading rules for the competition|
+|»» rateLimits|[string]|false|none|Rate limits for API endpoints|
+|»» availableChains|object|false|none|none|
+|»»» svm|boolean|false|none|Whether Solana (SVM) is available|
+|»»» evm|[string]|false|none|List of available EVM chains|
+|»» slippageFormula|string|false|none|Formula used for calculating slippage|
+|»» portfolioSnapshots|object|false|none|none|
+|»»» interval|string|false|none|Interval between portfolio snapshots|
 
 <aside class="warning">
 To perform this operation, you must be authenticated by means of one of the following methods:
@@ -1387,7 +1409,8 @@ This operation does not require authentication
 const inputBody = '{
   "teamName": "Team Alpha",
   "email": "team@example.com",
-  "contactPerson": "John Doe"
+  "contactPerson": "John Doe",
+  "walletAddress": 1.0392900530713021e+47
 }';
 const headers = {
   'Content-Type':'application/json',
@@ -1419,7 +1442,8 @@ Admin-only endpoint to register a new team. Admins create team accounts and dist
 {
   "teamName": "Team Alpha",
   "email": "team@example.com",
-  "contactPerson": "John Doe"
+  "contactPerson": "John Doe",
+  "walletAddress": 1.0392900530713021e+47
 }
 ```
 
@@ -1431,6 +1455,7 @@ Admin-only endpoint to register a new team. Admins create team accounts and dist
 |» teamName|body|string|true|Name of the team|
 |» email|body|string(email)|true|Team email address|
 |» contactPerson|body|string|true|Name of the contact person|
+|» walletAddress|body|string|true|Ethereum wallet address (must start with 0x)|
 
 > Example responses
 
@@ -1445,6 +1470,7 @@ Admin-only endpoint to register a new team. Admins create team accounts and dist
     "email": "string",
     "contactPerson": "string",
     "contact_person": "string",
+    "walletAddress": "string",
     "apiKey": "abc123def456_ghi789jkl012",
     "createdAt": "2019-08-24T14:15:22Z"
   }
@@ -1456,8 +1482,8 @@ Admin-only endpoint to register a new team. Admins create team accounts and dist
 |Status|Meaning|Description|Schema|
 |---|---|---|---|
 |201|[Created](https://tools.ietf.org/html/rfc7231#section-6.3.2)|Team registered successfully|Inline|
-|400|[Bad Request](https://tools.ietf.org/html/rfc7231#section-6.5.1)|Missing required parameters|None|
-|409|[Conflict](https://tools.ietf.org/html/rfc7231#section-6.5.8)|Team with this email already exists|None|
+|400|[Bad Request](https://tools.ietf.org/html/rfc7231#section-6.5.1)|Missing required parameters or invalid wallet address|None|
+|409|[Conflict](https://tools.ietf.org/html/rfc7231#section-6.5.8)|Team with this email or wallet address already exists|None|
 |500|[Internal Server Error](https://tools.ietf.org/html/rfc7231#section-6.6.1)|Server error|None|
 
 <h3 id="register-a-new-team-responseschema">Response Schema</h3>
@@ -1473,6 +1499,7 @@ Status Code **201**
 |»» email|string|false|none|Team email|
 |»» contactPerson|string|false|none|Contact person name|
 |»» contact_person|string|false|none|Contact person name (snake_case version)|
+|»» walletAddress|string|false|none|Ethereum wallet address|
 |»» apiKey|string|false|none|API key for the team to use with Bearer authentication. Admin should securely provide this to the team.|
 |»» createdAt|string(date-time)|false|none|Account creation timestamp|
 
@@ -1629,12 +1656,116 @@ To perform this operation, you must be authenticated by means of one of the foll
 BearerAuth
 </aside>
 
+## Create a competition
+
+> Code samples
+
+```javascript
+const inputBody = '{
+  "name": "Spring 2023 Trading Competition",
+  "description": "A trading competition for the spring semester"
+}';
+const headers = {
+  'Content-Type':'application/json',
+  'Accept':'application/json',
+  'Authorization':'Bearer {access-token}'
+};
+
+fetch('http://localhost:3000/api/admin/competition/create',
+{
+  method: 'POST',
+  body: inputBody,
+  headers: headers
+})
+.then(function(res) {
+    return res.json();
+}).then(function(body) {
+    console.log(body);
+});
+
+```
+
+`POST /api/admin/competition/create`
+
+Create a new competition without starting it. It will be in PENDING status and can be started later.
+
+> Body parameter
+
+```json
+{
+  "name": "Spring 2023 Trading Competition",
+  "description": "A trading competition for the spring semester"
+}
+```
+
+<h3 id="create-a-competition-parameters">Parameters</h3>
+
+|Name|In|Type|Required|Description|
+|---|---|---|---|---|
+|body|body|object|true|none|
+|» name|body|string|true|Competition name|
+|» description|body|string|false|Competition description|
+
+> Example responses
+
+> 201 Response
+
+```json
+{
+  "success": true,
+  "competition": {
+    "id": "string",
+    "name": "string",
+    "description": "string",
+    "status": "PENDING",
+    "createdAt": "2019-08-24T14:15:22Z"
+  }
+}
+```
+
+<h3 id="create-a-competition-responses">Responses</h3>
+
+|Status|Meaning|Description|Schema|
+|---|---|---|---|
+|201|[Created](https://tools.ietf.org/html/rfc7231#section-6.3.2)|Competition created successfully|Inline|
+|400|[Bad Request](https://tools.ietf.org/html/rfc7231#section-6.5.1)|Missing required parameters|None|
+|401|[Unauthorized](https://tools.ietf.org/html/rfc7235#section-3.1)|Unauthorized - Admin authentication required|None|
+|500|[Internal Server Error](https://tools.ietf.org/html/rfc7231#section-6.6.1)|Server error|None|
+
+<h3 id="create-a-competition-responseschema">Response Schema</h3>
+
+Status Code **201**
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|» success|boolean|false|none|Operation success status|
+|» competition|object|false|none|none|
+|»» id|string|false|none|Competition ID|
+|»» name|string|false|none|Competition name|
+|»» description|string|false|none|Competition description|
+|»» status|string|false|none|Competition status|
+|»» createdAt|string(date-time)|false|none|Competition creation date|
+
+#### Enumerated Values
+
+|Property|Value|
+|---|---|
+|status|PENDING|
+|status|ACTIVE|
+|status|COMPLETED|
+
+<aside class="warning">
+To perform this operation, you must be authenticated by means of one of the following methods:
+BearerAuth
+</aside>
+
 ## Start a competition
 
 > Code samples
 
 ```javascript
 const inputBody = '{
+  "competitionId": "string",
   "name": "Spring 2023 Trading Competition",
   "description": "A trading competition for the spring semester",
   "teamIds": [
@@ -1663,12 +1794,13 @@ fetch('http://localhost:3000/api/admin/competition/start',
 
 `POST /api/admin/competition/start`
 
-Create and start a new trading competition with specified teams
+Start a new or existing competition with specified teams. If competitionId is provided, it will start an existing competition. Otherwise, it will create and start a new one.
 
 > Body parameter
 
 ```json
 {
+  "competitionId": "string",
   "name": "Spring 2023 Trading Competition",
   "description": "A trading competition for the spring semester",
   "teamIds": [
@@ -1682,8 +1814,9 @@ Create and start a new trading competition with specified teams
 |Name|In|Type|Required|Description|
 |---|---|---|---|---|
 |body|body|object|true|none|
-|» name|body|string|true|Competition name|
-|» description|body|string|false|Competition description|
+|» competitionId|body|string|false|ID of an existing competition to start. If not provided, a new competition will be created.|
+|» name|body|string|false|Competition name (required when creating a new competition)|
+|» description|body|string|false|Competition description (used when creating a new competition)|
 |» teamIds|body|[string]|true|Array of team IDs to include in the competition|
 
 > Example responses
@@ -1699,7 +1832,7 @@ Create and start a new trading competition with specified teams
     "description": "string",
     "startDate": "2019-08-24T14:15:22Z",
     "endDate": "2019-08-24T14:15:22Z",
-    "status": "pending",
+    "status": "PENDING",
     "teamIds": [
       "string"
     ]
@@ -1714,6 +1847,7 @@ Create and start a new trading competition with specified teams
 |200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|Competition started successfully|Inline|
 |400|[Bad Request](https://tools.ietf.org/html/rfc7231#section-6.5.1)|Missing required parameters|None|
 |401|[Unauthorized](https://tools.ietf.org/html/rfc7235#section-3.1)|Unauthorized - Admin authentication required|None|
+|404|[Not Found](https://tools.ietf.org/html/rfc7231#section-6.5.4)|Competition not found when using competitionId|None|
 |500|[Internal Server Error](https://tools.ietf.org/html/rfc7231#section-6.6.1)|Server error|None|
 
 <h3 id="start-a-competition-responseschema">Response Schema</h3>
@@ -1736,9 +1870,9 @@ Status Code **200**
 
 |Property|Value|
 |---|---|
-|status|pending|
-|status|active|
-|status|completed|
+|status|PENDING|
+|status|ACTIVE|
+|status|COMPLETED|
 
 <aside class="warning">
 To perform this operation, you must be authenticated by means of one of the following methods:
@@ -1805,7 +1939,7 @@ End an active competition and finalize the results
     "description": "string",
     "startDate": "2019-08-24T14:15:22Z",
     "endDate": "2019-08-24T14:15:22Z",
-    "status": "pending"
+    "status": "PENDING"
   },
   "leaderboard": [
     {
@@ -1848,9 +1982,9 @@ Status Code **200**
 
 |Property|Value|
 |---|---|
-|status|pending|
-|status|active|
-|status|completed|
+|status|PENDING|
+|status|ACTIVE|
+|status|COMPLETED|
 
 <aside class="warning">
 To perform this operation, you must be authenticated by means of one of the following methods:
@@ -1989,7 +2123,7 @@ Get performance reports and leaderboard for a competition
     "description": "string",
     "startDate": "2019-08-24T14:15:22Z",
     "endDate": "2019-08-24T14:15:22Z",
-    "status": "pending"
+    "status": "PENDING"
   },
   "leaderboard": [
     {
@@ -2036,9 +2170,181 @@ Status Code **200**
 
 |Property|Value|
 |---|---|
-|status|pending|
-|status|active|
-|status|completed|
+|status|PENDING|
+|status|ACTIVE|
+|status|COMPLETED|
+
+<aside class="warning">
+To perform this operation, you must be authenticated by means of one of the following methods:
+BearerAuth
+</aside>
+
+## Deactivate a team
+
+> Code samples
+
+```javascript
+const inputBody = '{
+  "reason": "Violated competition rules by using external API"
+}';
+const headers = {
+  'Content-Type':'application/json',
+  'Accept':'application/json',
+  'Authorization':'Bearer {access-token}'
+};
+
+fetch('http://localhost:3000/api/admin/teams/{teamId}/deactivate',
+{
+  method: 'POST',
+  body: inputBody,
+  headers: headers
+})
+.then(function(res) {
+    return res.json();
+}).then(function(body) {
+    console.log(body);
+});
+
+```
+
+`POST /api/admin/teams/{teamId}/deactivate`
+
+Deactivate a team from the competition. The team will no longer be able to perform any actions.
+
+> Body parameter
+
+```json
+{
+  "reason": "Violated competition rules by using external API"
+}
+```
+
+<h3 id="deactivate-a-team-parameters">Parameters</h3>
+
+|Name|In|Type|Required|Description|
+|---|---|---|---|---|
+|teamId|path|string|true|ID of the team to deactivate|
+|body|body|object|true|none|
+|» reason|body|string|true|Reason for deactivation|
+
+> Example responses
+
+> 200 Response
+
+```json
+{
+  "success": true,
+  "team": {
+    "id": "string",
+    "name": "string",
+    "active": true,
+    "deactivationReason": "string",
+    "deactivationDate": "2019-08-24T14:15:22Z"
+  }
+}
+```
+
+<h3 id="deactivate-a-team-responses">Responses</h3>
+
+|Status|Meaning|Description|Schema|
+|---|---|---|---|
+|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|Team deactivated successfully|Inline|
+|400|[Bad Request](https://tools.ietf.org/html/rfc7231#section-6.5.1)|Missing required parameters|None|
+|401|[Unauthorized](https://tools.ietf.org/html/rfc7235#section-3.1)|Unauthorized - Admin authentication required|None|
+|403|[Forbidden](https://tools.ietf.org/html/rfc7231#section-6.5.3)|Cannot deactivate admin accounts|None|
+|404|[Not Found](https://tools.ietf.org/html/rfc7231#section-6.5.4)|Team not found|None|
+|500|[Internal Server Error](https://tools.ietf.org/html/rfc7231#section-6.6.1)|Server error|None|
+
+<h3 id="deactivate-a-team-responseschema">Response Schema</h3>
+
+Status Code **200**
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|» success|boolean|false|none|Operation success status|
+|» team|object|false|none|none|
+|»» id|string|false|none|Team ID|
+|»» name|string|false|none|Team name|
+|»» active|boolean|false|none|Active status (will be false)|
+|»» deactivationReason|string|false|none|Reason for deactivation|
+|»» deactivationDate|string(date-time)|false|none|Date of deactivation|
+
+<aside class="warning">
+To perform this operation, you must be authenticated by means of one of the following methods:
+BearerAuth
+</aside>
+
+## Reactivate a team
+
+> Code samples
+
+```javascript
+
+const headers = {
+  'Accept':'application/json',
+  'Authorization':'Bearer {access-token}'
+};
+
+fetch('http://localhost:3000/api/admin/teams/{teamId}/reactivate',
+{
+  method: 'POST',
+
+  headers: headers
+})
+.then(function(res) {
+    return res.json();
+}).then(function(body) {
+    console.log(body);
+});
+
+```
+
+`POST /api/admin/teams/{teamId}/reactivate`
+
+Reactivate a previously deactivated team, allowing them to participate in the competition again.
+
+<h3 id="reactivate-a-team-parameters">Parameters</h3>
+
+|Name|In|Type|Required|Description|
+|---|---|---|---|---|
+|teamId|path|string|true|ID of the team to reactivate|
+
+> Example responses
+
+> 200 Response
+
+```json
+{
+  "success": true,
+  "team": {
+    "id": "string",
+    "name": "string",
+    "active": true
+  }
+}
+```
+
+<h3 id="reactivate-a-team-responses">Responses</h3>
+
+|Status|Meaning|Description|Schema|
+|---|---|---|---|
+|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|Team reactivated successfully|Inline|
+|400|[Bad Request](https://tools.ietf.org/html/rfc7231#section-6.5.1)|Team is already active|None|
+|401|[Unauthorized](https://tools.ietf.org/html/rfc7235#section-3.1)|Unauthorized - Admin authentication required|None|
+|404|[Not Found](https://tools.ietf.org/html/rfc7231#section-6.5.4)|Team not found|None|
+|500|[Internal Server Error](https://tools.ietf.org/html/rfc7231#section-6.6.1)|Server error|None|
+
+<h3 id="reactivate-a-team-responseschema">Response Schema</h3>
+
+Status Code **200**
+
+|Name|Type|Required|Restrictions|Description|
+|---|---|---|---|---|
+|» success|boolean|false|none|Operation success status|
+|» team|object|false|none|none|
+|»» id|string|false|none|Team ID|
+|»» name|string|false|none|Team name|
+|»» active|boolean|false|none|Active status (will be true)|
 
 <aside class="warning">
 To perform this operation, you must be authenticated by means of one of the following methods:

@@ -1,3 +1,5 @@
+import { Request } from 'express';
+
 /**
  * Token information interface
  */
@@ -127,7 +129,11 @@ export interface Team {
   email: string;
   contactPerson: string;
   apiKey: string;
+  walletAddress: string;
   isAdmin?: boolean;
+  active?: boolean;
+  deactivationReason?: string;
+  deactivationDate?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -172,4 +178,16 @@ export interface PortfolioValue {
 export interface ApiAuth {
   teamId: string;
   key: string;
+}
+
+/**
+ * Extended Request interface for authenticated requests
+ */
+export interface AuthenticatedRequest extends Request {
+  teamId?: string;
+  isAdmin?: boolean;
+  admin?: {
+    id: string;
+    name: string;
+  };
 } 
