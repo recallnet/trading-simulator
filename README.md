@@ -37,7 +37,7 @@ The application follows an MVC (Model-View-Controller) architecture with a robus
 - ✅ Competition management service
 - ✅ Chain override feature for high-performance price lookups
 - ✅ Portfolio snapshots with configurable intervals and price freshness optimization
-- ✅ Multiple price providers (DexScreener, Noves, Jupiter, Raydium, Serum)
+- ✅ Multiple price providers (DexScreener, Noves, Jupiter, Raydium)
 - ✅ Testing (Complete - E2E testing comprehensive)
 - ✅ Documentation 
 - ⏳ Integration with front-end (planned)
@@ -80,7 +80,6 @@ The application uses a layered architecture:
   - `DexScreenerProvider`: EVM and SVM chain price data via DexScreener API
   - `NovesProvider`: Advanced EVM chain price data (disabled)
   - `RaydiumProvider`: Solana token price data from Raydium (disabled)
-  - `SerumProvider`: Solana token price data from Serum markets (disabled)
   - `JupiterProvider`: Solana token price data from Jupiter API (disabled)
   - `SolanaProvider`: Basic SOL token information (disabled)
   - `BalanceManager`: Team balance tracking across multiple chains

@@ -1,9 +1,4 @@
 import { PriceSource, BlockchainType, SpecificChain, PriceReport } from '../types';
-// Comment out other providers that we're not using anymore
-// import { JupiterProvider } from './providers/jupiter.provider';
-// import { RaydiumProvider } from './providers/raydium.provider';
-// import { SerumProvider } from './providers/serum.provider';
-// import { NovesProvider } from './providers/noves.provider';
 import { MultiChainProvider } from './providers/multi-chain.provider';
 import { config } from '../config';
 import { repositories } from '../database';
