@@ -183,6 +183,10 @@ router.get('/leaderboard', CompetitionController.getLeaderboard);
  *                   type: string
  *                   description: Additional information about the competition status
  *                   nullable: true
+ *                 participating:
+ *                   type: boolean
+ *                   description: Whether the authenticated team is participating in the competition
+ *                   nullable: true
  *       401:
  *         description: Unauthorized - Missing or invalid authentication
  *       500:

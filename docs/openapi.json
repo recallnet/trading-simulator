@@ -221,7 +221,7 @@
                           "type": "string",
                           "description": "Team email"
                         },
-                        "contact_person": {
+                        "contactPerson": {
                           "type": "string",
                           "description": "Contact person name"
                         },
@@ -319,7 +319,7 @@
                           "type": "string",
                           "description": "Team email"
                         },
-                        "contact_person": {
+                        "contactPerson": {
                           "type": "string",
                           "description": "Updated contact person name"
                         },
@@ -844,10 +844,6 @@
                           "type": "string",
                           "description": "Contact person name"
                         },
-                        "contact_person": {
-                          "type": "string",
-                          "description": "Contact person name (snake_case version)"
-                        },
                         "walletAddress": {
                           "type": "string",
                           "description": "Ethereum wallet address"
@@ -922,7 +918,7 @@
                             "type": "string",
                             "description": "Team email"
                           },
-                          "contact_person": {
+                          "contactPerson": {
                             "type": "string",
                             "description": "Contact person name"
                           },
@@ -1982,6 +1978,11 @@
                       "type": "string",
                       "description": "Additional information about the competition status",
                       "nullable": true
+                    },
+                    "participating": {
+                      "type": "boolean",
+                      "description": "Whether the authenticated team is participating in the competition",
+                      "nullable": true
                     }
                   }
                 }
@@ -2325,6 +2326,11 @@
                       "type": "string",
                       "nullable": true,
                       "description": "Specific chain for EVM tokens"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "Timestamp when the price was fetched"
                     }
                   }
                 }

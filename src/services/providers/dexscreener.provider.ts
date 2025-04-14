@@ -1,4 +1,4 @@
-import { PriceSource } from '../../types';
+import { PriceReport, PriceSource } from '../../types';
 import { BlockchainType, SpecificChain } from '../../types';
 import axios from 'axios';
 
@@ -8,7 +8,7 @@ import axios from 'axios';
  */
 export class DexScreenerProvider implements PriceSource {
   private readonly API_BASE = 'https://api.dexscreener.com/tokens/v1';
-  private cache: Map<string, { price: number; timestamp: number }>;
+  private cache: Map<string, PriceReport>;
   private readonly CACHE_DURATION = 30000; // 30 seconds
   private lastRequestTime: number = 0;
   private readonly MIN_REQUEST_INTERVAL = 100;
@@ -52,18 +52,24 @@ export class DexScreenerProvider implements PriceSource {
     this.lastRequestTime = Date.now();
   }
 
-  private getCachedPrice(tokenAddress: string, chain: string): number | null {
+  private getCachedPrice(tokenAddress: string, chain: string): PriceReport | null {
     const cacheKey = `${chain}:${tokenAddress}`;
     const cached = this.cache.get(cacheKey);
-    if (cached && Date.now() - cached.timestamp < this.CACHE_DURATION) {
-      return cached.price;
+    if (cached && (Date.now() - cached.timestamp.getTime()) < this.CACHE_DURATION) {
+      return cached;
     }
     return null;
   }
 
-  private setCachedPrice(tokenAddress: string, chain: string, price: number): void {
+  private setCachedPrice(tokenAddress: string, chain: BlockchainType, price: number, specificChain: SpecificChain): void {
     const cacheKey = `${chain}:${tokenAddress}`;
-    this.cache.set(cacheKey, { price, timestamp: Date.now() });
+    this.cache.set(cacheKey, {
+      token: tokenAddress,
+      price,
+      timestamp: new Date(),
+      chain,
+      specificChain
+    });
   }
 
   determineChain(tokenAddress: string): BlockchainType {
@@ -77,18 +83,8 @@ export class DexScreenerProvider implements PriceSource {
   /**
    * Convert a BlockchainType and SpecificChain to the correct chain identifier for DexScreener API
    */
-  private getDexScreenerChain(tokenAddress: string, chain?: BlockchainType, specificChain?: SpecificChain): string {
-    if (specificChain && this.chainMapping[specificChain]) {
-      return this.chainMapping[specificChain];
-    }
-
-    // If no specific chain provided but we have a BlockchainType
-    if (chain === BlockchainType.SVM) {
-      return 'solana';
-    }
-
-    // Default to ethereum for EVM chains without specifics
-    return 'ethereum';
+  private getDexScreenerChain(specificChain: SpecificChain): string {
+    return this.chainMapping[specificChain];
   }
 
   /**
@@ -136,14 +132,14 @@ export class DexScreenerProvider implements PriceSource {
   /**
    * Get the price of a token
    */
-  async getPrice(tokenAddress: string, chain?: BlockchainType, specificChain?: SpecificChain): Promise<number | null> {
+  async getPrice(tokenAddress: string, chain: BlockchainType, specificChain: SpecificChain): Promise<PriceReport | null> {
     // Determine chain if not provided
     if (!chain) {
       chain = this.determineChain(tokenAddress);
     }
     
     // Get the DexScreener chain identifier
-    const dexScreenerChain = this.getDexScreenerChain(tokenAddress, chain, specificChain);
+    const dexScreenerChain = this.getDexScreenerChain(specificChain);
     
     // Check cache first
     const cachedPrice = this.getCachedPrice(tokenAddress, dexScreenerChain);
@@ -156,21 +152,26 @@ export class DexScreenerProvider implements PriceSource {
     
     // Cache the result if we got a valid price
     if (price !== null) {
-      this.setCachedPrice(tokenAddress, dexScreenerChain, price);
+      this.setCachedPrice(tokenAddress, chain, price, specificChain);
+      return {
+        price,
+        token: tokenAddress,
+        timestamp: new Date(),
+        chain,
+        specificChain
+      }
     }
-    
-    return price;
+    return null;
   }
 
   /**
    * Check if the provider supports this token
    */
-  async supports(tokenAddress: string): Promise<boolean> {
+  async supports(tokenAddress: string, specificChain: SpecificChain): Promise<boolean> {
     const chain = this.determineChain(tokenAddress);
-    const dexScreenerChain = this.getDexScreenerChain(tokenAddress, chain);
     
     // Try to get a price - if successful, we support it
-    const price = await this.getPrice(tokenAddress, chain);
+    const price = await this.getPrice(tokenAddress, chain, specificChain);
     return price !== null;
   }
 } 

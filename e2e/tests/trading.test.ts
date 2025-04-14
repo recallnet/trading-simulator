@@ -3,6 +3,7 @@ import axios from 'axios';
 import { getBaseUrl } from '../utils/server';
 import config from '../../src/config';
 import { BlockchainType } from '../../src/types';
+import { BalancesResponse, ErrorResponse, PriceResponse, SpecificChain, TokenBalance, TradeHistoryResponse, TradeResponse, TradeTransaction } from '../utils/api-types';
 
 describe('Trading API', () => {
   let adminApiKey: string;
@@ -41,20 +42,20 @@ describe('Trading API', () => {
     
     // Check initial balance
     const initialBalanceResponse = await teamClient.getBalance();
-    expect(initialBalanceResponse.success).toBe(true);
-    expect(initialBalanceResponse.balance).toBeDefined();
+    expect((initialBalanceResponse as BalancesResponse).success).toBe(true);
+    expect((initialBalanceResponse as BalancesResponse).balances).toBeDefined();
     
     // Initial USDC balance should be the starting amount (e.g., 10000)
     const usdcTokenAddress = config.specificChainTokens.svm.usdc;
-    const initialUsdcBalance = parseFloat(initialBalanceResponse.balance[usdcTokenAddress]?.toString() || '0');
+    console.log(JSON.stringify(initialBalanceResponse), 'initialBalanceResponse test')
+    const initialUsdcBalance = parseFloat((initialBalanceResponse as BalancesResponse).balances.find(b => b.token === usdcTokenAddress)?.amount.toString() || '0');
     console.log(`Initial USDC balance: ${initialUsdcBalance}`);
     expect(initialUsdcBalance).toBeGreaterThan(0);
     
     // Use SOL token for trading (since we know it has a price in the test environment)
     const solTokenAddress = config.specificChainTokens.svm.sol;
-    
     // Initial SOL balance might already exist from initial balance config
-    const initialSolBalance = parseFloat(initialBalanceResponse.balance[solTokenAddress]?.toString() || '0');
+    const initialSolBalance = parseFloat((initialBalanceResponse as BalancesResponse).balances.find(b => b.token === solTokenAddress)?.amount.toString() || '0');
     console.log(`Initial SOL balance: ${initialSolBalance}`);
     
     // Use a small fixed amount that should be less than the initial balance
@@ -72,15 +73,15 @@ describe('Trading API', () => {
     
     console.log(`Buy trade response: ${JSON.stringify(buyTradeResponse)}`);
     expect(buyTradeResponse.success).toBe(true);
-    expect(buyTradeResponse.transaction).toBeDefined();
-    expect(buyTradeResponse.transaction.id).toBeDefined();
+    expect((buyTradeResponse as TradeResponse).transaction).toBeDefined();
+    expect((buyTradeResponse as TradeResponse).transaction.id).toBeDefined();
     
     // Verify chain field is included in transaction response
-    if (buyTradeResponse.transaction.fromChain) {
-      expect(buyTradeResponse.transaction.fromChain).toBe(BlockchainType.SVM);
+    if ((buyTradeResponse as TradeResponse).transaction.fromChain) {
+      expect((buyTradeResponse as TradeResponse).transaction.fromChain).toBe(BlockchainType.SVM);
     }
-    if (buyTradeResponse.transaction.toChain) {
-      expect(buyTradeResponse.transaction.toChain).toBe(BlockchainType.SVM);
+    if ((buyTradeResponse as TradeResponse).transaction.toChain) {
+      expect((buyTradeResponse as TradeResponse).transaction.toChain).toBe(BlockchainType.SVM);
     }
     
     // Wait a bit longer for the trade to process
@@ -91,23 +92,22 @@ describe('Trading API', () => {
     expect(updatedBalanceResponse.success).toBe(true);
     
     // USDC balance should have decreased
-    const updatedUsdcBalance = parseFloat(updatedBalanceResponse.balance[usdcTokenAddress]?.toString() || '0');
+    const updatedUsdcBalance = parseFloat((updatedBalanceResponse as BalancesResponse).balances.find(b => b.token === usdcTokenAddress)?.amount.toString() || '0');
     console.log(`Updated USDC balance: ${updatedUsdcBalance} (should be less than ${initialUsdcBalance})`);
     expect(updatedUsdcBalance).toBeLessThan(initialUsdcBalance);
-    
     // SOL balance should have increased
-    const updatedSolBalance = parseFloat(updatedBalanceResponse.balance[solTokenAddress]?.toString() || '0');
+    const updatedSolBalance = parseFloat((updatedBalanceResponse as BalancesResponse).balances.find(b => b.token === solTokenAddress)?.amount.toString() || '0');
     console.log(`Updated SOL balance: ${updatedSolBalance} (should be greater than ${initialSolBalance})`);
     expect(updatedSolBalance).toBeGreaterThan(initialSolBalance);
     
     // Get trade history
     const tradeHistoryResponse = await teamClient.getTradeHistory();
     expect(tradeHistoryResponse.success).toBe(true);
-    expect(tradeHistoryResponse.trades).toBeInstanceOf(Array);
-    expect(tradeHistoryResponse.trades.length).toBeGreaterThan(0);
+    expect((tradeHistoryResponse as TradeHistoryResponse).trades).toBeInstanceOf(Array);
+    expect((tradeHistoryResponse as TradeHistoryResponse).trades.length).toBeGreaterThan(0);
     
     // Verify chain fields in trades if they exist
-    const lastTrade = tradeHistoryResponse.trades[0];
+    const lastTrade = (tradeHistoryResponse as TradeHistoryResponse).trades[0];
     if (lastTrade.fromChain) {
       expect(lastTrade.fromChain).toBe(BlockchainType.SVM);
     }
@@ -130,7 +130,7 @@ describe('Trading API', () => {
     
     console.log(`Sell trade response: ${JSON.stringify(sellTradeResponse)}`);
     expect(sellTradeResponse.success).toBe(true);
-    expect(sellTradeResponse.transaction).toBeDefined();
+    expect((sellTradeResponse as TradeResponse).transaction).toBeDefined();
     
     // Wait a bit longer for the trade to process
     await wait(500);
@@ -138,18 +138,15 @@ describe('Trading API', () => {
     // Check final balance
     const finalBalanceResponse = await teamClient.getBalance();
     expect(finalBalanceResponse.success).toBe(true);
-    
     // USDC balance should have increased compared to after buying
-    const finalUsdcBalance = parseFloat(finalBalanceResponse.balance[usdcTokenAddress]?.toString() || '0');
+    const finalUsdcBalance = parseFloat((finalBalanceResponse as BalancesResponse).balances.find(b => b.token === usdcTokenAddress)?.amount.toString() || '0');
     console.log(`Final USDC balance: ${finalUsdcBalance} (should be greater than ${updatedUsdcBalance})`);
     expect(finalUsdcBalance).toBeGreaterThan(updatedUsdcBalance);
-    
     // SOL balance should have decreased compared to after buying
-    const finalSolBalance = parseFloat(finalBalanceResponse.balance[solTokenAddress]?.toString() || '0');
+    const finalSolBalance = parseFloat((finalBalanceResponse as BalancesResponse).balances.find(b => b.token === solTokenAddress)?.amount.toString() || '0');
     console.log(`Final SOL balance: ${finalSolBalance} (should be less than ${updatedSolBalance})`);
     expect(finalSolBalance).toBeLessThan(updatedSolBalance);
   });
-  
   test('team can execute a trade with an arbitrary token address', async () => {
     // Setup admin client
     const adminClient = createTestClient();
@@ -168,19 +165,18 @@ describe('Trading API', () => {
     // Check initial balance
     const initialBalanceResponse = await teamClient.getBalance();
     expect(initialBalanceResponse.success).toBe(true);
-    expect(initialBalanceResponse.balance).toBeDefined();
+    expect((initialBalanceResponse as BalancesResponse).balances).toBeDefined();
     
     // Initial USDC balance should be the starting amount
     const usdcTokenAddress = config.specificChainTokens.svm.usdc;
-    const initialUsdcBalance = parseFloat(initialBalanceResponse.balance[usdcTokenAddress]?.toString() || '0');
+    const initialUsdcBalance = parseFloat((initialBalanceResponse as BalancesResponse).balances.find(b => b.token === usdcTokenAddress)?.amount.toString() || '0');
     console.log(`Initial USDC balance: ${initialUsdcBalance}`);
     expect(initialUsdcBalance).toBeGreaterThan(0);
     
     // The arbitrary token address to test with
     const arbitraryTokenAddress = '4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R';
-    
     // Initial balance of the arbitrary token (likely 0)
-    const initialArbitraryTokenBalance = parseFloat(initialBalanceResponse.balance[arbitraryTokenAddress]?.toString() || '0');
+    const initialArbitraryTokenBalance = parseFloat((initialBalanceResponse as BalancesResponse).balances.find(b => b.token === arbitraryTokenAddress)?.amount.toString() || '0');
     console.log(`Initial arbitrary token balance: ${initialArbitraryTokenBalance}`);
     
     // Execute a direct trade using the API's expected parameters
@@ -199,8 +195,11 @@ describe('Trading API', () => {
     
     console.log(`Buy trade response: ${JSON.stringify(buyTradeResponse)}`);
     expect(buyTradeResponse.success).toBe(true);
-    expect(buyTradeResponse.transaction).toBeDefined();
-    expect(buyTradeResponse.transaction.id).toBeDefined();
+    if (buyTradeResponse.success) {
+      const tradeResponse = buyTradeResponse as TradeResponse;
+      expect(tradeResponse.transaction).toBeDefined();
+      expect(tradeResponse.transaction.id).toBeDefined();
+    }
     
     // Wait for the trade to process
     await wait(500);
@@ -208,29 +207,27 @@ describe('Trading API', () => {
     // Check updated balance
     const updatedBalanceResponse = await teamClient.getBalance();
     expect(updatedBalanceResponse.success).toBe(true);
-    
     // USDC balance should have decreased
-    const updatedUsdcBalance = parseFloat(updatedBalanceResponse.balance[usdcTokenAddress]?.toString() || '0');
+    const updatedUsdcBalance = parseFloat((updatedBalanceResponse as BalancesResponse).balances.find(b => b.token === usdcTokenAddress)?.amount.toString() || '0');
     console.log(`Updated USDC balance: ${updatedUsdcBalance}`);
     expect(updatedUsdcBalance).toBeLessThan(initialUsdcBalance);
     expect(initialUsdcBalance - updatedUsdcBalance).toBeCloseTo(tradeAmount, 1); // Allow for small rounding differences
-    
     // The arbitrary token balance should have increased
-    const updatedArbitraryTokenBalance = parseFloat(updatedBalanceResponse.balance[arbitraryTokenAddress]?.toString() || '0');
+    const updatedArbitraryTokenBalance = parseFloat((updatedBalanceResponse as BalancesResponse).balances.find(b => b.token === arbitraryTokenAddress)?.amount.toString() || '0');
     console.log(`Updated arbitrary token balance: ${updatedArbitraryTokenBalance}`);
     expect(updatedArbitraryTokenBalance).toBeGreaterThan(initialArbitraryTokenBalance);
     
     // Get trade history
     const tradeHistoryResponse = await teamClient.getTradeHistory();
     expect(tradeHistoryResponse.success).toBe(true);
-    expect(tradeHistoryResponse.trades).toBeInstanceOf(Array);
-    expect(tradeHistoryResponse.trades.length).toBeGreaterThan(0);
+    expect((tradeHistoryResponse as TradeHistoryResponse).trades).toBeInstanceOf(Array);
+    expect((tradeHistoryResponse as TradeHistoryResponse).trades.length).toBeGreaterThan(0);
     
     // Verify the last trade has the correct tokens
-    const lastTrade = tradeHistoryResponse.trades[0];
+    const lastTrade = (tradeHistoryResponse as TradeHistoryResponse).trades[0];
     expect(lastTrade.fromToken).toBe(usdcTokenAddress);
     expect(lastTrade.toToken).toBe(arbitraryTokenAddress);
-    expect(parseFloat(lastTrade.fromAmount)).toBeCloseTo(tradeAmount, 1); // Allow for small rounding differences
+    expect((lastTrade as TradeTransaction).fromAmount).toBeCloseTo(tradeAmount, 1); // Allow for small rounding differences
   });
   
   test('team cannot execute invalid trades', async () => {
@@ -247,7 +244,7 @@ describe('Trading API', () => {
     // Check initial balance
     const initialBalanceResponse = await teamClient.getBalance();
     const usdcTokenAddress = config.specificChainTokens.svm.usdc;
-    const initialUsdcBalance = parseFloat(initialBalanceResponse.balance[usdcTokenAddress].toString());
+    const initialUsdcBalance = parseFloat((initialBalanceResponse as BalancesResponse).balances.find(b => b.token === usdcTokenAddress)?.amount.toString() || '0');
     
     // Try to execute a trade with invalid token address format
     const invalidTokenResponse = await teamClient.executeTrade({
@@ -273,7 +270,7 @@ describe('Trading API', () => {
     });
     
     expect(noPriceTokenResponse.success).toBe(false);
-    expect(noPriceTokenResponse.error).toContain('Unable to determine price');
+    expect((noPriceTokenResponse as ErrorResponse).error).toContain('Unable to determine price');
     
     // Try to execute a trade with amount exceeding balance
     const excessiveAmountResponse = await teamClient.executeTrade({
@@ -285,7 +282,7 @@ describe('Trading API', () => {
     });
     
     expect(excessiveAmountResponse.success).toBe(false);
-    expect(excessiveAmountResponse.error).toContain('Cannot trade between identical tokens');
+    expect((excessiveAmountResponse as ErrorResponse).error).toContain('Cannot trade between identical tokens');
     
     // Add a test for truly excessive amounts after fixing the token address
     // The test should now execute a transaction where from != to
@@ -298,7 +295,7 @@ describe('Trading API', () => {
     });
     
     expect(solanaPriceResponse.success).toBe(false);
-    expect(solanaPriceResponse.error).toContain('Insufficient balance');
+    expect((solanaPriceResponse as ErrorResponse).error).toContain('Insufficient balance');
     
     // Try to execute a sell trade without having tokens
     const invalidSellResponse = await teamClient.executeTrade({
@@ -310,7 +307,7 @@ describe('Trading API', () => {
     });
     
     expect(invalidSellResponse.success).toBe(false);
-    expect(invalidSellResponse.error).toContain('Insufficient balance');
+    expect((invalidSellResponse as ErrorResponse).error).toContain('Insufficient balance');
   });
   
   test('team can fetch price and execute a calculated trade', async () => {
@@ -331,34 +328,33 @@ describe('Trading API', () => {
     // Check initial balance
     const initialBalanceResponse = await teamClient.getBalance();
     expect(initialBalanceResponse.success).toBe(true);
-    expect(initialBalanceResponse.balance).toBeDefined();
+    expect((initialBalanceResponse as BalancesResponse).balances).toBeDefined();
     
     // Initial USDC balance
     const usdcTokenAddress = config.specificChainTokens.svm.usdc;
-    const initialUsdcBalance = parseFloat(initialBalanceResponse.balance[usdcTokenAddress]?.toString() || '0');
+    const initialUsdcBalance = parseFloat((initialBalanceResponse as BalancesResponse).balances.find(b => b.token === usdcTokenAddress)?.amount.toString() || '0');
     console.log(`Initial USDC balance: ${initialUsdcBalance}`);
     expect(initialUsdcBalance).toBeGreaterThan(0);
     
     // The arbitrary token address specified
     const arbitraryTokenAddress = 'Grass7B4RdKfBCjTKgSqnXkqjwiGvQyFbuSCUJr3XXjs';
-    
     // Initial balance of the arbitrary token (likely 0)
-    const initialArbitraryTokenBalance = parseFloat(initialBalanceResponse.balance[arbitraryTokenAddress]?.toString() || '0');
+    const initialArbitraryTokenBalance = parseFloat((initialBalanceResponse as BalancesResponse).balances.find(b => b.token === arbitraryTokenAddress)?.amount.toString() || '0');
     console.log(`Initial ${arbitraryTokenAddress} token balance: ${initialArbitraryTokenBalance}`);
     
     // 1. Fetch the price for the arbitrary token
     console.log(`Fetching price for token: ${arbitraryTokenAddress}`);
     const priceResponse = await teamClient.getPrice(arbitraryTokenAddress);
     expect(priceResponse.success).toBe(true);
-    expect(priceResponse.price).toBeDefined();
+    expect((priceResponse as PriceResponse).price).toBeDefined();
     
-    const tokenPrice = parseFloat(priceResponse.price);
+    const tokenPrice = (priceResponse as PriceResponse).price;
     console.log(`Token price: ${tokenPrice} USDC`);
     expect(tokenPrice).toBeGreaterThan(0);
     
     // 2. Calculate how much of the token can be bought with 10 USDC
     const usdcAmount = 10;
-    const expectedTokenAmount = usdcAmount / tokenPrice;
+    const expectedTokenAmount = usdcAmount / (tokenPrice || 0); // Handle null case
     console.log(`With ${usdcAmount} USDC, expect to receive approximately ${expectedTokenAmount} tokens`);
     
     // 3. Execute the trade (buy the token with 10 USDC)
@@ -372,8 +368,8 @@ describe('Trading API', () => {
     
     console.log(`Buy trade response: ${JSON.stringify(buyTradeResponse)}`);
     expect(buyTradeResponse.success).toBe(true);
-    expect(buyTradeResponse.transaction).toBeDefined();
-    expect(buyTradeResponse.transaction.id).toBeDefined();
+    expect((buyTradeResponse as TradeResponse).transaction).toBeDefined();
+    expect((buyTradeResponse as TradeResponse).transaction.id).toBeDefined();
     
     // Wait for the trade to process
     await wait(500);
@@ -381,29 +377,29 @@ describe('Trading API', () => {
     // 4. Check final balance and validate it reflects the calculation
     const finalBalanceResponse = await teamClient.getBalance();
     expect(finalBalanceResponse.success).toBe(true);
-    
+    expect((finalBalanceResponse as BalancesResponse).balances).toBeDefined();
     // USDC balance should have decreased by 10
-    const finalUsdcBalance = parseFloat(finalBalanceResponse.balance[usdcTokenAddress]?.toString() || '0');
+    const finalUsdcBalance = parseFloat((finalBalanceResponse as BalancesResponse).balances.find((b: TokenBalance) => b.token === usdcTokenAddress)?.amount.toString() || '0');
     console.log(`Final USDC balance: ${finalUsdcBalance}`);
     expect(initialUsdcBalance - finalUsdcBalance).toBeCloseTo(usdcAmount, 1); // Allow for small rounding differences
-    
-    // The arbitrary token balance should have increased by the calculated amount
-    const finalTokenBalance = parseFloat(finalBalanceResponse.balance[arbitraryTokenAddress]?.toString() || '0');
+    // The arbitrary token balance should have increased by the calculated amount  
+    const finalTokenBalance = parseFloat((finalBalanceResponse as BalancesResponse).balances.find((b: TokenBalance) => b.token === arbitraryTokenAddress)?.amount.toString() || '0');
     console.log(`Final token balance: ${finalTokenBalance}`);
     expect(finalTokenBalance - initialArbitraryTokenBalance).toBeCloseTo(expectedTokenAmount, 1); // Allow for small variations due to price fluctuations
     
     // Get trade history to verify details
     const tradeHistoryResponse = await teamClient.getTradeHistory();
     expect(tradeHistoryResponse.success).toBe(true);
-    expect(tradeHistoryResponse.trades).toBeInstanceOf(Array);
-    expect(tradeHistoryResponse.trades.length).toBeGreaterThan(0);
+    const tradeHistory = tradeHistoryResponse as TradeHistoryResponse;
+    expect(tradeHistory.trades).toBeInstanceOf(Array);
+    expect(tradeHistory.trades.length).toBeGreaterThan(0);
     
     // Verify the trade details in history
-    const lastTrade = tradeHistoryResponse.trades[0];
+    const lastTrade = tradeHistory.trades[0];
     expect(lastTrade.fromToken).toBe(usdcTokenAddress);
     expect(lastTrade.toToken).toBe(arbitraryTokenAddress);
-    expect(parseFloat(lastTrade.fromAmount)).toBeCloseTo(usdcAmount, 1);
-    expect(parseFloat(lastTrade.toAmount)).toBeCloseTo(expectedTokenAmount, 1);
+    expect(lastTrade.fromAmount).toBeCloseTo(usdcAmount, 1);
+    expect(lastTrade.toAmount).toBeCloseTo(expectedTokenAmount, 1);
   });
 
   test('team can trade with Ethereum tokens', async () => {
@@ -437,7 +433,8 @@ describe('Trading API', () => {
     // Check initial balance
     const initialBalanceResponse = await teamClient.getBalance();
     expect(initialBalanceResponse.success).toBe(true);
-    expect(initialBalanceResponse.balance).toBeDefined();
+    const balancesResponse = initialBalanceResponse as BalancesResponse;
+    expect(balancesResponse.balances).toBeDefined();
     
     // Get Ethereum USDC token address from blockchain tokens config
     const ethUsdcTokenAddress = config.specificChainTokens.eth.usdc;
@@ -458,9 +455,9 @@ describe('Trading API', () => {
       const priceResponse = await teamClient.getPrice(ethTokenAddress);
       
       // If we get a successful response, verify the token is recognized as EVM
-      if (priceResponse.chain) {
-        expect(priceResponse.chain).toBe(BlockchainType.EVM);
-        console.log(`Confirmed ETH token is on ${priceResponse.chain} chain with price ${priceResponse.price}`);
+      if ((priceResponse as PriceResponse).chain) {
+        expect((priceResponse as PriceResponse).chain).toBe(BlockchainType.EVM);
+        console.log(`Confirmed ETH token is on ${(priceResponse as PriceResponse).chain} chain with price ${(priceResponse as PriceResponse).price}`);
       }
     } catch (error) {
       console.error('Error getting ETH price, EVM tokens may not be supported:', error);
@@ -468,16 +465,15 @@ describe('Trading API', () => {
     }
     
     // Check if we have any ETH balance already
-    const initialEthBalance = parseFloat(initialBalanceResponse.balance[ethTokenAddress]?.toString() || '0');
+    const initialEthBalance = parseFloat((initialBalanceResponse as BalancesResponse).balances.find(b => b.token === ethTokenAddress)?.toString() || '0');
     console.log(`Initial ETH balance: ${initialEthBalance}`);
     
     // If we have SVM USDC, we can try to trade it for ETH
     const svmUsdcAddress = config.specificChainTokens.svm.usdc;
-    const svmUsdcBalance = parseFloat(initialBalanceResponse.balance[svmUsdcAddress]?.toString() || '0');
+    const svmUsdcBalance = parseFloat(balancesResponse.balances.find(b => b.token === svmUsdcAddress)?.amount.toString() || '0');
     
     if (svmUsdcBalance > 0) {
       console.log(`Trading SVM USDC for ETH...`);
-      
       // Use a small amount for the test
       const tradeAmount = Math.min(100, svmUsdcBalance * 0.1);
       
@@ -498,19 +494,18 @@ describe('Trading API', () => {
       
       // Check updated balance
       const updatedBalanceResponse = await teamClient.getBalance();
-      
       // ETH balance should have increased
-      const updatedEthBalance = parseFloat(updatedBalanceResponse.balance[ethTokenAddress]?.toString() || '0');
+      const updatedEthBalance = parseFloat((updatedBalanceResponse as BalancesResponse).balances.find((b: TokenBalance) => b.token === ethTokenAddress)?.amount.toString() || '0');
       console.log(`Updated ETH balance: ${updatedEthBalance}`);
       expect(updatedEthBalance).toBeGreaterThan(initialEthBalance);
       
       // Get trade history and verify the Ethereum trade
       const tradeHistoryResponse = await teamClient.getTradeHistory();
       expect(tradeHistoryResponse.success).toBe(true);
-      expect(tradeHistoryResponse.trades.length).toBeGreaterThan(0);
+      expect((tradeHistoryResponse as TradeHistoryResponse).trades.length).toBeGreaterThan(0);
       
       // Verify the last trade details
-      const lastTrade = tradeHistoryResponse.trades[0];
+      const lastTrade = (tradeHistoryResponse as TradeHistoryResponse).trades[0];
       expect(lastTrade.toToken).toBe(ethTokenAddress);
       
       // Verify chain fields if they exist
@@ -544,15 +539,14 @@ describe('Trading API', () => {
     
     // Initial USDC balance should be the starting amount (e.g., 10000)
     const usdcTokenAddress = config.specificChainTokens.svm.usdc;
-    const initialUsdcBalance = parseFloat(initialBalanceResponse.balance[usdcTokenAddress]?.toString() || '0');
+    const initialUsdcBalance = parseFloat((initialBalanceResponse as BalancesResponse).balances.find((b: TokenBalance) => b.token === usdcTokenAddress)?.amount.toString() || '0');
     console.log(`Initial USDC balance: ${initialUsdcBalance}`);
     expect(initialUsdcBalance).toBeGreaterThan(0);
     
     // Use SOL token for trading (since we know it has a price in the test environment)
     const solTokenAddress = config.specificChainTokens.svm.sol;
-    
     // Initial SOL balance
-    const initialSolBalance = parseFloat(initialBalanceResponse.balance[solTokenAddress]?.toString() || '0');
+    const initialSolBalance = parseFloat((initialBalanceResponse as BalancesResponse).balances.find(b => b.token === solTokenAddress)?.amount.toString() || '0');
     console.log(`Initial SOL balance: ${initialSolBalance}`);
     
     // The amount to trade
@@ -570,11 +564,11 @@ describe('Trading API', () => {
     
     console.log(`Buy trade response: ${JSON.stringify(buyTradeResponse)}`);
     expect(buyTradeResponse.success).toBe(true);
-    expect(buyTradeResponse.transaction).toBeDefined();
+    expect((buyTradeResponse as TradeResponse).transaction).toBeDefined();
     
     // Verify chain fields in the transaction
-    expect(buyTradeResponse.transaction.fromChain).toBe(BlockchainType.SVM);
-    expect(buyTradeResponse.transaction.toChain).toBe(BlockchainType.SVM);
+    expect((buyTradeResponse as TradeResponse).transaction.fromChain).toBe(BlockchainType.SVM);
+    expect((buyTradeResponse as TradeResponse).transaction.toChain).toBe(BlockchainType.SVM);
     
     // Wait for the trade to process
     await wait(500);
@@ -582,23 +576,20 @@ describe('Trading API', () => {
     // Check updated balance
     const updatedBalanceResponse = await teamClient.getBalance();
     expect(updatedBalanceResponse.success).toBe(true);
-    
     // USDC balance should have decreased
-    const updatedUsdcBalance = parseFloat(updatedBalanceResponse.balance[usdcTokenAddress]?.toString() || '0');
+    const updatedUsdcBalance = parseFloat((updatedBalanceResponse as BalancesResponse).balances.find((b: TokenBalance) => b.token === usdcTokenAddress)?.amount.toString() || '0');
     console.log(`Updated USDC balance: ${updatedUsdcBalance}`);
     expect(updatedUsdcBalance).toBeLessThan(initialUsdcBalance);
-    
     // SOL balance should have increased
-    const updatedSolBalance = parseFloat(updatedBalanceResponse.balance[solTokenAddress]?.toString() || '0');
+    const updatedSolBalance = parseFloat((updatedBalanceResponse as BalancesResponse).balances.find((b: TokenBalance) => b.token === solTokenAddress)?.amount.toString() || '0');
     console.log(`Updated SOL balance: ${updatedSolBalance}`);
     expect(updatedSolBalance).toBeGreaterThan(initialSolBalance);
     
     // Get trade history and verify chain info is preserved
     const tradeHistoryResponse = await teamClient.getTradeHistory();
     expect(tradeHistoryResponse.success).toBe(true);
-    
     // Get the most recent trade
-    const lastTrade = tradeHistoryResponse.trades[0];
+    const lastTrade = (tradeHistoryResponse as TradeHistoryResponse).trades[0];
     
     // Verify chain fields in the trade history
     expect(lastTrade.fromChain).toBe(BlockchainType.SVM);
@@ -623,8 +614,8 @@ describe('Trading API', () => {
         amount: tradeAmount.toString(),
         fromChain: BlockchainType.SVM,
         toChain: BlockchainType.EVM,
-        fromSpecificChain: 'svm',
-        toSpecificChain: 'eth'
+        fromSpecificChain: SpecificChain.SVM,
+        toSpecificChain: SpecificChain.ETH
       });
       
       console.log(`Cross-chain trade response: ${JSON.stringify(crossChainTradeResponse)}`);
@@ -633,7 +624,7 @@ describe('Trading API', () => {
       const allowCrossChainTrading = process.env.ALLOW_CROSS_CHAIN_TRADING === 'true';
       if (!allowCrossChainTrading) {
         expect(crossChainTradeResponse.success).toBe(false);
-        expect(crossChainTradeResponse.error).toContain('Cross-chain trading is disabled');
+        expect((crossChainTradeResponse as ErrorResponse).error).toContain('Cross-chain trading is disabled');
       } else {
         // If cross-chain trading is allowed, this should succeed
         expect(crossChainTradeResponse.success).toBe(true);

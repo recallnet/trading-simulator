@@ -13,8 +13,8 @@ export interface PriceRecord {
   token: string;
   price: number;
   timestamp: Date;
-  chain?: BlockchainType;
-  specificChain?: SpecificChain;
+  chain: BlockchainType;
+  specificChain: SpecificChain;
 }
 
 /**
@@ -38,7 +38,7 @@ export interface PortfolioTokenValue {
   amount: number;
   valueUsd: number;
   price: number;
-  specificChain?: SpecificChain;
+  specificChain: SpecificChain;
 }
 
 /**

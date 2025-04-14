@@ -120,7 +120,7 @@ Get profile information for the authenticated team
     "id": "string",
     "name": "string",
     "email": "string",
-    "contact_person": "string",
+    "contactPerson": "string",
     "createdAt": "2019-08-24T14:15:22Z",
     "updatedAt": "2019-08-24T14:15:22Z"
   }
@@ -147,7 +147,7 @@ Status Code **200**
 |»» id|string|false|none|Team ID|
 |»» name|string|false|none|Team name|
 |»» email|string|false|none|Team email|
-|»» contact_person|string|false|none|Contact person name|
+|»» contactPerson|string|false|none|Contact person name|
 |»» createdAt|string(date-time)|false|none|Team creation timestamp|
 |»» updatedAt|string(date-time)|false|none|Team last update timestamp|
 
@@ -215,7 +215,7 @@ Update profile information for the authenticated team
     "id": "string",
     "name": "string",
     "email": "string",
-    "contact_person": "string",
+    "contactPerson": "string",
     "createdAt": "2019-08-24T14:15:22Z",
     "updatedAt": "2019-08-24T14:15:22Z"
   }
@@ -242,7 +242,7 @@ Status Code **200**
 |»» id|string|false|none|Team ID|
 |»» name|string|false|none|Team name|
 |»» email|string|false|none|Team email|
-|»» contact_person|string|false|none|Updated contact person name|
+|»» contactPerson|string|false|none|Updated contact person name|
 |»» createdAt|string(date-time)|false|none|Team creation timestamp|
 |»» updatedAt|string(date-time)|false|none|Team update timestamp|
 
@@ -848,7 +848,8 @@ Get the current price of a specified token
   "price": 0,
   "token": "string",
   "chain": "EVM",
-  "specificChain": "string"
+  "specificChain": "string",
+  "timestamp": "2019-08-24T14:15:22Z"
 }
 ```
 
@@ -872,6 +873,7 @@ Status Code **200**
 |» token|string|false|none|Token address|
 |» chain|string|false|none|Blockchain type of the token|
 |» specificChain|string¦null|false|none|Specific chain for EVM tokens|
+|» timestamp|string(date-time)|false|none|Timestamp when the price was fetched|
 
 #### Enumerated Values
 
@@ -1162,7 +1164,8 @@ Get the status of the active competition
     "createdAt": "2019-08-24T14:15:22Z",
     "updatedAt": "2019-08-24T14:15:22Z"
   },
-  "message": "string"
+  "message": "string",
+  "participating": true
 }
 ```
 
@@ -1192,6 +1195,7 @@ Status Code **200**
 |»» createdAt|string(date-time)|false|none|When the competition was created|
 |»» updatedAt|string(date-time)|false|none|When the competition was last updated|
 |» message|string¦null|false|none|Additional information about the competition status|
+|» participating|boolean¦null|false|none|Whether the authenticated team is participating in the competition|
 
 #### Enumerated Values
 
@@ -1469,7 +1473,6 @@ Admin-only endpoint to register a new team. Admins create team accounts and dist
     "name": "string",
     "email": "string",
     "contactPerson": "string",
-    "contact_person": "string",
     "walletAddress": "string",
     "apiKey": "abc123def456_ghi789jkl012",
     "createdAt": "2019-08-24T14:15:22Z"
@@ -1498,7 +1501,6 @@ Status Code **201**
 |»» name|string|false|none|Team name|
 |»» email|string|false|none|Team email|
 |»» contactPerson|string|false|none|Contact person name|
-|»» contact_person|string|false|none|Contact person name (snake_case version)|
 |»» walletAddress|string|false|none|Ethereum wallet address|
 |»» apiKey|string|false|none|API key for the team to use with Bearer authentication. Admin should securely provide this to the team.|
 |»» createdAt|string(date-time)|false|none|Account creation timestamp|
@@ -1549,7 +1551,7 @@ Get a list of all non-admin teams
       "id": "string",
       "name": "string",
       "email": "string",
-      "contact_person": "string",
+      "contactPerson": "string",
       "createdAt": "2019-08-24T14:15:22Z",
       "updatedAt": "2019-08-24T14:15:22Z"
     }
@@ -1576,7 +1578,7 @@ Status Code **200**
 |»» id|string|false|none|Team ID|
 |»» name|string|false|none|Team name|
 |»» email|string|false|none|Team email|
-|»» contact_person|string|false|none|Contact person name|
+|»» contactPerson|string|false|none|Contact person name|
 |»» createdAt|string(date-time)|false|none|Account creation timestamp|
 |»» updatedAt|string(date-time)|false|none|Account update timestamp|
 

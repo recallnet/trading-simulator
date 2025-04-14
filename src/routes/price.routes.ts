@@ -70,6 +70,10 @@ export const priceRoutes = Router();
  *                   type: string
  *                   nullable: true
  *                   description: Specific chain for EVM tokens
+ *                 timestamp:
+ *                   type: string
+ *                   format: date-time
+ *                   description: Timestamp when the price was fetched
  *       400:
  *         description: Invalid request parameters
  *         content:

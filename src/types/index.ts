@@ -88,10 +88,10 @@ export interface Trade {
   error?: string;
   
   // Chain information
-  fromChain?: BlockchainType;
-  toChain?: BlockchainType;
-  fromSpecificChain?: SpecificChain;
-  toSpecificChain?: SpecificChain;
+  fromChain: BlockchainType;
+  toChain: BlockchainType;
+  fromSpecificChain: SpecificChain;
+  toSpecificChain: SpecificChain;
 }
 
 /**
@@ -99,8 +99,16 @@ export interface Trade {
  */
 export interface PriceSource {
   getName(): string;
-  getPrice(tokenAddress: string): Promise<number | null>;
-  supports(tokenAddress: string): Promise<boolean>;
+  getPrice(tokenAddress: string, chain: BlockchainType, specificChain: SpecificChain): Promise<PriceReport | null>;
+  supports(tokenAddress: string, specificChain: SpecificChain): Promise<boolean>;
+}
+
+export interface PriceReport {
+  token: string;
+  price: number;
+  timestamp: Date;
+  chain: BlockchainType;
+  specificChain: SpecificChain;
 }
 
 /**

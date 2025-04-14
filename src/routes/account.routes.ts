@@ -44,7 +44,7 @@ const router = Router();
  *                     email:
  *                       type: string
  *                       description: Team email
- *                     contact_person:
+ *                     contactPerson:
  *                       type: string
  *                       description: Contact person name
  *                     createdAt:
@@ -115,7 +115,7 @@ router.get('/profile', AccountController.getProfile);
  *                     email:
  *                       type: string
  *                       description: Team email
- *                     contact_person:
+ *                     contactPerson:
  *                       type: string
  *                       description: Updated contact person name
  *                     createdAt:

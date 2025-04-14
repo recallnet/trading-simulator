@@ -1,7 +1,8 @@
 import { BaseRepository } from '../base-repository';
-import { Balance } from '../../types';
+import { Balance, SpecificChain } from '../../types';
 import { DatabaseRow } from '../types';
 import { PoolClient } from 'pg';
+import { config } from '../../config';
 
 /**
  * Balance Repository
@@ -129,15 +130,42 @@ export class BalanceRepository extends BaseRepository<Balance> {
    */
   private async initializeBalancesInTransaction(teamId: string, initialBalances: Map<string, number>, client: PoolClient): Promise<void> {
     for (const [tokenAddress, amount] of initialBalances.entries()) {
+      // Determine the specific chain for this token
+      const specificChain = this.getTokenSpecificChain(tokenAddress);
+      
       const query = `
-        INSERT INTO balances (team_id, token_address, amount)
-        VALUES ($1, $2, $3)
+        INSERT INTO balances (team_id, token_address, amount, specific_chain)
+        VALUES ($1, $2, $3, $4)
         ON CONFLICT (team_id, token_address) 
-        DO UPDATE SET amount = $3, updated_at = NOW()
+        DO UPDATE SET amount = $3, specific_chain = $4, updated_at = NOW()
       `;
       
-      await client.query(query, [teamId, tokenAddress, amount]);
+      await client.query(query, [teamId, tokenAddress, amount, specificChain]);
     }
+  }
+
+  /**
+   * Determine the specific chain for a token address based on token patterns
+   * @param tokenAddress The token address
+   * @returns The specific chain string or null if not determined
+   */
+  private getTokenSpecificChain(tokenAddress: string): string | null {
+    const token = tokenAddress.toLowerCase();
+    
+    // Check each chain's tokens to find a match
+    const specificChainTokens = config.specificChainTokens;
+    
+    for (const [chain, tokens] of Object.entries(specificChainTokens)) {
+      // Check all tokens for this chain
+      for (const [symbol, address] of Object.entries(tokens)) {
+        if (address.toLowerCase() === token) {
+          return chain;
+        }
+      }
+    }
+    
+    console.log(`[BalanceRepository] Could not determine specific chain for token: ${tokenAddress}`);
+    return null;
   }
 
   /**

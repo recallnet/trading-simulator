@@ -2,6 +2,7 @@ import { registerTeamAndGetClient, startTestCompetition, cleanupTestState, wait,
 import axios, { AxiosError } from 'axios';
 import { getBaseUrl } from '../utils/server';
 import config from '../../src/config';
+import { BalancesResponse, ErrorResponse } from '../utils/api-types';
 
 describe('Rate Limiter Middleware', () => {
   // Clean up test state before each test
@@ -55,12 +56,12 @@ describe('Rate Limiter Middleware', () => {
     if (firstResponse.success === true) {
       console.log('Team 1 first request succeeded');
       team1SuccessfulRequests = 1;
-    } else if (firstResponse.status === 429) {
+    } else if ((firstResponse as ErrorResponse).status === 429) {
       console.log('Team 1 is already rate limited');
       team1RateLimited = true;
     } else {
-      console.error('Unexpected error for team 1:', firstResponse.error);
-      throw new Error(`Unexpected error: ${firstResponse.error}`);
+      console.error('Unexpected error for team 1:', (firstResponse as ErrorResponse).error);
+      throw new Error(`Unexpected error: ${(firstResponse as ErrorResponse).error}`);
     }
     
     // If team 1 isn't rate limited yet, make more requests until we hit the limit
@@ -75,18 +76,18 @@ describe('Rate Limiter Middleware', () => {
         if (response.success === true) {
           team1SuccessfulRequests++;
           console.log(`Request ${i+1}/${limit} succeeded (total: ${team1SuccessfulRequests})`);
-        } else if (response.status === 429) {
+        } else if ((response as ErrorResponse).status === 429) {
           team1RateLimited = true;
           console.log(`Rate limit hit at request ${i+1} after ${team1SuccessfulRequests} successful requests`);
           
           // Verify we have additional information about the rate limit
-          expect(response.error).toContain('Rate limit exceeded');
+          expect((response as ErrorResponse).error).toContain('Rate limit exceeded');
           
           // Once we hit the rate limit, we can break out of the loop
           break;
         } else {
-          console.error('Unexpected error for team 1:', response.error);
-          throw new Error(`Unexpected error: ${response.error}`);
+          console.error('Unexpected error for team 1:', (response as ErrorResponse).error);
+          throw new Error(`Unexpected error: ${(response as ErrorResponse).error}`);
         }
         
         // Small wait to avoid overwhelming the server
@@ -109,14 +110,14 @@ describe('Rate Limiter Middleware', () => {
     if (team2Response.success === true) {
       console.log('Team 2 was able to make a request successfully');
     } else {
-      console.error('Team 2 request failed:', team2Response.error);
+      console.error('Team 2 request failed:', (team2Response as ErrorResponse).error);
       
       // Check if the error is a rate limit error
-      if (team2Response.status === 429) {
+      if ((team2Response as ErrorResponse).status === 429) {
         console.error('Team 2 should not be rate limited at this point');
         fail('Rate limits are not properly isolated per team');
       } else {
-        throw new Error(`Unexpected error for team 2: ${team2Response.error}`);
+        throw new Error(`Unexpected error for team 2: ${(team2Response as ErrorResponse).error}`);
       }
     }
     
@@ -149,15 +150,15 @@ describe('Rate Limiter Middleware', () => {
     // Make first request
     const firstAccountResponse = await teamClient.request('get', '/api/account/balances');
     
-    if (firstAccountResponse.success === true) {
+    if ((firstAccountResponse as BalancesResponse).success === true) {
       successfulRequests++;
       console.log(`First account request succeeded`);
-    } else if (firstAccountResponse.status === 429) {
+    } else if ((firstAccountResponse as ErrorResponse).status === 429) {
       rateLimitHit = true;
       console.log(`Already rate limited for account endpoint`);
     } else {
-      console.error(`Unexpected error on first request:`, firstAccountResponse.error);
-      throw new Error(`Unexpected error: ${firstAccountResponse.error}`);
+      console.error(`Unexpected error on first request:`, (firstAccountResponse as ErrorResponse).error);
+      throw new Error(`Unexpected error: ${(firstAccountResponse as ErrorResponse).error}`);
     }
     
     // If not already rate limited, make more requests
@@ -168,16 +169,16 @@ describe('Rate Limiter Middleware', () => {
       for (let i = 1; i < accountEndpointLimit; i++) { // Start from 1 because we already made one request
         const response = await teamClient.request('get', '/api/account/balances');
         
-        if (response.success === true) {
+        if ((response as BalancesResponse).success === true) {
           successfulRequests++;
           console.log(`Account request ${i+1}/${accountEndpointLimit} succeeded (total: ${successfulRequests})`);
-        } else if (response.status === 429) {
+        } else if ((response as ErrorResponse).status === 429) {
           rateLimitHit = true;
           console.log(`Rate limit hit at request ${i+1}`);
           break;
         } else {
-          console.error(`Unexpected error on request ${i+1}:`, response.error);
-          throw new Error(`Unexpected error: ${response.error}`);
+          console.error(`Unexpected error on request ${i+1}:`, (response as ErrorResponse).error);
+          throw new Error(`Unexpected error: ${(response as ErrorResponse).error}`);
         }
         
         // Small delay to avoid overwhelming the server
@@ -194,13 +195,13 @@ describe('Rate Limiter Middleware', () => {
     console.log('Verifying price endpoint still accessible (has higher limit)');
     const priceResponse = await teamClient.request('get', `/api/price?token=${config.specificChainTokens.svm.sol}`);
     
-    if (priceResponse.success === true) {
+    if ((priceResponse as BalancesResponse).success === true) {
       console.log('Success: Price endpoint has different rate limit from account endpoint');
-    } else if (priceResponse.status === 429) {
+    } else if ((priceResponse as ErrorResponse).status === 429) {
       fail('Price endpoint should have a different rate limit from account endpoint');
     } else {
-      console.error('Price endpoint request failed:', priceResponse.error);
-      throw new Error(`Unexpected error: ${priceResponse.error}`);
+      console.error('Price endpoint request failed:', (priceResponse as ErrorResponse).error);
+      throw new Error(`Unexpected error: ${(priceResponse as ErrorResponse).error}`);
     }
     
     console.log('Successfully verified endpoint-specific rate limiting');

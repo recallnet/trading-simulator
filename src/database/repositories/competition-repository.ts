@@ -263,9 +263,9 @@ export class CompetitionRepository extends BaseRepository<Competition> {
     try {
       const query = `
         INSERT INTO portfolio_token_values (
-          portfolio_snapshot_id, token_address, amount, value_usd, price
+          portfolio_snapshot_id, token_address, amount, value_usd, price, specific_chain
         ) VALUES (
-          $1, $2, $3, $4, $5
+          $1, $2, $3, $4, $5, $6
         ) RETURNING *
       `;
       
@@ -274,7 +274,8 @@ export class CompetitionRepository extends BaseRepository<Competition> {
         tokenValue.tokenAddress,
         tokenValue.amount,
         tokenValue.valueUsd,
-        tokenValue.price
+        tokenValue.price,
+        tokenValue.specificChain
       ];
       
       const result = client 
@@ -288,7 +289,8 @@ export class CompetitionRepository extends BaseRepository<Competition> {
         tokenAddress: row.tokenAddress,
         amount: parseFloat(row.amount),
         valueUsd: parseFloat(row.valueUsd),
-        price: parseFloat(row.price)
+        price: parseFloat(row.price),
+        specificChain: row.specificChain
       };
     } catch (error) {
       console.error('[CompetitionRepository] Error creating portfolio token value:', error);
@@ -401,7 +403,8 @@ export class CompetitionRepository extends BaseRepository<Competition> {
           tokenAddress: camelRow.tokenAddress,
           amount: parseFloat(camelRow.amount),
           valueUsd: parseFloat(camelRow.valueUsd),
-          price: parseFloat(camelRow.price)
+          price: parseFloat(camelRow.price),
+          specificChain: camelRow.specificChain
         };
       });
     } catch (error) {

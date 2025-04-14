@@ -1,6 +1,7 @@
 import { registerTeamAndGetClient, cleanupTestState, ADMIN_USERNAME, ADMIN_PASSWORD, ADMIN_EMAIL, createTestClient } from '../utils/test-helpers';
 import axios from 'axios';
 import { getBaseUrl } from '../utils/server';
+import { TeamProfileResponse, AdminTeamsListResponse } from '../utils/api-types';
 
 describe('Team API', () => {
   // Clean up test state before each test
@@ -46,15 +47,15 @@ describe('Team API', () => {
     expect(team.id).toBeDefined();
     expect(team.name).toBe(teamName);
     expect(team.email).toBe(email);
-    expect(team.contact_person).toBe(contactPerson);
+    expect(team.contactPerson).toBe(contactPerson);
     expect(apiKey).toBeDefined();
     
     // Verify team client is authenticated
     const profileResponse = await teamClient.getProfile();
     expect(profileResponse.success).toBe(true);
-    expect(profileResponse.team).toBeDefined();
-    expect(profileResponse.team.id).toBe(team.id);
-    expect(profileResponse.team.name).toBe(teamName);
+    expect((profileResponse as TeamProfileResponse).team).toBeDefined();
+    expect((profileResponse as TeamProfileResponse).team.id).toBe(team.id);
+    expect((profileResponse as TeamProfileResponse).team.name).toBe(teamName);
   });
   
   test('teams can update their profile information', async () => {
@@ -75,13 +76,13 @@ describe('Team API', () => {
     });
     
     expect(updateResponse.success).toBe(true);
-    expect(updateResponse.team).toBeDefined();
-    expect(updateResponse.team.contact_person).toBe(newContactPerson);
+    expect((updateResponse as TeamProfileResponse).team).toBeDefined();
+    expect((updateResponse as TeamProfileResponse).team.contactPerson).toBe(newContactPerson);
     
     // Verify changes persisted
     const profileResponse = await teamClient.getProfile();
     expect(profileResponse.success).toBe(true);
-    expect(profileResponse.team.contact_person).toBe(newContactPerson);
+    expect((profileResponse as TeamProfileResponse).team.contactPerson).toBe(newContactPerson);
   });
   
   test('team cannot authenticate with invalid API key', async () => {
@@ -137,12 +138,12 @@ describe('Team API', () => {
     const teamsResponse = await adminClient.listAllTeams();
     
     expect(teamsResponse.success).toBe(true);
-    expect(teamsResponse.teams).toBeDefined();
-    expect(teamsResponse.teams.length).toBeGreaterThanOrEqual(teamData.length);
+    expect((teamsResponse as AdminTeamsListResponse).teams).toBeDefined();
+    expect((teamsResponse as AdminTeamsListResponse).teams.length).toBeGreaterThanOrEqual(teamData.length);
     
     // Verify all our teams are in the list
     for (const data of teamData) {
-      const foundTeam = teamsResponse.teams.find(
+      const foundTeam = (teamsResponse as AdminTeamsListResponse).teams.find(
         (t: any) => t.name === data.name && t.email === data.email
       );
       expect(foundTeam).toBeDefined();

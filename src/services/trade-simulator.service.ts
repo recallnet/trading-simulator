@@ -73,7 +73,7 @@ export class TradeSimulator {
           error: 'Trade amount too small (minimum: 0.000001)',
         };
       }
-      
+
       // Prevent trading between identical tokens
       if (fromToken === toToken) {
         console.log(`[TradeSimulator] Cannot trade between identical tokens: ${fromToken}`);
@@ -98,7 +98,7 @@ export class TradeSimulator {
       // Determine chains for both tokens (using provided chain info or detecting)
       let fromTokenChain: BlockchainType, toTokenChain: BlockchainType;
       let fromTokenSpecificChain: SpecificChain | undefined, toTokenSpecificChain: SpecificChain | undefined;
-      
+
       // For the source token
       if (chainOptions?.fromChain) {
         fromTokenChain = chainOptions.fromChain;
@@ -108,7 +108,7 @@ export class TradeSimulator {
         fromTokenChain = this.priceTracker.determineChain(fromToken);
         console.log(`[TradeSimulator] Detected chain for fromToken: ${fromTokenChain}`);
       }
-      
+
       // For the destination token
       if (chainOptions?.toChain) {
         toTokenChain = chainOptions.toChain;
@@ -118,41 +118,41 @@ export class TradeSimulator {
         toTokenChain = this.priceTracker.determineChain(toToken);
         console.log(`[TradeSimulator] Detected chain for toToken: ${toTokenChain}`);
       }
-      
-      // Check for cross-chain trades if not allowed
-      if (!this.allowCrossChainTrading && 
-          (fromTokenChain !== toTokenChain || 
-           (fromTokenSpecificChain && toTokenSpecificChain && fromTokenSpecificChain !== toTokenSpecificChain))) {
-        console.log(`[TradeSimulator] Cross-chain trading is disabled. Cannot trade between ${fromTokenChain}(${fromTokenSpecificChain || 'none'}) and ${toTokenChain}(${toTokenSpecificChain || 'none'})`);
-        return {
-          success: false,
-          error: 'Cross-chain trading is disabled. Both tokens must be on the same blockchain.'
-        };
-      }
-      
+
       // Get prices with chain information for better performance
       const fromPrice = await this.priceTracker.getPrice(fromToken, fromTokenChain, fromTokenSpecificChain);
       const toPrice = await this.priceTracker.getPrice(toToken, toTokenChain, toTokenSpecificChain);
 
       console.log(`[TradeSimulator] Got prices:
-                From Token (${fromToken}): $${fromPrice} (${fromTokenChain})
-                To Token (${toToken}): $${toPrice} (${toTokenChain})
-            `);
+        From Token (${fromToken}): $${fromPrice} (${fromTokenChain})
+        To Token (${toToken}): $${toPrice} (${toTokenChain})
+    `);
 
       if (!fromPrice || !toPrice) {
         console.log(`[TradeSimulator] Missing price data:
-                    From Token Price: ${fromPrice}
-                    To Token Price: ${toPrice}
-                `);
+            From Token Price: ${fromPrice}
+            To Token Price: ${toPrice}
+        `);
         return {
           success: false,
           error: 'Unable to determine price for tokens',
         };
       }
 
+      // Check for cross-chain trades if not allowed
+      if (!this.allowCrossChainTrading &&
+        (fromTokenChain !== toTokenChain ||
+          (fromTokenSpecificChain && toTokenSpecificChain && fromTokenSpecificChain !== toTokenSpecificChain))) {
+        console.log(`[TradeSimulator] Cross-chain trading is disabled. Cannot trade between ${fromTokenChain}(${fromTokenSpecificChain || 'none'}) and ${toTokenChain}(${toTokenSpecificChain || 'none'})`);
+        return {
+          success: false,
+          error: 'Cross-chain trading is disabled. Both tokens must be on the same blockchain.'
+        };
+      }
+
       // Calculate the trade using USD values
-      const fromValueUSD = fromAmount * fromPrice;
-      
+      const fromValueUSD = fromAmount * fromPrice.price;
+
       // Calculate portfolio value to check maximum trade size (25% of portfolio)
       const portfolioValue = await this.calculatePortfolioValue(teamId);
       if (fromValueUSD > portfolioValue * 0.25) {
@@ -167,10 +167,10 @@ export class TradeSimulator {
       const baseSlippage = (fromValueUSD / 10000) * 0.05; // 0.05% per $10,000 (10x lower than before)
       const actualSlippage = baseSlippage * (0.9 + (Math.random() * 0.2)); // ±10% randomness (reduced from ±20%)
       const slippagePercentage = actualSlippage * 100;
-      
+
       // Calculate final amount with slippage
       const effectiveFromValueUSD = fromValueUSD * (1 - actualSlippage);
-      const toAmount = effectiveFromValueUSD / toPrice;
+      const toAmount = effectiveFromValueUSD / toPrice.price;
 
       // Debug logging for price calculations
       console.log(`[TradeSimulator] Trade calculation details:
@@ -210,8 +210,8 @@ export class TradeSimulator {
         // Add chain information to the trade record
         fromChain: fromTokenChain,
         toChain: toTokenChain,
-        fromSpecificChain: fromTokenSpecificChain,
-        toSpecificChain: toTokenSpecificChain
+        fromSpecificChain: fromPrice.specificChain,
+        toSpecificChain: toPrice.specificChain
       };
 
       // Store the trade in database
@@ -269,15 +269,15 @@ export class TradeSimulator {
           return cachedTrades.slice(0, limit);
         }
       }
-      
+
       // Get from database
       const trades = await repositories.tradeRepository.getTeamTrades(teamId, limit, offset);
-      
+
       // Update cache if fetching recent trades
       if (!offset && (!limit || limit <= 100)) {
         this.tradeCache.set(teamId, [...trades]);
       }
-      
+
       return trades;
     } catch (error) {
       console.error(`[TradeSimulator] Error getting team trades:`, error);
@@ -309,14 +309,14 @@ export class TradeSimulator {
   async calculatePortfolioValue(teamId: string): Promise<number> {
     let totalValue = 0;
     const balances = await this.balanceManager.getAllBalances(teamId);
-    
+
     for (const balance of balances) {
       const price = await this.priceTracker.getPrice(balance.token);
       if (price) {
-        totalValue += balance.amount * price;
+        totalValue += balance.amount * price.price;
       }
     }
-    
+
     return totalValue;
   }
 

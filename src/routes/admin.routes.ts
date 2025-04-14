@@ -145,9 +145,6 @@ router.use(adminAuthMiddleware(services.teamManager));
  *                     contactPerson:
  *                       type: string
  *                       description: Contact person name
- *                     contact_person:
- *                       type: string
- *                       description: Contact person name (snake_case version)
  *                     walletAddress:
  *                       type: string
  *                       description: Ethereum wallet address
@@ -203,7 +200,7 @@ router.post('/teams/register', AdminController.registerTeam);
  *                       email:
  *                         type: string
  *                         description: Team email
- *                       contact_person:
+ *                       contactPerson:
  *                         type: string
  *                         description: Contact person name
  *                       createdAt:

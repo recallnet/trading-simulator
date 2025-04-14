@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from 'uuid';
-import { Competition, CompetitionStatus, PortfolioValue, SpecificChain } from '../types';
+import { Competition, CompetitionStatus, PortfolioValue, PriceReport, SpecificChain } from '../types';
 import { BalanceManager } from './balance-manager.service';
 import { TradeSimulator } from './trade-simulator.service';
 import { PriceTracker } from './price-tracker.service';
@@ -34,7 +34,7 @@ export class CompetitionManager {
     this.balanceManager = balanceManager;
     this.tradeSimulator = tradeSimulator;
     this.priceTracker = priceTracker;
-    
+
     // Load active competition on initialization
     this.loadActiveCompetition();
   }
@@ -74,7 +74,7 @@ export class CompetitionManager {
     };
 
     await repositories.competitionRepository.create(competition);
-    
+
     console.log(`[CompetitionManager] Created competition: ${name} (${id})`);
     return competition;
   }
@@ -121,10 +121,10 @@ export class CompetitionManager {
     for (const teamId of teamIds) {
       // Reset balances
       await this.balanceManager.resetTeamBalances(teamId);
-      
+
       // Register team in the competition
       await repositories.competitionRepository.addTeamToCompetition(competitionId, teamId);
-      
+
       // Activate the team using existing reactivateTeam method
       await repositories.teamRepository.reactivateTeam(teamId);
       console.log(`[CompetitionManager] Activated team: ${teamId}`);
@@ -135,16 +135,16 @@ export class CompetitionManager {
     competition.startDate = new Date();
     competition.updatedAt = new Date();
     await repositories.competitionRepository.update(competition);
-    
+
     // Update cache
     this.activeCompetitionCache = competitionId;
 
     console.log(`[CompetitionManager] Started competition: ${competition.name} (${competitionId})`);
     console.log(`[CompetitionManager] Participating teams: ${teamIds.join(', ')}`);
-    
+
     // Take initial portfolio snapshots
     await this.takePortfolioSnapshots(competitionId);
-    
+
     return competition;
   }
 
@@ -172,13 +172,13 @@ export class CompetitionManager {
 
     // Get teams in the competition
     const competitionTeams = await repositories.competitionRepository.getCompetitionTeams(competitionId);
-    
+
     // Deactivate all teams in the competition
     console.log(`[CompetitionManager] Deactivating ${competitionTeams.length} teams for ended competition`);
     for (const teamId of competitionTeams) {
       try {
         await services.teamManager.deactivateTeam(
-          teamId, 
+          teamId,
           `Competition ${competition.name} (${competitionId}) ended`
         );
       } catch (error) {
@@ -191,12 +191,12 @@ export class CompetitionManager {
     competition.endDate = new Date();
     competition.updatedAt = new Date();
     await repositories.competitionRepository.update(competition);
-    
+
     // Update cache
     this.activeCompetitionCache = null;
 
     console.log(`[CompetitionManager] Ended competition: ${competition.name} (${competitionId})`);
-    
+
     return competition;
   }
 
@@ -225,7 +225,7 @@ export class CompetitionManager {
         this.activeCompetitionCache = null;
       }
     }
-    
+
     // Fallback to database query
     const activeCompetition = await repositories.competitionRepository.findActive();
     if (activeCompetition) {
@@ -240,70 +240,85 @@ export class CompetitionManager {
    */
   async takePortfolioSnapshots(competitionId: string): Promise<void> {
     console.log(`[CompetitionManager] Taking portfolio snapshots for competition ${competitionId}`);
-    
+
     const startTime = Date.now();
     const teams = await repositories.competitionRepository.getCompetitionTeams(competitionId);
     const timestamp = new Date();
     let priceLookupCount = 0;
     let dbPriceHitCount = 0;
     let reusedPriceCount = 0;
-    
+
     for (const teamId of teams) {
       const balances = await this.balanceManager.getAllBalances(teamId);
-      const valuesByToken: Record<string, { amount: number; valueUsd: number; price: number; specificChain?: SpecificChain }> = {};
+      const valuesByToken: Record<string, { amount: number; valueUsd: number; price: number; specificChain: SpecificChain }> = {};
       let totalValue = 0;
-      
+
       for (const balance of balances) {
         priceLookupCount++;
-        
+
         // First try to get latest price record from the database to reuse chain information
         const latestPriceRecord = await repositories.priceRepository.getLatestPrice(balance.token);
-        
-        let price: number | null = null;
-        let specificChain: SpecificChain | undefined = undefined;
-        
+
+        let specificChain: SpecificChain;
+        let priceResult: PriceReport | undefined = undefined;
+
         if (latestPriceRecord) {
           dbPriceHitCount++;
           specificChain = latestPriceRecord.specificChain;
-          
+
           // If price is recent enough (less than 10 minutes old), use it directly
           const priceAge = Date.now() - latestPriceRecord.timestamp.getTime();
           const isFreshPrice = priceAge < config.portfolio.priceFreshnessMs;
-          
+
           if (isFreshPrice) {
             // Use the existing price if it's fresh
-            price = latestPriceRecord.price;
+            priceResult = {
+              price: latestPriceRecord.price,
+              timestamp: latestPriceRecord.timestamp,
+              chain: latestPriceRecord.chain,
+              specificChain: latestPriceRecord.specificChain,
+              token: latestPriceRecord.token
+            }
             reusedPriceCount++;
-            console.log(`[CompetitionManager] Using fresh price for ${balance.token} from DB: $${price} (${specificChain || 'unknown chain'}) - age ${Math.round(priceAge/1000)}s, threshold ${Math.round(config.portfolio.priceFreshnessMs/1000)}s`);
+            console.log(`[CompetitionManager] Using fresh price for ${balance.token} from DB: $${priceResult.price} (${specificChain || 'unknown chain'}) - age ${Math.round(priceAge / 1000)}s, threshold ${Math.round(config.portfolio.priceFreshnessMs / 1000)}s`);
           } else if (specificChain && latestPriceRecord.chain) {
             // Use specific chain information to avoid chain detection when fetching a new price
             console.log(`[CompetitionManager] Using specific chain info from DB for ${balance.token}: ${specificChain}`);
-            
+
             // Pass both chain type and specific chain to getPrice to bypass chain detection
-            price = await this.priceTracker.getPrice(balance.token, latestPriceRecord.chain, specificChain);
+            const result = await this.priceTracker.getPrice(balance.token, latestPriceRecord.chain, specificChain);
+            if (result !== null) {
+              priceResult = result;
+            }
           } else {
             // Fallback to regular price lookup
-            price = await this.priceTracker.getPrice(balance.token);
+            const result = await this.priceTracker.getPrice(balance.token);
+            if (result !== null) {
+              priceResult = result;
+            }
           }
         } else {
           // No price record found, do regular price lookup
-          price = await this.priceTracker.getPrice(balance.token);
+          const result = await this.priceTracker.getPrice(balance.token);
+          if(result !== null){
+            priceResult = result;
+          }
         }
-        
-        if (price) {
-          const valueUsd = balance.amount * price;
+
+        if (priceResult) {
+          const valueUsd = balance.amount * priceResult.price;
           valuesByToken[balance.token] = {
             amount: balance.amount,
             valueUsd,
-            price,
-            specificChain
+            price: priceResult.price,
+            specificChain: priceResult.specificChain
           };
           totalValue += valueUsd;
         } else {
           console.warn(`[CompetitionManager] No price available for token ${balance.token}, excluding from portfolio snapshot`);
         }
       }
-      
+
       // Create portfolio snapshot in database
       const snapshot = await repositories.competitionRepository.createPortfolioSnapshot({
         teamId,
@@ -311,7 +326,7 @@ export class CompetitionManager {
         timestamp,
         totalValue
       });
-      
+
       // Store token values
       for (const [token, data] of Object.entries(valuesByToken)) {
         await repositories.competitionRepository.createPortfolioTokenValue({
@@ -324,13 +339,13 @@ export class CompetitionManager {
         });
       }
     }
-    
+
     const endTime = Date.now();
     const duration = endTime - startTime;
-    
+
     console.log(`[CompetitionManager] Completed portfolio snapshots for ${teams.length} teams in ${duration}ms`);
-    console.log(`[CompetitionManager] Price lookup stats: Total: ${priceLookupCount}, DB hits: ${dbPriceHitCount}, Hit rate: ${(dbPriceHitCount/priceLookupCount*100).toFixed(2)}%`);
-    console.log(`[CompetitionManager] Reused existing prices: ${reusedPriceCount}/${priceLookupCount} (${(reusedPriceCount/priceLookupCount*100).toFixed(2)}%)`);
+    console.log(`[CompetitionManager] Price lookup stats: Total: ${priceLookupCount}, DB hits: ${dbPriceHitCount}, Hit rate: ${(dbPriceHitCount / priceLookupCount * 100).toFixed(2)}%`);
+    console.log(`[CompetitionManager] Reused existing prices: ${reusedPriceCount}/${priceLookupCount} (${(reusedPriceCount / priceLookupCount * 100).toFixed(2)}%)`);
   }
 
   /**
@@ -342,7 +357,7 @@ export class CompetitionManager {
     try {
       // Try to get from recent portfolio snapshots first
       const snapshots = await repositories.competitionRepository.getLatestPortfolioSnapshots(competitionId);
-      
+
       if (snapshots.length > 0) {
         // Sort by value descending
         return snapshots.map((snapshot: PortfolioSnapshot) => ({
@@ -350,11 +365,11 @@ export class CompetitionManager {
           value: snapshot.totalValue
         })).sort((a: { value: number }, b: { value: number }) => b.value - a.value);
       }
-      
+
       // Fallback to calculating current values
       const teams = await repositories.competitionRepository.getCompetitionTeams(competitionId);
       const leaderboard: { teamId: string; value: number }[] = [];
-      
+
       for (const teamId of teams) {
         const portfolioValue = await this.tradeSimulator.calculatePortfolioValue(teamId);
         leaderboard.push({
@@ -362,7 +377,7 @@ export class CompetitionManager {
           value: portfolioValue
         });
       }
-      
+
       // Sort by value descending
       return leaderboard.sort((a, b) => b.value - a.value);
     } catch (error) {
@@ -380,10 +395,10 @@ export class CompetitionManager {
   async getTeamPortfolioSnapshots(competitionId: string, teamId: string): Promise<PortfolioValue[]> {
     const snapshots = await repositories.competitionRepository.getTeamPortfolioSnapshots(competitionId, teamId);
     const result: PortfolioValue[] = [];
-    
+
     for (const snapshot of snapshots) {
       const tokenValues = await repositories.competitionRepository.getPortfolioTokenValues(snapshot.id);
-      
+
       const valuesByToken: Record<string, { amount: number; valueUsd: number }> = {};
       for (const tokenValue of tokenValues) {
         valuesByToken[tokenValue.tokenAddress] = {
@@ -391,7 +406,7 @@ export class CompetitionManager {
           valueUsd: tokenValue.valueUsd
         };
       }
-      
+
       result.push({
         teamId,
         competitionId,
@@ -400,10 +415,10 @@ export class CompetitionManager {
         valuesByToken
       });
     }
-    
+
     return result;
   }
-  
+
   /**
    * Check if competition manager is healthy
    * For system health check use

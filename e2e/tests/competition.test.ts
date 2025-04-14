@@ -2,6 +2,8 @@ import { createTestClient, registerTeamAndGetClient, startTestCompetition, creat
 import axios from 'axios';
 import { getBaseUrl } from '../utils/server';
 import { getPool } from '../utils/db-manager';
+import { ApiResponse, CompetitionRulesResponse, CompetitionStatusResponse, LeaderboardResponse, TeamProfileResponse, EndCompetitionResponse } from '../utils/api-types';
+import { wait } from '../utils/test-helpers';
 
 describe('Competition API', () => {
   let adminApiKey: string;
@@ -167,14 +169,14 @@ describe('Competition API', () => {
     const competitionId = competitionResponse.competition.id;
     
     // Team checks competition status
-    const statusResponse = await teamClient.getCompetitionStatus();
+    const statusResponse = await teamClient.getCompetitionStatus() as CompetitionStatusResponse;
     expect(statusResponse.success).toBe(true);
     expect(statusResponse.competition).toBeDefined();
-    expect(statusResponse.competition.name).toBe(competitionName);
-    expect(statusResponse.competition.status).toBe('ACTIVE');
+    expect(statusResponse.competition?.name).toBe(competitionName);
+    expect(statusResponse.competition?.status).toBe('ACTIVE');
     
     // Team checks leaderboard
-    const leaderboardResponse = await teamClient.getLeaderboard();
+    const leaderboardResponse = await teamClient.getLeaderboard() as LeaderboardResponse;
     expect(leaderboardResponse.success).toBe(true);
     expect(leaderboardResponse.leaderboard).toBeDefined();
     expect(leaderboardResponse.leaderboard).toBeInstanceOf(Array);
@@ -202,19 +204,19 @@ describe('Competition API', () => {
     await startTestCompetition(adminClient, `Exclusive Competition ${Date.now()}`, [teamIn.id]);
     
     // Team in competition checks status - should succeed
-    const statusInResponse = await teamInClient.getCompetitionStatus();
+    const statusInResponse = await teamInClient.getCompetitionStatus() as CompetitionStatusResponse;
     expect(statusInResponse.success).toBe(true);
     expect(statusInResponse.competition).toBeDefined();
     expect(statusInResponse.participating).toBe(true);
     
     // Team not in competition checks status - should show limited competition info
-    const statusOutResponse = await teamOutClient.getCompetitionStatus();
+    const statusOutResponse = await teamOutClient.getCompetitionStatus() as CompetitionStatusResponse;
     expect(statusOutResponse.success).toBe(true);
     expect(statusOutResponse.active).toBe(true);
     expect(statusOutResponse.competition).toBeDefined();
-    expect(statusOutResponse.competition.id).toBeDefined();
-    expect(statusOutResponse.competition.name).toBeDefined();
-    expect(statusOutResponse.competition.status).toBeDefined();
+    expect(statusOutResponse.competition?.id).toBeDefined();
+    expect(statusOutResponse.competition?.name).toBeDefined();
+    expect(statusOutResponse.competition?.status).toBeDefined();
     expect(statusOutResponse.message).toBe("Your team is not participating in this competition");
     expect(statusOutResponse.participating).toBeUndefined();
   });
@@ -232,15 +234,15 @@ describe('Competition API', () => {
     const competitionResponse = await startTestCompetition(adminClient, competitionName, [team.id]);
     
     // Admin checks competition status
-    const adminStatusResponse = await adminClient.getCompetitionStatus();
+    const adminStatusResponse = await adminClient.getCompetitionStatus() as CompetitionStatusResponse;
     expect(adminStatusResponse.success).toBe(true);
     expect(adminStatusResponse.active).toBe(true);
     expect(adminStatusResponse.competition).toBeDefined();
-    expect(adminStatusResponse.competition.name).toBe(competitionName);
-    expect(adminStatusResponse.competition.status).toBe('ACTIVE');
+    expect(adminStatusResponse.competition?.name).toBe(competitionName);
+    expect(adminStatusResponse.competition?.status).toBe('ACTIVE');
     
     // Admin checks leaderboard
-    const adminLeaderboardResponse = await adminClient.getLeaderboard();
+    const adminLeaderboardResponse = await adminClient.getLeaderboard() as LeaderboardResponse;
     expect(adminLeaderboardResponse.success).toBe(true);
     expect(adminLeaderboardResponse.competition).toBeDefined();
     expect(adminLeaderboardResponse.leaderboard).toBeDefined();
@@ -251,14 +253,17 @@ describe('Competition API', () => {
     expect(adminLeaderboardResponse.leaderboard[0].teamName).toBe('Regular Team');
     
     // Admin checks competition rules
-    const adminRulesResponse = await adminClient.getRules();
+    const adminRulesResponse = await adminClient.getRules() as CompetitionRulesResponse;
     expect(adminRulesResponse.success).toBe(true);
     expect(adminRulesResponse.rules).toBeDefined();
     expect(adminRulesResponse.rules.tradingRules).toBeDefined();
     expect(adminRulesResponse.rules.rateLimits).toBeDefined();
+    expect(adminRulesResponse.rules.availableChains).toBeDefined();
+    expect(adminRulesResponse.rules.slippageFormula).toBeDefined();
+    expect(adminRulesResponse.rules.portfolioSnapshots).toBeDefined();
     
     // Regular team checks all the same endpoints to verify they work for participants too
-    const teamStatusResponse = await teamClient.getCompetitionStatus();
+    const teamStatusResponse = await teamClient.getCompetitionStatus() as CompetitionStatusResponse;
     expect(teamStatusResponse.success).toBe(true);
     expect(teamStatusResponse.active).toBe(true);
     
@@ -293,7 +298,7 @@ describe('Competition API', () => {
     await startTestCompetition(adminClient, competitionName, [team.id]);
     
     // Check leaderboard to verify team is now active
-    const leaderboardResponse = await adminClient.getLeaderboard();
+    const leaderboardResponse = await adminClient.getLeaderboard() as LeaderboardResponse;
     expect(leaderboardResponse.success).toBe(true);
     expect(leaderboardResponse.leaderboard).toBeDefined();
     
@@ -302,10 +307,10 @@ describe('Competition API', () => {
       (entry: any) => entry.teamId === team.id
     );
     expect(teamInLeaderboard).toBeDefined();
-    expect(teamInLeaderboard.active).toBe(true);
+    expect(teamInLeaderboard?.active).toBe(true);
     
     // Team should now be able to access endpoints
-    const profileResponse = await teamClient.getProfile();
+    const profileResponse = await teamClient.getProfile() as TeamProfileResponse;
     expect(profileResponse.success).toBe(true);
     expect(profileResponse.team).toBeDefined();
   });
@@ -323,17 +328,17 @@ describe('Competition API', () => {
     const competition = await startTestCompetition(adminClient, competitionName, [team.id]);
     
     // Team should be able to access endpoints while competition is active
-    const profileResponse = await teamClient.getProfile();
+    const profileResponse = await teamClient.getProfile() as TeamProfileResponse;
     expect(profileResponse.success).toBe(true);
     expect(profileResponse.team).toBeDefined();
     
     // End the competition
-    const endResponse = await adminClient.endCompetition(competition.competition.id);
+    const endResponse = await adminClient.endCompetition(competition.competition.id) as EndCompetitionResponse;
+    expect(endResponse.success).toBe(true);
     expect(endResponse.competition.status).toBe('COMPLETED');
     
     // Give a small delay for deactivation to complete
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
+    await wait(500);
     // Directly check the database to verify the team is deactivated
     const pool = getPool();
     const dbResult = await pool.query('SELECT active, deactivation_reason FROM teams WHERE id = $1', [team.id]);

@@ -207,7 +207,7 @@ export interface ProfileResponse extends ApiResponse {
     id: string;
     name: string;
     email: string;
-    contact_person: string;
+    contactPerson: string;
     createdAt: string;
     updatedAt: string;
   };
