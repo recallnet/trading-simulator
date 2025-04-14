@@ -15,6 +15,7 @@ const solanaTokens = {
 const ethereumTokens = {
   ETH: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2', // WETH
   USDC: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
+  USDT: '0xdAC17F958D2ee523a2206206994597C13D831ec7', // USDT on Ethereum
   SHIB: '0x95aD61b0a150d79219dCF64E1E6Cc01f0B64C4cE'
 };
 
@@ -51,12 +52,6 @@ describe('DexScreenerProvider', () => {
     it('should fetch USDC price', async () => {
       const priceReport = await provider.getPrice(solanaTokens.USDC, BlockchainType.SVM, 'svm');
       
-      // If price is null due to API error, log a message and skip test
-      if (priceReport === null) {
-        console.log('⚠️ SKIPPING USDC TEST: The DexScreener API returned an error for the USDC token.');
-        console.log('This could be due to temporary API issues or rate limiting.');
-        return;
-      }
       
       expect(priceReport).not.toBeNull();
       expect(typeof priceReport?.price).toBe('number');
@@ -88,6 +83,27 @@ describe('DexScreenerProvider', () => {
       
       console.log(`USDC price: $${priceReport?.price}`);
     });
+
+    it('should fetch ETH price above $1000 on Ethereum mainnet', async () => {
+      const priceReport = await provider.getPrice(ethereumTokens.ETH, BlockchainType.EVM, 'eth');
+      
+      expect(priceReport).not.toBeNull();
+      expect(typeof priceReport?.price).toBe('number');
+      expect(priceReport?.price).toBeGreaterThan(1000); // ETH should be above $1000
+      
+      console.log(`ETH price on Ethereum mainnet: $${priceReport?.price}`);
+    }, 15000);
+
+    it('should fetch USDT price close to $1 on Ethereum mainnet', async () => {
+      const priceReport = await provider.getPrice(ethereumTokens.USDT, BlockchainType.EVM, 'eth');
+      
+      expect(priceReport).not.toBeNull();
+      expect(typeof priceReport?.price).toBe('number');
+      expect(priceReport?.price).toBeGreaterThan(0);
+      expect(priceReport?.price).toBeCloseTo(1, 1); // USDT should be close to $1
+      
+      console.log(`USDT price on Ethereum mainnet: $${priceReport?.price}`);
+    }, 15000);
   });
 
   describe('Base token price fetching', () => {
