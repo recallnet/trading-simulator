@@ -128,7 +128,6 @@ export class TradeSimulator {
       // Calculate the trade using USD values
       const fromValueUSD = fromAmount * fromPrice;
       
-      // Normal validation flow for non-test cases
       // Validate balances
       const currentBalance = await this.balanceManager.getBalance(teamId, fromToken);
       console.log(`[TradeSimulator] Current balance of ${fromToken}: ${currentBalance}`);
