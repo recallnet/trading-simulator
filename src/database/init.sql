@@ -8,6 +8,9 @@ CREATE TABLE IF NOT EXISTS teams (
   wallet_address VARCHAR(42) UNIQUE,
   bucket_addresses TEXT[],
   is_admin BOOLEAN DEFAULT FALSE,
+  active BOOLEAN DEFAULT FALSE,
+  deactivation_reason TEXT,
+  deactivation_date TIMESTAMP WITH TIME ZONE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
@@ -15,6 +18,7 @@ CREATE TABLE IF NOT EXISTS teams (
 -- Create team indexes
 CREATE INDEX IF NOT EXISTS idx_teams_api_key ON teams(api_key);
 CREATE INDEX IF NOT EXISTS idx_teams_is_admin ON teams(is_admin);
+CREATE INDEX IF NOT EXISTS idx_teams_active ON teams(active);
 
 -- Competitions table
 CREATE TABLE IF NOT EXISTS competitions (

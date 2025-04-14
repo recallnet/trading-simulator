@@ -21,9 +21,11 @@ export class TeamRepository extends BaseRepository<Team> {
     try {
       const query = `
         INSERT INTO teams (
-          id, name, email, contact_person, api_key, is_admin, created_at, updated_at
+          id, name, email, contact_person, api_key, wallet_address, is_admin, 
+          active, deactivation_reason, deactivation_date, 
+          created_at, updated_at
         ) VALUES (
-          $1, $2, $3, $4, $5, $6, $7, $8
+          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12
         ) RETURNING *
       `;
       
@@ -33,7 +35,11 @@ export class TeamRepository extends BaseRepository<Team> {
         team.email,
         team.contactPerson,
         team.apiKey,
+        team.walletAddress,
         team.isAdmin || false,
+        team.active !== undefined ? team.active : false,
+        team.deactivationReason || null,
+        team.deactivationDate || null,
         team.createdAt,
         team.updatedAt
       ];
@@ -90,9 +96,13 @@ export class TeamRepository extends BaseRepository<Team> {
           email = $2,
           contact_person = $3,
           api_key = $4,
-          is_admin = $5,
-          updated_at = $6
-        WHERE id = $7
+          wallet_address = $5,
+          is_admin = $6,
+          active = $7,
+          deactivation_reason = $8,
+          deactivation_date = $9,
+          updated_at = $10
+        WHERE id = $11
         RETURNING *
       `;
       
@@ -101,7 +111,11 @@ export class TeamRepository extends BaseRepository<Team> {
         team.email,
         team.contactPerson,
         team.apiKey,
+        team.walletAddress,
         team.isAdmin || false,
+        team.active !== undefined ? team.active : false,
+        team.deactivationReason || null,
+        team.deactivationDate || null,
         new Date(),
         team.id
       ];
@@ -175,6 +189,118 @@ export class TeamRepository extends BaseRepository<Team> {
   }
 
   /**
+   * Deactivate a team
+   * @param teamId Team ID to deactivate
+   * @param reason Reason for deactivation
+   * @param client Optional database client for transactions
+   */
+  async deactivateTeam(teamId: string, reason: string, client?: PoolClient): Promise<Team | null> {
+    try {
+      // First check if team exists
+      const team = await this.findById(teamId, client);
+      if (!team) {
+        return null;
+      }
+
+      const query = `
+        UPDATE teams SET
+          active = false,
+          deactivation_reason = $1,
+          deactivation_date = $2,
+          updated_at = $3
+        WHERE id = $4
+        RETURNING *
+      `;
+      
+      const values = [
+        reason,
+        new Date(),
+        new Date(),
+        teamId
+      ];
+      
+      const result = client 
+        ? await client.query(query, values) 
+        : await this.db.query(query, values);
+      
+      if (result.rows.length === 0) {
+        return null;
+      }
+      
+      return this.mapToEntity(this.toCamelCase(result.rows[0]));
+    } catch (error) {
+      console.error('[TeamRepository] Error in deactivateTeam:', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Reactivate a team
+   * @param teamId Team ID to reactivate
+   * @param client Optional database client for transactions
+   */
+  async reactivateTeam(teamId: string, client?: PoolClient): Promise<Team | null> {
+    try {
+      // First check if team exists
+      const team = await this.findById(teamId, client);
+      if (!team) {
+        return null;
+      }
+
+      const query = `
+        UPDATE teams SET
+          active = true,
+          deactivation_reason = NULL,
+          deactivation_date = NULL,
+          updated_at = $1
+        WHERE id = $2
+        RETURNING *
+      `;
+      
+      const values = [
+        new Date(),
+        teamId
+      ];
+      
+      const result = client 
+        ? await client.query(query, values) 
+        : await this.db.query(query, values);
+      
+      if (result.rows.length === 0) {
+        return null;
+      }
+      
+      return this.mapToEntity(this.toCamelCase(result.rows[0]));
+    } catch (error) {
+      console.error('[TeamRepository] Error in reactivateTeam:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Find all inactive teams
+   * @param client Optional database client for transactions
+   */
+  async findInactiveTeams(client?: PoolClient): Promise<Team[]> {
+    try {
+      const query = `
+        SELECT * FROM teams
+        WHERE active = false
+        ORDER BY deactivation_date DESC
+      `;
+      
+      const result = client 
+        ? await client.query(query) 
+        : await this.db.query(query);
+      
+      return result.rows.map((row: any) => this.mapToEntity(this.toCamelCase(row)));
+    } catch (error) {
+      console.error('[TeamRepository] Error in findInactiveTeams:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Map database row to Team entity
    * @param data Row data with camelCase keys
    */
@@ -185,7 +311,11 @@ export class TeamRepository extends BaseRepository<Team> {
       email: data.email,
       contactPerson: data.contactPerson,
       apiKey: data.apiKey,
+      walletAddress: data.walletAddress,
       isAdmin: data.isAdmin || false,
+      active: data.active !== undefined ? data.active : false,
+      deactivationReason: data.deactivationReason,
+      deactivationDate: data.deactivationDate ? new Date(data.deactivationDate) : undefined,
       createdAt: new Date(data.createdAt),
       updatedAt: new Date(data.updatedAt)
     };

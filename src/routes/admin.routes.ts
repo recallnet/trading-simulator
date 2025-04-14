@@ -100,6 +100,7 @@ router.use(adminAuthMiddleware(services.teamManager));
  *               - teamName
  *               - email
  *               - contactPerson
+ *               - walletAddress
  *             properties:
  *               teamName:
  *                 type: string
@@ -114,6 +115,10 @@ router.use(adminAuthMiddleware(services.teamManager));
  *                 type: string
  *                 description: Name of the contact person
  *                 example: John Doe
+ *               walletAddress:
+ *                 type: string
+ *                 description: Ethereum wallet address (must start with 0x)
+ *                 example: 0x1234567890123456789012345678901234567890
  *     responses:
  *       201:
  *         description: Team registered successfully
@@ -143,6 +148,9 @@ router.use(adminAuthMiddleware(services.teamManager));
  *                     contact_person:
  *                       type: string
  *                       description: Contact person name (snake_case version)
+ *                     walletAddress:
+ *                       type: string
+ *                       description: Ethereum wallet address
  *                     apiKey:
  *                       type: string
  *                       description: API key for the team to use with Bearer authentication. Admin should securely provide this to the team.
@@ -152,9 +160,9 @@ router.use(adminAuthMiddleware(services.teamManager));
  *                       format: date-time
  *                       description: Account creation timestamp
  *       400:
- *         description: Missing required parameters
+ *         description: Missing required parameters or invalid wallet address
  *       409:
- *         description: Team with this email already exists
+ *         description: Team with this email or wallet address already exists
  *       500:
  *         description: Server error
  */
@@ -259,12 +267,12 @@ router.delete('/teams/:teamId', AdminController.deleteTeam);
 
 /**
  * @openapi
- * /api/admin/competition/start:
+ * /api/admin/competition/create:
  *   post:
  *     tags:
  *       - Admin
- *     summary: Start a competition
- *     description: Create and start a new trading competition with specified teams
+ *     summary: Create a competition
+ *     description: Create a new competition without starting it. It will be in PENDING status and can be started later.
  *     security:
  *       - BearerAuth: []
  *     requestBody:
@@ -275,7 +283,6 @@ router.delete('/teams/:teamId', AdminController.deleteTeam);
  *             type: object
  *             required:
  *               - name
- *               - teamIds
  *             properties:
  *               name:
  *                 type: string
@@ -284,6 +291,76 @@ router.delete('/teams/:teamId', AdminController.deleteTeam);
  *               description:
  *                 type: string
  *                 description: Competition description
+ *                 example: A trading competition for the spring semester
+ *     responses:
+ *       201:
+ *         description: Competition created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   description: Operation success status
+ *                 competition:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                       description: Competition ID
+ *                     name:
+ *                       type: string
+ *                       description: Competition name
+ *                     description:
+ *                       type: string
+ *                       description: Competition description
+ *                     status:
+ *                       type: string
+ *                       enum: [PENDING, ACTIVE, COMPLETED]
+ *                       description: Competition status
+ *                     createdAt:
+ *                       type: string
+ *                       format: date-time
+ *                       description: Competition creation date
+ *       400:
+ *         description: Missing required parameters
+ *       401:
+ *         description: Unauthorized - Admin authentication required
+ *       500:
+ *         description: Server error
+ */
+router.post('/competition/create', AdminController.createCompetition);
+
+/**
+ * @openapi
+ * /api/admin/competition/start:
+ *   post:
+ *     tags:
+ *       - Admin
+ *     summary: Start a competition
+ *     description: Start a new or existing competition with specified teams. If competitionId is provided, it will start an existing competition. Otherwise, it will create and start a new one.
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - teamIds
+ *             properties:
+ *               competitionId:
+ *                 type: string
+ *                 description: ID of an existing competition to start. If not provided, a new competition will be created.
+ *               name:
+ *                 type: string
+ *                 description: Competition name (required when creating a new competition)
+ *                 example: Spring 2023 Trading Competition
+ *               description:
+ *                 type: string
+ *                 description: Competition description (used when creating a new competition)
  *                 example: A trading competition for the spring semester
  *               teamIds:
  *                 type: array
@@ -324,7 +401,7 @@ router.delete('/teams/:teamId', AdminController.deleteTeam);
  *                       description: Competition end date (null if not ended)
  *                     status:
  *                       type: string
- *                       enum: [pending, active, completed]
+ *                       enum: [PENDING, ACTIVE, COMPLETED]
  *                       description: Competition status
  *                     teamIds:
  *                       type: array
@@ -335,6 +412,8 @@ router.delete('/teams/:teamId', AdminController.deleteTeam);
  *         description: Missing required parameters
  *       401:
  *         description: Unauthorized - Admin authentication required
+ *       404:
+ *         description: Competition not found when using competitionId
  *       500:
  *         description: Server error
  */
@@ -395,7 +474,7 @@ router.post('/competition/start', AdminController.startCompetition);
  *                       description: Competition end date
  *                     status:
  *                       type: string
- *                       enum: [pending, active, completed]
+ *                       enum: [PENDING, ACTIVE, COMPLETED]
  *                       description: Competition status (completed)
  *                 leaderboard:
  *                   type: array
@@ -536,7 +615,7 @@ router.get('/competition/:competitionId/snapshots', AdminController.getCompetiti
  *                       description: Competition end date
  *                     status:
  *                       type: string
- *                       enum: [pending, active, completed]
+ *                       enum: [PENDING, ACTIVE, COMPLETED]
  *                       description: Competition status
  *                 leaderboard:
  *                   type: array
@@ -565,5 +644,129 @@ router.get('/competition/:competitionId/snapshots', AdminController.getCompetiti
  *         description: Server error
  */
 router.get('/reports/performance', AdminController.getPerformanceReports);
+
+/**
+ * @openapi
+ * /api/admin/teams/{teamId}/deactivate:
+ *   post:
+ *     tags:
+ *       - Admin
+ *     summary: Deactivate a team
+ *     description: Deactivate a team from the competition. The team will no longer be able to perform any actions.
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: teamId
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: ID of the team to deactivate
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - reason
+ *             properties:
+ *               reason:
+ *                 type: string
+ *                 description: Reason for deactivation
+ *                 example: Violated competition rules by using external API
+ *     responses:
+ *       200:
+ *         description: Team deactivated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   description: Operation success status
+ *                 team:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                       description: Team ID
+ *                     name:
+ *                       type: string
+ *                       description: Team name
+ *                     active:
+ *                       type: boolean
+ *                       description: Active status (will be false)
+ *                     deactivationReason:
+ *                       type: string
+ *                       description: Reason for deactivation
+ *                     deactivationDate:
+ *                       type: string
+ *                       format: date-time
+ *                       description: Date of deactivation
+ *       400:
+ *         description: Missing required parameters
+ *       401:
+ *         description: Unauthorized - Admin authentication required
+ *       403:
+ *         description: Cannot deactivate admin accounts
+ *       404:
+ *         description: Team not found
+ *       500:
+ *         description: Server error
+ */
+router.post('/teams/:teamId/deactivate', AdminController.deactivateTeam);
+
+/**
+ * @openapi
+ * /api/admin/teams/{teamId}/reactivate:
+ *   post:
+ *     tags:
+ *       - Admin
+ *     summary: Reactivate a team
+ *     description: Reactivate a previously deactivated team, allowing them to participate in the competition again.
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: teamId
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: ID of the team to reactivate
+ *     responses:
+ *       200:
+ *         description: Team reactivated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   description: Operation success status
+ *                 team:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                       description: Team ID
+ *                     name:
+ *                       type: string
+ *                       description: Team name
+ *                     active:
+ *                       type: boolean
+ *                       description: Active status (will be true)
+ *       400:
+ *         description: Team is already active
+ *       401:
+ *         description: Unauthorized - Admin authentication required
+ *       404:
+ *         description: Team not found
+ *       500:
+ *         description: Server error
+ */
+router.post('/teams/:teamId/reactivate', AdminController.reactivateTeam);
 
 export default router; 
