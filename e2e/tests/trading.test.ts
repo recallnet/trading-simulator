@@ -460,8 +460,8 @@ describe('Trading API', () => {
     });
     
     console.log(`Max percentage trade response: ${JSON.stringify(maxPercentageResponse)}`);
-    // expect(maxPercentageResponse.success).toBe(false);
-    // expect(maxPercentageResponse.error).toContain('exceeds maximum size');
+    expect(maxPercentageResponse.success).toBe(false);
+    expect(maxPercentageResponse.error).toContain('exceeds maximum size');
   });
   
   test('team can fetch price and execute a calculated trade', async () => {
