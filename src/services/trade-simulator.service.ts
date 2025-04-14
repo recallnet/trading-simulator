@@ -128,27 +128,6 @@ export class TradeSimulator {
       // Calculate the trade using USD values
       const fromValueUSD = fromAmount * fromPrice;
       
-      // *** IMPORTANT: Special handling for enforcing maximum trade percentage ***
-      // This block specifically handles the test case for MAX_TRADE_PERCENTAGE validation
-      if (fromToken === "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v" && 
-          toToken === "So11111111111111111111111111111111111111112" && 
-          process.env.NODE_ENV === 'test') {
-          
-        // Calculate portfolio value
-        const portfolioValue = await this.calculatePortfolioValue(teamId);
-        const maxTradeValue = portfolioValue * (this.maxTradePercentage / 100);
-        console.log(`[TradeSimulator] TEST MODE - Portfolio Value: $${portfolioValue}, Max Trade Value: $${maxTradeValue}, Attempted Trade Value: $${fromValueUSD}`);
-        
-        // Check if this specific trade in test mode exceeds the max percentage
-        if (fromValueUSD > maxTradeValue) {
-          console.log(`[TradeSimulator] TEST MODE - Trade exceeds maximum size: $${fromValueUSD} > $${maxTradeValue} (${this.maxTradePercentage}% of portfolio)`);
-          return {
-            success: false,
-            error: `Trade exceeds maximum size (${this.maxTradePercentage}% of portfolio value)`,
-          };
-        }
-      }
-      
       // Normal validation flow for non-test cases
       // Validate balances
       const currentBalance = await this.balanceManager.getBalance(teamId, fromToken);

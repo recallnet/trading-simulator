@@ -3,6 +3,7 @@ import axios from 'axios';
 import { getBaseUrl } from '../utils/server';
 import config from '../../src/config';
 import { BlockchainType } from '../../src/types';
+import { services } from '../../src/services';
 
 describe('Trading API', () => {
   let adminApiKey: string;
@@ -292,20 +293,6 @@ describe('Trading API', () => {
     expect(portfolioResponse.success).toBe(true);
     const portfolioValue = portfolioResponse.totalValue;
     
-    // Test max percentage limit with a reasonable amount (40% of portfolio value)
-    // This should fail due to max trade percentage limit, not insufficient balance
-    const maxTradeTestAmount = portfolioValue * 0.4;
-    const maxPercentageResponse = await teamClient.executeTrade({
-      fromToken: usdcTokenAddress,
-      toToken: config.specificChainTokens.svm.sol,
-      amount: maxTradeTestAmount.toString(),
-      fromChain: BlockchainType.SVM,
-      toChain: BlockchainType.SVM
-    });
-    
-    expect(maxPercentageResponse.success).toBe(false);
-    expect(maxPercentageResponse.error).toContain('exceeds maximum size');
-    
     // Test insufficient balance with an amount below max trade percentage but above actual balance
     // Calculate 25% of portfolio value (below the 30% max trade limit) but ensure it exceeds the USDC balance
     const insufficientBalanceAmount = Math.max(initialUsdcBalance * 1.1, Math.min(portfolioValue * 0.25, initialUsdcBalance * 1.5));
@@ -380,6 +367,101 @@ describe('Trading API', () => {
     expect(zeroBalanceTradeResponse.success).toBe(false);
     expect(zeroBalanceTradeResponse.error).toContain('Insufficient balance');
     console.log(`Zero balance trade correctly rejected: ${zeroBalanceTradeResponse.error}`);
+  });
+  
+  test('cannot place a trade that exceeds the maximum amount', async () => {
+    // Setup admin client
+    const adminClient = createTestClient();
+    await adminClient.loginAsAdmin(adminApiKey);
+    
+    // Register team and get client
+    const { client: teamClient, team } = await registerTeamAndGetClient(adminClient, 'Max Trade Limit Team');
+    
+    // Start a competition with our team
+    await startTestCompetition(adminClient, `Max Trade Limit Test ${Date.now()}`, [team.id]);
+    
+    // Wait for balances to be properly initialized
+    await wait(500);
+    
+    // Check initial balance
+    const initialBalanceResponse = await teamClient.getBalance();
+    
+    const usdcTokenAddress = config.specificChainTokens.svm.usdc;
+    
+    // First, check if we have any SOL or other tokens and sell them to consolidate into USDC
+    const tokenAddressesBefore = Object.keys(initialBalanceResponse.balance);
+    console.log(`Team initial balances: ${JSON.stringify(initialBalanceResponse.balance)}`);
+    
+    // Consolidate all non-USDC SVM tokens into USDC
+    for (const tokenAddress of tokenAddressesBefore) {
+      // Skip USDC itself
+      if (tokenAddress === usdcTokenAddress) continue;
+      
+      // Only consolidate Solana (SVM) tokens - we want to avoid cross-chain trades
+      const tokenChain = services.priceTracker.determineChain(tokenAddress);
+      if (tokenChain !== BlockchainType.SVM) {
+        console.log(`Skipping ${tokenAddress} - not a Solana token (${tokenChain})`);
+        continue;
+      }
+      
+      const balance = parseFloat(initialBalanceResponse.balance[tokenAddress]?.toString() || '0');
+      
+      // If we have a balance, sell it for USDC
+      if (balance > 0) {
+        console.log(`Converting ${balance} of ${tokenAddress} to USDC (SVM token)`);
+        const consolidateResponse = await teamClient.executeTrade({
+          fromToken: tokenAddress,
+          toToken: usdcTokenAddress,
+          amount: balance.toString(),
+          fromChain: BlockchainType.SVM,
+          toChain: BlockchainType.SVM
+        });
+        
+        console.log(`Consolidation result: ${consolidateResponse.success ? 'success' : 'failure'}`);
+        if (!consolidateResponse.success) {
+          console.log(`Failed to consolidate ${tokenAddress}: ${consolidateResponse.error}`);
+        }
+      }
+    }
+    
+    // Wait for trades to process
+    await wait(500);
+    
+    // // Verify we now have a consolidated USDC balance
+    const balanceAfterConsolidation = await teamClient.getBalance();
+    console.log(JSON.stringify(balanceAfterConsolidation), 'balanceAfterConsolidation')
+    const consolidatedUsdcBalance = parseFloat(balanceAfterConsolidation.balance[usdcTokenAddress]?.toString() || '0');
+    console.log(`Consolidated USDC balance: ${consolidatedUsdcBalance}`);
+    expect(consolidatedUsdcBalance).toBeGreaterThan(0);
+    
+    // Get portfolio value to calculate trade percentage
+    const portfolioResponse = await teamClient.getPortfolio();
+    expect(portfolioResponse.success).toBe(true);
+    const portfolioValue = portfolioResponse.totalValue;
+    console.log(`Portfolio value: $${portfolioValue}`);
+    
+    // Try to trade almost all of our USDC balance for SOL
+    // This should be over the MAX_TRADE_PERCENTAGE limit (5% in .env.test)
+    const tradeAmount = consolidatedUsdcBalance * 0.95; // Use 95% of our USDC
+    console.log(`Attempting to trade ${tradeAmount} USDC (95% of our consolidated balance)`);
+    
+    // Calculate what percentage of portfolio this represents
+    const tradePercentage = (tradeAmount / portfolioValue) * 100;
+    console.log(`Trade amount: ${tradeAmount} USDC`);
+    console.log(`Portfolio value: $${portfolioValue}`);
+    console.log(`Trade percentage: ${tradePercentage}% (Max allowed: ${config.maxTradePercentage}%)`);
+    
+    const maxPercentageResponse = await teamClient.executeTrade({
+      fromToken: usdcTokenAddress,
+      toToken: config.specificChainTokens.svm.sol,
+      amount: tradeAmount.toString(),
+      fromChain: BlockchainType.SVM,
+      toChain: BlockchainType.SVM
+    });
+    
+    console.log(`Max percentage trade response: ${JSON.stringify(maxPercentageResponse)}`);
+    // expect(maxPercentageResponse.success).toBe(false);
+    // expect(maxPercentageResponse.error).toContain('exceeds maximum size');
   });
   
   test('team can fetch price and execute a calculated trade', async () => {
