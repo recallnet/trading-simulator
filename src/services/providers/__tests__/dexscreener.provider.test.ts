@@ -39,77 +39,77 @@ describe('DexScreenerProvider', () => {
 
   describe('Solana token price fetching', () => {
     it('should fetch SOL price', async () => {
-      const price = await provider.getPrice(solanaTokens.SOL, BlockchainType.SVM);
+      const priceReport = await provider.getPrice(solanaTokens.SOL, BlockchainType.SVM, 'svm');
       
-      expect(price).not.toBeNull();
-      expect(typeof price).toBe('number');
-      expect(price).toBeGreaterThan(0);
+      expect(priceReport).not.toBeNull();
+      expect(typeof priceReport?.price).toBe('number');
+      expect(priceReport?.price).toBeGreaterThan(0);
       
-      console.log(`Solana price: $${price}`);
+      console.log(`Solana price: $${priceReport?.price}`);
     }, 15000);
 
     it('should fetch USDC price', async () => {
-      const price = await provider.getPrice(solanaTokens.USDC, BlockchainType.SVM);
+      const priceReport = await provider.getPrice(solanaTokens.USDC, BlockchainType.SVM, 'svm');
       
       // If price is null due to API error, log a message and skip test
-      if (price === null) {
+      if (priceReport === null) {
         console.log('⚠️ SKIPPING USDC TEST: The DexScreener API returned an error for the USDC token.');
         console.log('This could be due to temporary API issues or rate limiting.');
         return;
       }
       
-      expect(price).not.toBeNull();
-      expect(typeof price).toBe('number');
-      expect(price).toBeGreaterThan(0);
-      expect(price).toBeCloseTo(1, 1); // USDC should be close to $1
+      expect(priceReport).not.toBeNull();
+      expect(typeof priceReport?.price).toBe('number');
+      expect(priceReport?.price).toBeGreaterThan(0);
+      expect(priceReport?.price).toBeCloseTo(1, 1); // USDC should be close to $1
       
-      console.log(`Solana USDC price: $${price}`);
+      console.log(`Solana USDC price: $${priceReport?.price}`);
     }, 15000);
   });
 
   describe('Ethereum token price fetching', () => {
     it('should fetch ETH price', async () => {
-      const price = await provider.getPrice(ethereumTokens.ETH, BlockchainType.EVM);
+      const priceReport = await provider.getPrice(ethereumTokens.ETH, BlockchainType.EVM, 'eth');
       
-      expect(price).not.toBeNull();
-      expect(typeof price).toBe('number');
-      expect(price).toBeGreaterThan(0);
+      expect(priceReport).not.toBeNull();
+      expect(typeof priceReport?.price).toBe('number');
+      expect(priceReport?.price).toBeGreaterThan(0);
       
-      console.log(`ETH price: $${price}`);
+      console.log(`ETH price: $${priceReport?.price}`);
     });
 
     it('should fetch USDC price', async () => {
-      const price = await provider.getPrice(ethereumTokens.USDC, BlockchainType.EVM);
+      const priceReport = await provider.getPrice(ethereumTokens.USDC, BlockchainType.EVM, 'eth');
       
-      expect(price).not.toBeNull();
-      expect(typeof price).toBe('number');
-      expect(price).toBeGreaterThan(0);
-      expect(price).toBeCloseTo(1, 1); // USDC should be close to $1
+      expect(priceReport).not.toBeNull();
+      expect(typeof priceReport?.price).toBe('number');
+      expect(priceReport?.price).toBeGreaterThan(0);
+      expect(priceReport?.price).toBeCloseTo(1, 1); // USDC should be close to $1
       
-      console.log(`USDC price: $${price}`);
+      console.log(`USDC price: $${priceReport?.price}`);
     });
   });
 
   describe('Base token price fetching', () => {
     it('should fetch ETH on Base', async () => {
-      const price = await provider.getPrice(baseTokens.ETH, BlockchainType.EVM, 'base');
+      const priceReport = await provider.getPrice(baseTokens.ETH, BlockchainType.EVM, 'base');
       
-      expect(price).not.toBeNull();
-      expect(typeof price).toBe('number');
-      expect(price).toBeGreaterThan(0);
+      expect(priceReport).not.toBeNull();
+      expect(typeof priceReport?.price).toBe('number');
+      expect(priceReport?.price).toBeGreaterThan(0);
       
-      console.log(`ETH on Base price: $${price}`);
+      console.log(`ETH on Base price: $${priceReport?.price}`);
     });
 
     it('should fetch USDC on Base', async () => {
-      const price = await provider.getPrice(baseTokens.USDC, BlockchainType.EVM, 'base');
+      const priceReport = await provider.getPrice(baseTokens.USDC, BlockchainType.EVM, 'base');
       
-      expect(price).not.toBeNull();
-      expect(typeof price).toBe('number');
-      expect(price).toBeGreaterThan(0);
-      expect(price).toBeCloseTo(1, 1); // USDC should be close to $1
+      expect(priceReport).not.toBeNull();
+      expect(typeof priceReport?.price).toBe('number');
+      expect(priceReport?.price).toBeGreaterThan(0);
+      expect(priceReport?.price).toBeCloseTo(1, 1); // USDC should be close to $1
       
-      console.log(`USDC on Base price: $${price}`);
+      console.log(`USDC on Base price: $${priceReport?.price}`);
     });
   });
 
@@ -127,17 +127,17 @@ describe('DexScreenerProvider', () => {
 
   describe('Support checking', () => {
     it('should support SOL token', async () => {
-      const supported = await provider.supports(solanaTokens.SOL);
+      const supported = await provider.supports(solanaTokens.SOL, 'svm');
       expect(supported).toBe(true);
     }, 15000);
     
     it('should support ETH token', async () => {
-      const supported = await provider.supports(ethereumTokens.ETH);
+      const supported = await provider.supports(ethereumTokens.ETH, 'eth');
       expect(supported).toBe(true);
     });
     
     it('should not support invalid tokens', async () => {
-      const supported = await provider.supports('invalid_token_address');
+      const supported = await provider.supports('invalid_token_address', 'eth');
       expect(supported).toBe(false);
     });
   });

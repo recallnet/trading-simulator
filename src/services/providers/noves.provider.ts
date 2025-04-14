@@ -1,5 +1,5 @@
 import { PriceSource } from '../../types';
-import { BlockchainType, SpecificChain } from '../../types';
+import { BlockchainType, SpecificChain, PriceReport } from '../../types';
 import axios from 'axios';
 import config from '../../config';
 
@@ -141,37 +141,64 @@ export class NovesProvider implements PriceSource {
    * @param tokenAddress Token address
    * @param chain Optional blockchain type, will be auto-detected if not provided
    * @param specificChain Optional specific chain to try first, if known
-   * @returns Token price in USD or null if not found
+   * @returns PriceReport object or null if not found
    */
-  async getPrice(tokenAddress: string, chain?: BlockchainType, specificChain?: SpecificChain): Promise<number | null> {
+  async getPrice(
+    tokenAddress: string, 
+    chain: BlockchainType = BlockchainType.EVM, 
+    specificChain: SpecificChain
+  ): Promise<PriceReport | null> {
     try {
       // Normalize the token address to lowercase
       const normalizedAddress = tokenAddress.toLowerCase();
       
-      // Determine chain if not provided
+      // Determine chain if provided as default
       const tokenChain = chain || this.determineChain(normalizedAddress);
+      const finalSpecificChain = tokenChain === BlockchainType.SVM ? 'svm' : specificChain;
       
       // Check cache first
       const cachedResult = this.getCachedPrice(normalizedAddress, tokenChain);
       if (cachedResult !== null) {
         console.log(`[NovesProvider] Using cached price for ${normalizedAddress} on ${tokenChain} (${cachedResult.specificChain || 'unknown'}): $${cachedResult.price}`);
-        return cachedResult.price;
+        return {
+          token: normalizedAddress,
+          price: cachedResult.price,
+          timestamp: new Date(),
+          chain: tokenChain,
+          specificChain: cachedResult.specificChain || finalSpecificChain
+        };
       }
 
       console.log(`[NovesProvider] Getting price for ${normalizedAddress} on ${tokenChain}`);
       
       // For Solana tokens
       if (tokenChain === BlockchainType.SVM) {
-        return await this.getPriceSolana(normalizedAddress);
+        const price = await this.getPriceSolana(normalizedAddress);
+        if (price !== null) {
+          return {
+            token: normalizedAddress,
+            price,
+            timestamp: new Date(),
+            chain: BlockchainType.SVM,
+            specificChain: 'svm'
+          };
+        }
+        return null;
       }
       
       // For EVM tokens
       // If specificChain is provided, try that first
       if (specificChain) {
-        const result = await this.getPriceForSpecificEVMChain(normalizedAddress, specificChain);
-        if (result !== null) {
-          this.setCachedPrice(normalizedAddress, tokenChain, result, specificChain);
-          return result;
+        const price = await this.getPriceForSpecificEVMChain(normalizedAddress, specificChain);
+        if (price !== null) {
+          this.setCachedPrice(normalizedAddress, tokenChain, price, specificChain);
+          return {
+            token: normalizedAddress,
+            price,
+            timestamp: new Date(),
+            chain: tokenChain,
+            specificChain
+          };
         }
       }
       
@@ -179,7 +206,13 @@ export class NovesProvider implements PriceSource {
       const chainResult = await this.determineSpecificEVMChain(normalizedAddress);
       if (chainResult !== null) {
         this.setCachedPrice(normalizedAddress, tokenChain, chainResult.price, chainResult.specificChain);
-        return chainResult.price;
+        return {
+          token: normalizedAddress,
+          price: chainResult.price,
+          timestamp: new Date(),
+          chain: tokenChain,
+          specificChain: chainResult.specificChain
+        };
       }
       
       // If we couldn't find the token on any chain, return null
@@ -332,9 +365,10 @@ export class NovesProvider implements PriceSource {
   /**
    * Checks if a token is supported by the Noves API
    * @param tokenAddress Token address to check
+   * @param specificChain Optional specific chain to check
    * @returns True if token is supported, false otherwise
    */
-  async supports(tokenAddress: string): Promise<boolean> {
+  async supports(tokenAddress: string, specificChain: SpecificChain): Promise<boolean> {
     try {
       console.log(`[NovesProvider] Checking support for token: ${tokenAddress}`);
       // First determine the chain
@@ -346,7 +380,7 @@ export class NovesProvider implements PriceSource {
       }
 
       // Try to get the price - if we get a value back, it's supported
-      const price = await this.getPrice(tokenAddress, tokenChain);
+      const price = await this.getPrice(tokenAddress, tokenChain, specificChain);
       return price !== null;
     } catch (error) {
       console.error(`[NovesProvider] Error checking token support:`, error instanceof Error ? error.message : 'Unknown error');
