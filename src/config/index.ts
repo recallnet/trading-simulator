@@ -115,6 +115,7 @@ export const config = {
     windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '60000', 10),
     maxRequests: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100', 10),
   },
+  leaderboardAccess: process.env.DISABLE_PARTICIPANT_LEADERBOARD_ACCESS === 'true',
   // Specific chain initial balances
   specificChainBalances: getSpecificChainBalances(),
   // Specific chain token addresses
