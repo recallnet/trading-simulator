@@ -1,43 +1,36 @@
-import { Pool, PoolClient } from 'pg';
+import { PoolClient } from 'pg';
 import path from 'path';
 import { config } from 'dotenv';
+import { Client } from 'pg';
 import { initializeDatabase } from '../../src/database'; // Import production initialization code
-// Import the function from drop-all-tables.ts
+import { DatabaseConnection } from '../../src/database/connection'; // Use the main connection class
 import { dropAllTables } from '../../scripts/drop-all-tables';
 
 /**
  * Database Manager for E2E Tests
  * 
- * This utility provides a standardized way to manage database connections,
- * schema, and state for end-to-end tests.
+ * This utility provides a standardized way to manage database state for end-to-end tests.
+ * It uses the same DatabaseConnection as the main application for consistency.
  * 
  * Features:
- * - Single connection pool shared across all tests
- * - Connection tracking and proper cleanup
+ * - Uses the same connection pool as the application
  * - Complete database reset (drops all tables) before initialization
  * - Direct use of production schema initialization code for consistency
  */
 export class DbManager {
   private static instance: DbManager;
-  private pool: Pool | null = null;
-  private activeConnections = 0;
+  private dbConnection: DatabaseConnection;
   private initialized = false;
   
-  // Database configuration from environment variables
-  private config = {
-    host: process.env.DB_HOST || 'localhost',
-    port: parseInt(process.env.DB_PORT || '5432'),
-    user: process.env.DB_USERNAME || 'postgres',
-    password: process.env.DB_PASSWORD || 'postgres',
-    database: process.env.DB_NAME || 'solana_trading_simulator_test'
-  };
-
   /**
    * Private constructor to enforce singleton pattern
    */
   private constructor() {
     // Load environment variables if not already loaded
     config({ path: path.resolve(__dirname, '../../.env.test') });
+    
+    // Use the main application's database connection
+    this.dbConnection = DatabaseConnection.getInstance();
   }
 
   /**
@@ -48,6 +41,61 @@ export class DbManager {
       DbManager.instance = new DbManager();
     }
     return DbManager.instance;
+  }
+
+  /**
+   * Get the database connection for direct pool access
+   */
+  public getPool(): DatabaseConnection {
+    return this.dbConnection;
+  }
+
+  /**
+   * Ensure the test database exists by connecting to postgres and creating it if needed
+   */
+  private async ensureTestDatabaseExists(): Promise<void> {
+    // Get database configuration from environment
+    const dbConfig = {
+      host: process.env.DB_HOST || 'localhost',
+      port: parseInt(process.env.DB_PORT || '5432'),
+      user: process.env.DB_USERNAME || 'postgres',
+      password: process.env.DB_PASSWORD || 'postgres',
+      database: process.env.DB_NAME || 'trading_simulator_test',
+    };
+
+    // Connect to postgres database to create our test database
+    const client = new Client({
+      host: dbConfig.host,
+      port: dbConfig.port,
+      user: dbConfig.user,
+      password: dbConfig.password,
+      database: 'postgres', // Connect to default postgres database
+    });
+
+    try {
+      await client.connect();
+      console.log(`Connected to postgres to check if database ${dbConfig.database} exists`);
+
+      // Check if our test database exists
+      const result = await client.query(`
+        SELECT EXISTS(
+          SELECT FROM pg_database WHERE datname = $1
+        );
+      `, [dbConfig.database]);
+
+      if (!result.rows[0].exists) {
+        console.log(`Test database "${dbConfig.database}" does not exist, creating it...`);
+        await client.query(`CREATE DATABASE "${dbConfig.database}";`);
+        console.log(`Test database "${dbConfig.database}" created successfully`);
+      } else {
+        console.log(`Test database "${dbConfig.database}" already exists`);
+      }
+    } catch (error) {
+      console.error('Error ensuring test database exists:', error);
+      throw error;
+    } finally {
+      await client.end();
+    }
   }
 
   /**
@@ -65,57 +113,17 @@ export class DbManager {
     console.log('Starting database initialization...');
     
     try {
-      // Connect to postgres first to check if our database exists
-      const adminPool = new Pool({
-        host: this.config.host,
-        port: this.config.port,
-        user: this.config.user,
-        password: this.config.password,
-        database: 'postgres' // Connect to default database
-      });
-
-      try {
-        // Check if our database exists
-        const { rows } = await adminPool.query(`
-          SELECT 1 FROM pg_database WHERE datname = $1
-        `, [this.config.database]);
-
-        // If database doesn't exist, create it
-        if (rows.length === 0) {
-          console.log(`Database ${this.config.database} does not exist, creating it...`);
-          await adminPool.query(`CREATE DATABASE ${this.config.database}`);
-          console.log(`Database ${this.config.database} created successfully`);
-        } else {
-          console.log(`Database ${this.config.database} already exists`);
-        }
-      } finally {
-        // Close the admin connection
-        await adminPool.end();
-      }
-
-      // Now connect to our test database
-      this.pool = new Pool({
-        host: this.config.host,
-        port: this.config.port,
-        user: this.config.user,
-        password: this.config.password,
-        database: this.config.database,
-      });
-
-      // Add event handlers for connection tracking
-      this.pool.on('connect', () => {
-        this.activeConnections++;
-        console.log(`DB connection opened (Total: ${this.activeConnections})`);
-      });
-
-      this.pool.on('release', () => {
-        this.activeConnections--;
-        console.log(`DB connection released (Total: ${this.activeConnections})`);
-      });
-
+      // First ensure the test database exists
+      await this.ensureTestDatabaseExists();
+      
       // Check if we can connect to the database
-      await this.pool.query('SELECT 1');
-      console.log(`Connected to database: ${this.config.database}`);
+      try {
+        await this.dbConnection.query('SELECT 1');
+        console.log(`Connected to database successfully`);
+      } catch (error) {
+        console.error('Error connecting to database:', error);
+        throw error;
+      }
       
       // Drop all existing tables (if any) to ensure a clean slate
       console.log('Dropping all existing tables to ensure a clean schema...');
@@ -142,15 +150,12 @@ export class DbManager {
       throw error;
     }
   }
-
+  
   /**
-   * Get a database client from the pool
+   * Execute a query using the pool
    */
-  public getPool(): Pool {
-    if (!this.pool || !this.initialized) {
-      throw new Error('Database not initialized. Call initialize() first.');
-    }
-    return this.pool;
+  public async query(text: string, params: any[] = []): Promise<any> {
+    return await this.dbConnection.query(text, params);
   }
   
   /**
@@ -158,10 +163,14 @@ export class DbManager {
    * Make sure to release the client when done
    */
   public async getClient(): Promise<PoolClient> {
-    if (!this.pool || !this.initialized) {
-      throw new Error('Database not initialized. Call initialize() first.');
-    }
-    return this.pool.connect();
+    return await this.dbConnection.getClient();
+  }
+
+  /**
+   * Execute a transaction
+   */
+  public async transaction<T>(callback: (client: PoolClient) => Promise<T>): Promise<T> {
+    return await this.dbConnection.transaction(callback);
   }
 
   /**
@@ -170,16 +179,11 @@ export class DbManager {
    * - Resets sequences
    */
   public async resetDatabase(): Promise<void> {
-    if (!this.pool || !this.initialized) {
+    if (!this.initialized) {
       throw new Error('Database not initialized. Call initialize() first.');
     }
     
-    const client = await this.pool.connect();
-    
-    try {
-      // Start a transaction
-      await client.query('BEGIN');
-      
+    return await this.transaction(async (client) => {
       // Disable foreign key constraints temporarily
       await client.query('SET CONSTRAINTS ALL DEFERRED');
       
@@ -198,18 +202,8 @@ export class DbManager {
         }
       }
       
-      // Commit the transaction
-      await client.query('COMMIT');
-      
       console.log('Database reset complete');
-    } catch (error) {
-      // Rollback on error
-      await client.query('ROLLBACK');
-      console.error('Failed to reset database:', error);
-      throw error;
-    } finally {
-      client.release();
-    }
+    });
   }
 
   /**
@@ -217,13 +211,11 @@ export class DbManager {
    * This is usually what you want between test runs
    */
   public async cleanupTestState(): Promise<void> {
-    if (!this.pool || !this.initialized) {
+    if (!this.initialized) {
       throw new Error('Database not initialized. Call initialize() first.');
     }
     
-    const client = await this.pool.connect();
-    
-    try {
+    return await this.transaction(async (client) => {
       // Disable foreign key constraints temporarily
       await client.query('SET session_replication_role = replica');
       
@@ -238,32 +230,19 @@ export class DbManager {
       await client.query('SET session_replication_role = DEFAULT');
       
       console.log('Test state cleaned up');
-    } catch (error) {
-      console.error('Error cleaning up test state:', error);
-      throw error;
-    } finally {
-      client.release();
-    }
+    });
   }
 
   /**
    * Close the database connection
-   * This should be called during teardown
+   * This does nothing since we're using the shared connection
+   * that should stay alive for the application.
    */
   public async close(): Promise<void> {
-    if (this.pool) {
-      // Log info about possible connection leaks
-      if (this.activeConnections > 0) {
-        console.warn(`⚠️ Closing database with ${this.activeConnections} active connections`);
-      }
-      
-      // Close the pool
-      await this.pool.end();
-      this.pool = null;
-      this.initialized = false;
-      this.activeConnections = 0;
-      console.log('Database connection closed');
-    }
+    // We don't actually close the connection pool since it's shared
+    // with the main application. The app should handle closing it.
+    this.initialized = false;
+    console.log('Database manager reset (connection maintained for app use)');
   }
 }
 
@@ -275,8 +254,10 @@ export async function initializeDb(): Promise<void> {
   return dbManager.initialize();
 }
 
-export function getPool(): Pool {
-  return dbManager.getPool();
+export function getPool(): any {
+  // This is maintained for API compatibility, but now returns 
+  // the DatabaseConnection instance instead of a raw Pool
+  return DatabaseConnection.getInstance();
 }
 
 export async function closeDb(): Promise<void> {

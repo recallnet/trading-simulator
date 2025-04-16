@@ -506,6 +506,7 @@ Below is a comprehensive list of all environment variables available in `.env.ex
 | `DB_PASSWORD` | Required if no URL | `postgres` | Database password when not using `POSTGRES_URL` |
 | `DB_NAME` | Required if no URL | `solana_trading_simulator` | Database name when not using `POSTGRES_URL` |
 | `DB_SSL` | Optional | `false` | Enable SSL for database connection (`true` or `false`) |
+| `DB_CA_CERT_PATH` | Optional | None | Path to CA certificate for SSL database connection (e.g., `./certs/ca-certificate.crt`) |
 
 ### Security Settings
 
