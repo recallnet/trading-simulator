@@ -14,14 +14,14 @@ export class DatabaseConnection {
     if (config.database.url) {
       // Check if this is a Render database (always requires SSL)
       const isRenderDb = config.database.url.includes('render.com');
-      
+
       // Use connection URL which includes all connection parameters
       this.pool = new Pool({
         connectionString: config.database.url,
         // Use secure SSL configuration with certificate validation
-        ssl: isRenderDb || config.database.ssl ? true : undefined
+        ssl: isRenderDb || config.database.ssl ? true : undefined,
       });
-      
+
       console.log('[DatabaseConnection] Connected to PostgreSQL using connection URL');
     } else {
       // Use individual connection parameters
@@ -36,8 +36,10 @@ export class DatabaseConnection {
         idleTimeoutMillis: 30000, // How long a client is allowed to remain idle before being closed
         connectionTimeoutMillis: 2000, // How long to wait for a connection to become available
       });
-      
-      console.log(`[DatabaseConnection] Connected to PostgreSQL at ${config.database.host}:${config.database.port}`);
+
+      console.log(
+        `[DatabaseConnection] Connected to PostgreSQL at ${config.database.host}:${config.database.port}`,
+      );
     }
 
     this.pool.on('error', (err: Error) => {
@@ -103,4 +105,4 @@ export class DatabaseConnection {
   public async close(): Promise<void> {
     await this.pool.end();
   }
-} 
+}

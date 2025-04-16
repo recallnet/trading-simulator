@@ -1,5 +1,5 @@
 import { BaseRepository } from '../base-repository';
-import { Trade } from '../../types';
+import { Trade, BlockchainType, SpecificChain } from '../../types';
 import { DatabaseRow } from '../types';
 import { PoolClient } from 'pg';
 
@@ -28,7 +28,7 @@ export class TradeRepository extends BaseRepository<Trade> {
           $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15
         ) RETURNING *
       `;
-      
+
       const values = [
         trade.id,
         trade.teamId,
@@ -44,13 +44,13 @@ export class TradeRepository extends BaseRepository<Trade> {
         trade.fromChain || null,
         trade.toChain || null,
         trade.fromSpecificChain || null,
-        trade.toSpecificChain || null
+        trade.toSpecificChain || null,
       ];
-      
-      const result = client 
-        ? await client.query(query, values) 
+
+      const result = client
+        ? await client.query(query, values)
         : await this.db.query(query, values);
-      
+
       return this.mapToEntity(this.toCamelCase(result.rows[0]));
     } catch (error) {
       console.error('[TradeRepository] Error in create:', error);
@@ -65,34 +65,37 @@ export class TradeRepository extends BaseRepository<Trade> {
    * @param offset Optional result offset
    * @param client Optional database client for transactions
    */
-  async getTeamTrades(teamId: string, limit?: number, offset?: number, client?: PoolClient): Promise<Trade[]> {
+  async getTeamTrades(
+    teamId: string,
+    limit?: number,
+    offset?: number,
+    client?: PoolClient,
+  ): Promise<Trade[]> {
     try {
       let query = `
         SELECT * FROM trades
         WHERE team_id = $1
         ORDER BY timestamp DESC
       `;
-      
+
       const values: (string | number)[] = [teamId];
-      
+
       // Add pagination if requested
       if (limit !== undefined) {
         query += ` LIMIT $${values.length + 1}`;
         values.push(limit);
       }
-      
+
       if (offset !== undefined) {
         query += ` OFFSET $${values.length + 1}`;
         values.push(offset);
       }
-      
-      const result = client 
-        ? await client.query(query, values) 
+
+      const result = client
+        ? await client.query(query, values)
         : await this.db.query(query, values);
-      
-      return result.rows.map((row: DatabaseRow) => 
-        this.mapToEntity(this.toCamelCase(row))
-      );
+
+      return result.rows.map((row: DatabaseRow) => this.mapToEntity(this.toCamelCase(row)));
     } catch (error) {
       console.error('[TradeRepository] Error in getTeamTrades:', error);
       throw error;
@@ -106,34 +109,37 @@ export class TradeRepository extends BaseRepository<Trade> {
    * @param offset Optional result offset
    * @param client Optional database client for transactions
    */
-  async getCompetitionTrades(competitionId: string, limit?: number, offset?: number, client?: PoolClient): Promise<Trade[]> {
+  async getCompetitionTrades(
+    competitionId: string,
+    limit?: number,
+    offset?: number,
+    client?: PoolClient,
+  ): Promise<Trade[]> {
     try {
       let query = `
         SELECT * FROM trades
         WHERE competition_id = $1
         ORDER BY timestamp DESC
       `;
-      
+
       const values: (string | number)[] = [competitionId];
-      
+
       // Add pagination if requested
       if (limit !== undefined) {
         query += ` LIMIT $${values.length + 1}`;
         values.push(limit);
       }
-      
+
       if (offset !== undefined) {
         query += ` OFFSET $${values.length + 1}`;
         values.push(offset);
       }
-      
-      const result = client 
-        ? await client.query(query, values) 
+
+      const result = client
+        ? await client.query(query, values)
         : await this.db.query(query, values);
-      
-      return result.rows.map((row: DatabaseRow) => 
-        this.mapToEntity(this.toCamelCase(row))
-      );
+
+      return result.rows.map((row: DatabaseRow) => this.mapToEntity(this.toCamelCase(row)));
     } catch (error) {
       console.error('[TradeRepository] Error in getCompetitionTrades:', error);
       throw error;
@@ -151,13 +157,13 @@ export class TradeRepository extends BaseRepository<Trade> {
         SELECT COUNT(*) as count FROM trades
         WHERE team_id = $1
       `;
-      
+
       const values = [teamId];
-      
-      const result = client 
-        ? await client.query(query, values) 
+
+      const result = client
+        ? await client.query(query, values)
         : await this.db.query(query, values);
-      
+
       return parseInt(result.rows[0].count, 10);
     } catch (error) {
       console.error('[TradeRepository] Error in countTeamTrades:', error);
@@ -171,22 +177,22 @@ export class TradeRepository extends BaseRepository<Trade> {
    */
   protected mapToEntity(data: DatabaseRow): Trade {
     return {
-      id: data.id,
-      teamId: data.teamId,
-      competitionId: data.competitionId,
-      fromToken: data.fromToken,
-      toToken: data.toToken,
-      fromAmount: parseFloat(data.fromAmount),
-      toAmount: parseFloat(data.toAmount),
-      price: parseFloat(data.price),
-      success: data.success,
-      error: data.error,
-      timestamp: new Date(data.timestamp),
+      id: data.id as string,
+      teamId: data.teamId as string,
+      competitionId: data.competitionId as string,
+      fromToken: data.fromToken as string,
+      toToken: data.toToken as string,
+      fromAmount: parseFloat(String(data.fromAmount)),
+      toAmount: parseFloat(String(data.toAmount)),
+      price: parseFloat(String(data.price)),
+      success: Boolean(data.success),
+      error: data.error as string | undefined,
+      timestamp: new Date(data.timestamp as string | number | Date),
       // Map chain fields from database to the Trade interface
-      fromChain: data.fromChain,
-      toChain: data.toChain,
-      fromSpecificChain: data.fromSpecificChain,
-      toSpecificChain: data.toSpecificChain
+      fromChain: data.fromChain as BlockchainType | undefined,
+      toChain: data.toChain as BlockchainType | undefined,
+      fromSpecificChain: data.fromSpecificChain as SpecificChain | undefined,
+      toSpecificChain: data.toSpecificChain as SpecificChain | undefined,
     };
   }
-} 
+}

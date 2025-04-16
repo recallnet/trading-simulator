@@ -1,15 +1,15 @@
 /**
  * Team Edit Script
- * 
+ *
  * This script allows admins to edit existing team information in the Trading Simulator.
  * It connects directly to the database and does NOT require the server to be running.
- * 
+ *
  * Usage:
  *   npm run edit:team
- *   
+ *
  * Or with command line arguments:
  *   npm run edit:team -- "team@email.com" "0x123..." "0xabc..."
- * 
+ *
  * The script will:
  * 1. Connect to the database
  * 2. Find the team by email
@@ -27,7 +27,7 @@ dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 // Create readline interface for prompting user
 const rl = readline.createInterface({
   input: process.stdin,
-  output: process.stdout
+  output: process.stdout,
 });
 
 // Colors for console output
@@ -38,7 +38,7 @@ const colors = {
   blue: '\x1b[34m',
   cyan: '\x1b[36m',
   magenta: '\x1b[35m',
-  reset: '\x1b[0m'
+  reset: '\x1b[0m',
 };
 
 // Prompt function that returns a promise
@@ -72,22 +72,34 @@ async function editTeam() {
   try {
     // Banner with clear visual separation
     safeLog('\n\n');
-    safeLog(`${colors.magenta}╔════════════════════════════════════════════════════════════════╗${colors.reset}`);
-    safeLog(`${colors.magenta}║                          EDIT TEAM                             ║${colors.reset}`);
-    safeLog(`${colors.magenta}╚════════════════════════════════════════════════════════════════╝${colors.reset}`);
-    
-    safeLog(`\n${colors.cyan}This script allows you to edit team information in the Trading Simulator.${colors.reset}`);
-    safeLog(`${colors.cyan}You can update the team's wallet address and bucket addresses.${colors.reset}`);
-    safeLog(`${colors.yellow}--------------------------------------------------------------${colors.reset}\n`);
-    
+    safeLog(
+      `${colors.magenta}╔════════════════════════════════════════════════════════════════╗${colors.reset}`,
+    );
+    safeLog(
+      `${colors.magenta}║                          EDIT TEAM                             ║${colors.reset}`,
+    );
+    safeLog(
+      `${colors.magenta}╚════════════════════════════════════════════════════════════════╝${colors.reset}`,
+    );
+
+    safeLog(
+      `\n${colors.cyan}This script allows you to edit team information in the Trading Simulator.${colors.reset}`,
+    );
+    safeLog(
+      `${colors.cyan}You can update the team's wallet address and bucket addresses.${colors.reset}`,
+    );
+    safeLog(
+      `${colors.yellow}--------------------------------------------------------------${colors.reset}\n`,
+    );
+
     // Get team details from command line arguments or prompt for them
     let teamEmail = process.argv[2];
     let walletAddress = process.argv[3];
     let bucketAddress = process.argv[4];
-    
+
     // Temporarily restore console.log for input
     console.log = originalConsoleLog;
-    
+
     // Collect all input upfront before database operations
     if (!teamEmail) {
       teamEmail = await prompt('Enter team email to find the team:');
@@ -95,31 +107,28 @@ async function editTeam() {
         throw new Error('Team email is required');
       }
     }
-    
+
     // Apply the quieter console.log during database operations
-    console.log = function(...args) {
+    console.log = function (...args) {
       // Only log critical errors, or explicit service messages
       if (typeof args[0] === 'string' && args[0].includes('Error')) {
         originalConsoleLog.apply(console, args);
       }
     };
-    
+
     // Find the team first
     safeLog(`\n${colors.blue}Finding team with email: ${teamEmail}...${colors.reset}`);
-    
+
     // Fetch the team by email
     const db = DatabaseConnection.getInstance();
-    const team = await db.query(
-      'SELECT * FROM teams WHERE email = $1',
-      [teamEmail]
-    );
-    
+    const team = await db.query('SELECT * FROM teams WHERE email = $1', [teamEmail]);
+
     if (!team.rows || team.rows.length === 0) {
       throw new Error(`No team found with email: ${teamEmail}`);
     }
-    
+
     const currentTeam = team.rows[0];
-    
+
     safeLog(`\n${colors.green}✓ Team found: ${currentTeam.name}${colors.reset}`);
     safeLog(`\n${colors.cyan}Current Team Details:${colors.reset}`);
     safeLog(`${colors.cyan}----------------------------------------${colors.reset}`);
@@ -128,38 +137,50 @@ async function editTeam() {
     safeLog(`Email: ${currentTeam.email}`);
     safeLog(`Contact: ${currentTeam.contact_person}`);
     safeLog(`Wallet Address: ${currentTeam.wallet_address || 'Not set'}`);
-    safeLog(`Bucket Addresses: ${currentTeam.bucket_addresses ? currentTeam.bucket_addresses.join(', ') : 'None'}`);
+    safeLog(
+      `Bucket Addresses: ${currentTeam.bucket_addresses ? currentTeam.bucket_addresses.join(', ') : 'None'}`,
+    );
     safeLog(`${colors.cyan}----------------------------------------${colors.reset}`);
-    
-    const updateWallet = !walletAddress && await prompt(`Do you want to update the wallet address? (y/n):`);
-    
-    if (updateWallet && typeof updateWallet === 'string' && updateWallet.toLowerCase() === 'y' || walletAddress) {
+
+    const updateWallet =
+      !walletAddress && (await prompt(`Do you want to update the wallet address? (y/n):`));
+
+    if (
+      (updateWallet && typeof updateWallet === 'string' && updateWallet.toLowerCase() === 'y') ||
+      walletAddress
+    ) {
       if (!walletAddress) {
         walletAddress = await prompt('Enter new wallet address (0x...): ');
       }
-      
+
       if (walletAddress && !isValidEthereumAddress(walletAddress)) {
-        throw new Error('Invalid Ethereum address format. Must be 0x followed by 40 hex characters.');
+        throw new Error(
+          'Invalid Ethereum address format. Must be 0x followed by 40 hex characters.',
+        );
       }
     }
-    
-    const updateBucket = !bucketAddress && await prompt(`Do you want to add a bucket address? (y/n):`);
-    
-    if (updateBucket && typeof updateBucket === 'string' && updateBucket.toLowerCase() === 'y' || bucketAddress) {
+
+    const updateBucket =
+      !bucketAddress && (await prompt(`Do you want to add a bucket address? (y/n):`));
+
+    if (
+      (updateBucket && typeof updateBucket === 'string' && updateBucket.toLowerCase() === 'y') ||
+      bucketAddress
+    ) {
       if (!bucketAddress) {
         bucketAddress = await prompt('Enter bucket address to add (0x...): ');
       }
-      
+
       if (bucketAddress && !isValidEthereumAddress(bucketAddress)) {
         throw new Error('Invalid bucket address format. Must be 0x followed by 40 hex characters.');
       }
     }
-    
+
     if (!walletAddress && !bucketAddress) {
       safeLog(`\n${colors.yellow}No changes requested. Operation cancelled.${colors.reset}`);
       return;
     }
-    
+
     // Display summary of changes
     safeLog(`\n${colors.yellow}Changes to be applied:${colors.reset}`);
     if (walletAddress) {
@@ -168,27 +189,29 @@ async function editTeam() {
     if (bucketAddress) {
       safeLog(`- Add Bucket Address: ${bucketAddress}`);
     }
-    
-    const confirmUpdate = await prompt(`${colors.yellow}Proceed with these changes? (y/n):${colors.reset}`);
-    
+
+    const confirmUpdate = await prompt(
+      `${colors.yellow}Proceed with these changes? (y/n):${colors.reset}`,
+    );
+
     if (confirmUpdate.toLowerCase() !== 'y') {
       safeLog(`\n${colors.red}Update cancelled.${colors.reset}`);
       return;
     }
-    
+
     // Proceed with updates
     safeLog(`\n${colors.blue}Updating team...${colors.reset}`);
-    
+
     let params = [];
     let updateFields = [];
     let paramIndex = 1;
-    
+
     if (walletAddress) {
       updateFields.push(`wallet_address = $${paramIndex}`);
       params.push(walletAddress);
       paramIndex++;
     }
-    
+
     if (bucketAddress) {
       // If bucket_addresses is null, initialize as an array with the new address
       // Otherwise, append to the existing array
@@ -200,7 +223,7 @@ async function editTeam() {
       params.push(bucketAddress);
       paramIndex++;
     }
-    
+
     if (updateFields.length > 0) {
       params.push(currentTeam.id);
       const updateQuery = `
@@ -209,10 +232,10 @@ async function editTeam() {
         WHERE id = $${paramIndex}
         RETURNING *
       `;
-      
+
       const result = await db.query(updateQuery, params);
       const updatedTeam = result.rows[0];
-      
+
       safeLog(`\n${colors.green}✓ Team updated successfully!${colors.reset}`);
       safeLog(`\n${colors.cyan}Updated Team Details:${colors.reset}`);
       safeLog(`${colors.cyan}----------------------------------------${colors.reset}`);
@@ -221,18 +244,22 @@ async function editTeam() {
       safeLog(`Email: ${updatedTeam.email}`);
       safeLog(`Contact: ${updatedTeam.contact_person}`);
       safeLog(`Wallet Address: ${updatedTeam.wallet_address || 'Not set'}`);
-      safeLog(`Bucket Addresses: ${updatedTeam.bucket_addresses ? updatedTeam.bucket_addresses.join(', ') : 'None'}`);
+      safeLog(
+        `Bucket Addresses: ${updatedTeam.bucket_addresses ? updatedTeam.bucket_addresses.join(', ') : 'None'}`,
+      );
       safeLog(`${colors.cyan}----------------------------------------${colors.reset}`);
     }
-    
   } catch (error) {
-    safeLog(`\n${colors.red}Error updating team:${colors.reset}`, error instanceof Error ? error.message : error);
+    safeLog(
+      `\n${colors.red}Error updating team:${colors.reset}`,
+      error instanceof Error ? error.message : error,
+    );
   } finally {
     rl.close();
-    
+
     // Restore original console.log before closing
     console.log = originalConsoleLog;
-    
+
     // Close database connection
     try {
       await DatabaseConnection.getInstance().close();
@@ -240,11 +267,11 @@ async function editTeam() {
     } catch (err) {
       safeLog('Error closing database connection:', err);
     }
-    
+
     // Exit the process after clean closure
     process.exit(0);
   }
 }
 
 // Run the edit function
-editTeam(); 
+editTeam();

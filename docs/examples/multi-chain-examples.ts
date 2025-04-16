@@ -1,20 +1,20 @@
 /**
  * Multi-Chain Examples for Trading Simulator API
- * 
+ *
  * This file contains examples for using the Trading Simulator API with
  * multiple blockchains (Solana and Ethereum).
  */
 
-import { 
-  TradingSimulatorClient, 
-  BlockchainType, 
-  SpecificChain, 
+import {
+  TradingSimulatorClient,
+  BlockchainType,
+  SpecificChain,
   COMMON_TOKENS,
   PriceResponse,
   BalancesResponse,
   TradeResponse,
   TokenInfoResponse,
-  TradeHistoryResponse
+  TradeHistoryResponse,
 } from './api-client';
 
 // Define the interfaces that aren't explicitly exported from api-client.ts
@@ -47,7 +47,7 @@ const TOKENS = {
   USDC_ETH: COMMON_TOKENS.EVM.USDC,
   LINK: COMMON_TOKENS.EVM.LINK,
   ARB: COMMON_TOKENS.EVM.ARB,
-  TOSHI: COMMON_TOKENS.EVM.TOSHI
+  TOSHI: COMMON_TOKENS.EVM.TOSHI,
 };
 
 // Replace with your team's API key
@@ -71,7 +71,7 @@ async function getMultiChainPrices(client: TradingSimulatorClient): Promise<void
   console.log('Getting Solana token prices...');
   const solPrice: PriceResponse = await client.getPrice(TOKENS.SOL);
   console.log(`SOL Price: $${solPrice.price} (Chain: ${solPrice.chain})`);
-  
+
   const usdcSolPrice: PriceResponse = await client.getPrice(TOKENS.USDC_SOL);
   console.log(`USDC (Solana) Price: $${usdcSolPrice.price} (Chain: ${usdcSolPrice.chain})`);
 
@@ -79,7 +79,7 @@ async function getMultiChainPrices(client: TradingSimulatorClient): Promise<void
   console.log('\nGetting Ethereum token prices...');
   const ethPrice: PriceResponse = await client.getPrice(TOKENS.ETH);
   console.log(`ETH Price: $${ethPrice.price} (Chain: ${ethPrice.chain})`);
-  
+
   const usdcEthPrice: PriceResponse = await client.getPrice(TOKENS.USDC_ETH);
   console.log(`USDC (Ethereum) Price: $${usdcEthPrice.price} (Chain: ${usdcEthPrice.chain})`);
 
@@ -88,7 +88,7 @@ async function getMultiChainPrices(client: TradingSimulatorClient): Promise<void
   console.log('\nGetting prices from DexScreener provider...');
   const solDexPrice: PriceResponse = await client.getPrice(TOKENS.SOL, BlockchainType.SVM);
   console.log(`SOL Price from DexScreener: $${solDexPrice.price} (Chain: ${solDexPrice.chain})`);
-  
+
   const ethDexPrice: PriceResponse = await client.getPrice(TOKENS.ETH, BlockchainType.EVM);
   console.log(`ETH Price from DexScreener: $${ethDexPrice.price} (Chain: ${ethDexPrice.chain})`);
 }
@@ -102,26 +102,26 @@ async function getMultiChainPortfolio(client: TradingSimulatorClient): Promise<v
   // Get all balances (across all chains)
   const balances: BalancesResponse = await client.getBalances();
   console.log('All Balances:', JSON.stringify(balances, null, 2));
-  
+
   // Group balances by chain
   if (balances.balances && balances.balances.length > 0) {
     // Filter for Solana tokens
     const solanaBalances = balances.balances.filter(
-      balance => balance.chain === BlockchainType.SVM
+      (balance) => balance.chain === BlockchainType.SVM,
     );
-    
+
     // Filter for Ethereum tokens
     const ethereumBalances = balances.balances.filter(
-      balance => balance.chain === BlockchainType.EVM
+      (balance) => balance.chain === BlockchainType.EVM,
     );
-    
+
     console.log('\nSolana Balances:');
-    solanaBalances.forEach(balance => {
+    solanaBalances.forEach((balance) => {
       console.log(`  ${balance.token}: ${balance.amount}`);
     });
-    
+
     console.log('\nEthereum Balances:');
-    ethereumBalances.forEach(balance => {
+    ethereumBalances.forEach((balance) => {
       console.log(`  ${balance.token}: ${balance.amount}`);
     });
   }
@@ -142,9 +142,9 @@ async function executeMultiChainTrades(client: TradingSimulatorClient): Promise<
       amount: '10.00', // 10 USDC
       slippageTolerance: '0.5',
       fromChain: BlockchainType.SVM,
-      toChain: BlockchainType.SVM
+      toChain: BlockchainType.SVM,
     };
-    
+
     const solTrade: TradeResponse = await client.executeTrade(solanaTradeDetails);
     console.log('Solana Trade Result:', JSON.stringify(solTrade, null, 2));
   } catch (error) {
@@ -162,9 +162,9 @@ async function executeMultiChainTrades(client: TradingSimulatorClient): Promise<
       fromChain: BlockchainType.EVM,
       toChain: BlockchainType.EVM,
       fromSpecificChain: SpecificChain.ETH,
-      toSpecificChain: SpecificChain.ETH
+      toSpecificChain: SpecificChain.ETH,
     };
-    
+
     const ethTrade: TradeResponse = await client.executeTrade(ethereumTradeDetails);
     console.log('Ethereum Trade Result:', JSON.stringify(ethTrade, null, 2));
   } catch (error) {
@@ -189,12 +189,14 @@ async function executeCrossChainTrades(client: TradingSimulatorClient): Promise<
       fromChain: BlockchainType.SVM,
       toChain: BlockchainType.EVM,
       fromSpecificChain: SpecificChain.SVM,
-      toSpecificChain: SpecificChain.ETH
+      toSpecificChain: SpecificChain.ETH,
     };
-    
+
     const crossTrade1: TradeResponse = await client.executeTrade(crossChainTradeDetails1);
     console.log('Cross-Chain Trade Result:', JSON.stringify(crossTrade1, null, 2));
-    console.log(`From chain: ${crossTrade1.transaction.fromChain}, To chain: ${crossTrade1.transaction.toChain}`);
+    console.log(
+      `From chain: ${crossTrade1.transaction.fromChain}, To chain: ${crossTrade1.transaction.toChain}`,
+    );
   } catch (error) {
     console.error('Error executing cross-chain trade:', error);
   }
@@ -210,12 +212,14 @@ async function executeCrossChainTrades(client: TradingSimulatorClient): Promise<
       fromChain: BlockchainType.EVM,
       toChain: BlockchainType.SVM,
       fromSpecificChain: SpecificChain.ETH,
-      toSpecificChain: SpecificChain.SVM
+      toSpecificChain: SpecificChain.SVM,
     };
-    
+
     const crossTrade2: TradeResponse = await client.executeTrade(crossChainTradeDetails2);
     console.log('Cross-Chain Trade Result:', JSON.stringify(crossTrade2, null, 2));
-    console.log(`From chain: ${crossTrade2.transaction.fromChain}, To chain: ${crossTrade2.transaction.toChain}`);
+    console.log(
+      `From chain: ${crossTrade2.transaction.fromChain}, To chain: ${crossTrade2.transaction.toChain}`,
+    );
   } catch (error) {
     console.error('Error executing cross-chain trade:', error);
   }
@@ -231,12 +235,12 @@ async function getFilteredTradeHistory(client: TradingSimulatorClient): Promise<
   console.log('Getting Solana trade history...');
   const solanaParams: TradeHistoryParams = {
     chain: BlockchainType.SVM,
-    limit: 5
+    limit: 5,
   };
-  
+
   const solanaTrades: TradeHistoryResponse = await client.getTradeHistory(solanaParams);
   console.log(`Found ${solanaTrades.trades.length} Solana trades`);
-  
+
   if (solanaTrades.trades.length > 0) {
     console.log('Latest Solana trade:', JSON.stringify(solanaTrades.trades[0], null, 2));
   }
@@ -245,12 +249,12 @@ async function getFilteredTradeHistory(client: TradingSimulatorClient): Promise<
   console.log('\nGetting Ethereum trade history...');
   const ethereumParams: TradeHistoryParams = {
     chain: BlockchainType.EVM,
-    limit: 5
+    limit: 5,
   };
-  
+
   const ethereumTrades: TradeHistoryResponse = await client.getTradeHistory(ethereumParams);
   console.log(`Found ${ethereumTrades.trades.length} Ethereum trades`);
-  
+
   if (ethereumTrades.trades.length > 0) {
     console.log('Latest Ethereum trade:', JSON.stringify(ethereumTrades.trades[0], null, 2));
   }
@@ -268,16 +272,16 @@ async function getChainOverridePrices(client: TradingSimulatorClient): Promise<v
     address: string;
     chain: SpecificChain;
   }
-  
+
   const testTokens: TokenTestInfo[] = [
     { name: 'Chainlink (LINK)', address: TOKENS.LINK, chain: SpecificChain.ETH },
     { name: 'Arbitrum (ARB)', address: TOKENS.ARB, chain: SpecificChain.ARBITRUM },
-    { name: 'TOSHI', address: TOKENS.TOSHI, chain: SpecificChain.BASE }
+    { name: 'TOSHI', address: TOKENS.TOSHI, chain: SpecificChain.BASE },
   ];
 
   for (const token of testTokens) {
     console.log(`Testing ${token.name} (${token.address})...`);
-    
+
     // First, get price without chain override (slower)
     console.log('Getting price WITHOUT chain override...');
     const startTime1 = Date.now();
@@ -285,31 +289,35 @@ async function getChainOverridePrices(client: TradingSimulatorClient): Promise<v
     const duration1 = Date.now() - startTime1;
     console.log(`Price: $${priceNoOverride.price}`);
     console.log(`Time taken: ${duration1}ms`);
-    console.log(`Chain detected: ${priceNoOverride.chain}, Specific chain: ${priceNoOverride.specificChain || 'not detected'}`);
-    
+    console.log(
+      `Chain detected: ${priceNoOverride.chain}, Specific chain: ${priceNoOverride.specificChain || 'not detected'}`,
+    );
+
     // Short delay to prevent rate limiting
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+
     // Now, get price WITH chain override (faster)
     console.log('\nGetting price WITH chain override...');
     const startTime2 = Date.now();
     const priceWithOverride: PriceResponse = await client.getPrice(
-      token.address, 
+      token.address,
       BlockchainType.EVM,
-      token.chain
+      token.chain,
     );
     const duration2 = Date.now() - startTime2;
     console.log(`Price: $${priceWithOverride.price}`);
     console.log(`Time taken: ${duration2}ms`);
-    console.log(`Chain detected: ${priceWithOverride.chain}, Specific chain: ${priceWithOverride.specificChain || 'not detected'}`);
-    
+    console.log(
+      `Chain detected: ${priceWithOverride.chain}, Specific chain: ${priceWithOverride.specificChain || 'not detected'}`,
+    );
+
     // Calculate improvement
     if (duration1 > 0 && duration2 > 0) {
-      const improvement = ((duration1 - duration2) / duration1 * 100).toFixed(2);
+      const improvement = (((duration1 - duration2) / duration1) * 100).toFixed(2);
       const speedup = (duration1 / duration2).toFixed(2);
       console.log(`\nPerformance improvement: ${improvement}% faster (${speedup}x speedup)`);
     }
-    
+
     console.log('\n-----------------------------------------\n');
   }
 }
@@ -325,29 +333,29 @@ async function getTokenInfoWithChainOverride(client: TradingSimulatorClient): Pr
   const startTime1 = Date.now();
   const tokenInfoNoOverride: TokenInfoResponse = await client.getTokenInfo(TOKENS.LINK);
   const duration1 = Date.now() - startTime1;
-  
+
   console.log(`Token info: ${JSON.stringify(tokenInfoNoOverride, null, 2)}`);
   console.log(`Time taken: ${duration1}ms`);
-  
+
   // Short delay
-  await new Promise(resolve => setTimeout(resolve, 1000));
-  
+  await new Promise((resolve) => setTimeout(resolve, 1000));
+
   // Now with chain override
   console.log('\nGetting detailed token info for Chainlink (LINK) WITH chain override...');
   const startTime2 = Date.now();
   const tokenInfoWithOverride: TokenInfoResponse = await client.getTokenInfo(
     TOKENS.LINK,
     BlockchainType.EVM,
-    SpecificChain.ETH
+    SpecificChain.ETH,
   );
   const duration2 = Date.now() - startTime2;
-  
+
   console.log(`Token info: ${JSON.stringify(tokenInfoWithOverride, null, 2)}`);
   console.log(`Time taken: ${duration2}ms`);
-  
+
   // Calculate improvement
   if (duration1 > 0 && duration2 > 0) {
-    const improvement = ((duration1 - duration2) / duration1 * 100).toFixed(2);
+    const improvement = (((duration1 - duration2) / duration1) * 100).toFixed(2);
     const speedup = (duration1 / duration2).toFixed(2);
     console.log(`\nPerformance improvement: ${improvement}% faster (${speedup}x speedup)`);
   }
@@ -370,7 +378,7 @@ async function runAllExamples(): Promise<void> {
     await getFilteredTradeHistory(client);
     await getChainOverridePrices(client);
     await getTokenInfoWithChainOverride(client);
-    
+
     console.log('\nAll examples completed successfully!');
   } catch (error) {
     console.error('Error running examples:', error);
@@ -391,5 +399,5 @@ export {
   executeCrossChainTrades,
   getFilteredTradeHistory,
   getChainOverridePrices,
-  getTokenInfoWithChainOverride
-}; 
+  getTokenInfoWithChainOverride,
+};

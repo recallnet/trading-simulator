@@ -9,9 +9,9 @@ module.exports = {
   globalSetup: '<rootDir>/setup.ts',
   globalTeardown: '<rootDir>/teardown.ts',
   maxConcurrency: 1, // Run tests serially to avoid conflicts
-  maxWorkers: 1,     // Use only one worker for test execution
+  maxWorkers: 1, // Use only one worker for test execution
   verbose: true,
-  forceExit: true,   // Force exit after all tests complete
+  forceExit: true, // Force exit after all tests complete
   detectOpenHandles: false, // Disable detection of open handles since we're using forceExit
   globals: {
     'ts-jest': {
@@ -19,4 +19,4 @@ module.exports = {
     },
   },
   reporters: ['default', '<rootDir>/utils/log-reporter.js'], // Add custom reporter
-}; 
+};

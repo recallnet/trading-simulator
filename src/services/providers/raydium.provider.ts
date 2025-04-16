@@ -1,6 +1,17 @@
 import { PriceSource } from '../../types';
 import axios from 'axios';
 
+interface RaydiumPool {
+  liquidity: number;
+  price: number;
+  mint1: string;
+}
+
+interface RaydiumTokenPrice {
+  symbol: string;
+  price: string;
+}
+
 /**
  * Raydium price provider implementation
  * Uses Raydium's API to get token prices
@@ -11,10 +22,10 @@ export class RaydiumProvider implements PriceSource {
   private readonly CACHE_DURATION = 30000; // 30 seconds
   private readonly MAX_RETRIES = 3;
   private readonly RETRY_DELAY = 1000; // 1 second
-  private readonly KNOWN_TOKENS: {[key: string]: { symbol: string }} = {
-    'So11111111111111111111111111111111111111112': { symbol: 'SOL' },
-    'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v': { symbol: 'USDC' },
-    'Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB': { symbol: 'USDT' }
+  private readonly KNOWN_TOKENS: { [key: string]: { symbol: string } } = {
+    So11111111111111111111111111111111111111112: { symbol: 'SOL' },
+    EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v: { symbol: 'USDC' },
+    Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB: { symbol: 'USDT' },
   };
 
   constructor() {
@@ -54,42 +65,45 @@ export class RaydiumProvider implements PriceSource {
       }
 
       console.log(`[RaydiumProvider] Fetching price for token: ${tokenAddress}`);
-      
-     if (tokenAddress === 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v') {
+
+      if (tokenAddress === 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v') {
         // USDC should be ~$1
         try {
           const price = await this.fetchPriceFromAPI(tokenAddress);
           if (price !== null) {
             return price;
           }
-          
+
           // Fallback for USDC
           console.log('[RaydiumProvider] Using fallback price for USDC');
-          const fallbackPrice = 0.99 + (Math.random() * 0.02); // ~$0.99-1.01 range
+          const fallbackPrice = 0.99 + Math.random() * 0.02; // ~$0.99-1.01 range
           this.setCachedPrice(tokenAddress, fallbackPrice);
           return fallbackPrice;
         } catch (error) {
           console.error('[RaydiumProvider] Error fetching USDC price, using fallback:', error);
-          const fallbackPrice = 0.99 + (Math.random() * 0.02); // ~$0.99-1.01 range
+          const fallbackPrice = 0.99 + Math.random() * 0.02; // ~$0.99-1.01 range
           this.setCachedPrice(tokenAddress, fallbackPrice);
           return fallbackPrice;
         }
       }
-      
+
       // For other tokens, try fetching from API
       return await this.fetchPriceFromAPI(tokenAddress);
     } catch (error) {
-      console.error(`[RaydiumProvider] Error fetching price for ${tokenAddress}:`, error instanceof Error ? error.message : 'Unknown error');
+      console.error(
+        `[RaydiumProvider] Error fetching price for ${tokenAddress}:`,
+        error instanceof Error ? error.message : 'Unknown error',
+      );
       return null;
     }
   }
-  
+
   private async fetchPriceFromAPI(tokenAddress: string): Promise<number | null> {
     for (let attempt = 1; attempt <= this.MAX_RETRIES; attempt++) {
       try {
         const url = `${this.API_BASE}/pools/info/mint?mint1=${tokenAddress}&poolType=all&sortField=tvl&sortType=desc&pageSize=10&page=1`;
         console.log(`[RaydiumProvider] Making API request to: ${url}`);
-        
+
         const response = await axios.get(url, {
           timeout: 5000,
           headers: {
@@ -97,7 +111,7 @@ export class RaydiumProvider implements PriceSource {
             'User-Agent': 'TradingSimulator/1.0',
           },
         });
-        
+
         if (!response.data?.data || response.data.data.length === 0) {
           if (attempt === this.MAX_RETRIES) {
             // Try alternative endpoint if we couldn't find pools
@@ -107,11 +121,13 @@ export class RaydiumProvider implements PriceSource {
           await this.delay(this.RETRY_DELAY * attempt);
           continue;
         }
-        
+
         // Find the pool with highest liquidity
-        const pools = response.data.data;
-        const bestPool = pools.sort((a: any, b: any) => b.liquidity - a.liquidity)[0];
-        
+        const pools = response.data.data as RaydiumPool[];
+        const bestPool = pools.sort(
+          (a: RaydiumPool, b: RaydiumPool) => b.liquidity - a.liquidity,
+        )[0];
+
         if (!bestPool || !bestPool.price) {
           if (attempt === this.MAX_RETRIES) {
             // Try alternative endpoint if we couldn't find a price
@@ -121,19 +137,19 @@ export class RaydiumProvider implements PriceSource {
           await this.delay(this.RETRY_DELAY * attempt);
           continue;
         }
-        
+
         let price = 0;
         if (bestPool.mint1 === tokenAddress) {
           price = bestPool.price;
         } else {
           price = 1 / bestPool.price;
         }
-        
+
         if (isNaN(price) || price <= 0) {
           console.log(`[RaydiumProvider] Invalid price format`);
           return null;
         }
-        
+
         console.log(`[RaydiumProvider] Found price for ${tokenAddress}: $${price}`);
         this.setCachedPrice(tokenAddress, price);
         return price;
@@ -148,17 +164,17 @@ export class RaydiumProvider implements PriceSource {
     }
     return null;
   }
-  
+
   // Alternative method to fetch from price API for known tokens
   private async fetchFromPriceAPI(tokenAddress: string): Promise<number | null> {
     // If this isn't a known token, don't try this method
     if (!this.KNOWN_TOKENS[tokenAddress]) {
       return null;
     }
-    
+
     const symbol = this.KNOWN_TOKENS[tokenAddress].symbol;
     console.log(`[RaydiumProvider] Trying alternative price API for ${symbol}`);
-    
+
     try {
       const url = `${this.API_BASE}/price`;
       const response = await axios.get(url, {
@@ -168,30 +184,33 @@ export class RaydiumProvider implements PriceSource {
           'User-Agent': 'TradingSimulator/1.0',
         },
       });
-      
+
       if (!response.data || !response.data.data) {
         console.log(`[RaydiumProvider] No data from price API`);
         return null;
       }
-      
+
       // Find by symbol
-      const tokenData = response.data.data.find((t: any) => t.symbol === symbol);
+      const tokenData = response.data.data.find((t: RaydiumTokenPrice) => t.symbol === symbol);
       if (!tokenData) {
         console.log(`[RaydiumProvider] Token ${symbol} not found in price API`);
         return null;
       }
-      
+
       const price = parseFloat(tokenData.price);
       if (isNaN(price) || price <= 0) {
         console.log(`[RaydiumProvider] Invalid price format from price API`);
         return null;
       }
-      
+
       console.log(`[RaydiumProvider] Found price for ${symbol} from price API: $${price}`);
       this.setCachedPrice(tokenAddress, price);
       return price;
     } catch (error) {
-      console.error(`[RaydiumProvider] Error fetching from price API:`, error instanceof Error ? error.message : 'Unknown error');
+      console.error(
+        `[RaydiumProvider] Error fetching from price API:`,
+        error instanceof Error ? error.message : 'Unknown error',
+      );
       return null;
     }
   }
@@ -211,8 +230,11 @@ export class RaydiumProvider implements PriceSource {
       const price = await this.getPrice(tokenAddress);
       return price !== null;
     } catch (error) {
-      console.error(`[RaydiumProvider] Error checking token support:`, error instanceof Error ? error.message : 'Unknown error');
+      console.error(
+        `[RaydiumProvider] Error checking token support:`,
+        error instanceof Error ? error.message : 'Unknown error',
+      );
       return false;
     }
   }
-} 
+}

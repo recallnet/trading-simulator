@@ -48,30 +48,31 @@ For convenience, we provide an API client that handles authentication automatica
       `,
       contact: {
         name: 'API Support',
-        email: 'support@example.com'
+        email: 'support@example.com',
       },
       license: {
         name: 'ISC License',
-        url: 'https://opensource.org/licenses/ISC'
-      }
+        url: 'https://opensource.org/licenses/ISC',
+      },
     },
     servers: [
       {
         url: `http://localhost:${config.server.port}`,
-        description: 'Local development server'
+        description: 'Local development server',
       },
       {
         url: 'https://api.example.com',
-        description: 'Production server'
-      }
+        description: 'Production server',
+      },
     ],
     components: {
       securitySchemes: {
         BearerAuth: {
           type: 'http',
           scheme: 'bearer',
-          description: 'API key provided in the Authorization header using Bearer token authentication'
-        }
+          description:
+            'API key provided in the Authorization header using Bearer token authentication',
+        },
       },
       schemas: {
         Error: {
@@ -79,138 +80,138 @@ For convenience, we provide an API client that handles authentication automatica
           properties: {
             error: {
               type: 'string',
-              description: 'Error message'
+              description: 'Error message',
             },
             status: {
               type: 'integer',
-              description: 'HTTP status code'
+              description: 'HTTP status code',
             },
             timestamp: {
               type: 'string',
               format: 'date-time',
-              description: 'Timestamp of when the error occurred'
-            }
-          }
+              description: 'Timestamp of when the error occurred',
+            },
+          },
         },
         Trade: {
           type: 'object',
           properties: {
             id: {
               type: 'string',
-              description: 'Unique trade ID'
+              description: 'Unique trade ID',
             },
             teamId: {
               type: 'string',
-              description: 'Team ID that executed the trade'
+              description: 'Team ID that executed the trade',
             },
             competitionId: {
               type: 'string',
-              description: 'ID of the competition this trade is part of'
+              description: 'ID of the competition this trade is part of',
             },
             fromToken: {
               type: 'string',
-              description: 'Token address that was sold'
+              description: 'Token address that was sold',
             },
             toToken: {
               type: 'string',
-              description: 'Token address that was bought'
+              description: 'Token address that was bought',
             },
             fromAmount: {
               type: 'number',
-              description: 'Amount of fromToken that was sold'
+              description: 'Amount of fromToken that was sold',
             },
             toAmount: {
               type: 'number',
-              description: 'Amount of toToken that was received'
+              description: 'Amount of toToken that was received',
             },
             price: {
               type: 'number',
-              description: 'Price at which the trade was executed'
+              description: 'Price at which the trade was executed',
             },
             success: {
               type: 'boolean',
-              description: 'Whether the trade was successfully completed'
+              description: 'Whether the trade was successfully completed',
             },
             error: {
               type: 'string',
-              description: 'Error message if the trade failed'
+              description: 'Error message if the trade failed',
             },
             timestamp: {
               type: 'string',
               format: 'date-time',
-              description: 'Timestamp of when the trade was executed'
+              description: 'Timestamp of when the trade was executed',
             },
             fromChain: {
               type: 'string',
-              description: 'Blockchain type of the source token'
+              description: 'Blockchain type of the source token',
             },
             toChain: {
               type: 'string',
-              description: 'Blockchain type of the destination token'
+              description: 'Blockchain type of the destination token',
             },
             fromSpecificChain: {
               type: 'string',
-              description: 'Specific chain for the source token'
+              description: 'Specific chain for the source token',
             },
             toSpecificChain: {
               type: 'string',
-              description: 'Specific chain for the destination token'
-            }
-          }
+              description: 'Specific chain for the destination token',
+            },
+          },
         },
         TokenBalance: {
           type: 'object',
           properties: {
             token: {
               type: 'string',
-              description: 'Token address'
+              description: 'Token address',
             },
             amount: {
               type: 'number',
-              description: 'Token balance amount'
+              description: 'Token balance amount',
             },
             chain: {
               type: 'string',
-              description: 'Chain the token belongs to'
+              description: 'Chain the token belongs to',
             },
             specificChain: {
               type: 'string',
-              description: 'Specific chain for EVM tokens'
-            }
-          }
-        }
-      }
+              description: 'Specific chain for EVM tokens',
+            },
+          },
+        },
+      },
     },
     tags: [
       {
         name: 'Auth',
-        description: 'Authentication endpoints'
+        description: 'Authentication endpoints',
       },
       {
         name: 'Account',
-        description: 'Account management endpoints'
+        description: 'Account management endpoints',
       },
       {
         name: 'Trade',
-        description: 'Trading endpoints'
+        description: 'Trading endpoints',
       },
       {
         name: 'Price',
-        description: 'Price information endpoints'
+        description: 'Price information endpoints',
       },
       {
         name: 'Competition',
-        description: 'Competition endpoints'
+        description: 'Competition endpoints',
       },
       {
         name: 'Admin',
-        description: 'Admin endpoints'
+        description: 'Admin endpoints',
       },
       {
         name: 'Health',
-        description: 'Health check endpoints'
-      }
-    ]
+        description: 'Health check endpoints',
+      },
+    ],
   },
   apis: ['./src/routes/*.ts'], // Path to the API routes files
 };
@@ -218,4 +219,4 @@ For convenience, we provide an API client that handles authentication automatica
 // Generate OpenAPI specification
 const swaggerSpec = swaggerJsdoc(swaggerOptions);
 
-export { swaggerSpec }; 
+export { swaggerSpec };

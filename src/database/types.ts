@@ -44,7 +44,7 @@ export interface PortfolioTokenValue {
 /**
  * Database row type for generic row mapping
  */
-export type DatabaseRow = Record<string, any>;
+export type DatabaseRow = Record<string, unknown>;
 
 /**
  * Database query result interface
@@ -62,5 +62,5 @@ export interface RepositoryFilter {
   offset?: number;
   orderBy?: string;
   order?: 'ASC' | 'DESC';
-  [key: string]: any;
-} 
+  [key: string]: unknown;
+}

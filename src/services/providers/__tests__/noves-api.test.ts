@@ -30,7 +30,7 @@ describe('Noves API Integration Tests', () => {
   const apiKey = process.env.NOVES_API_KEY;
   const runTests = !!apiKey;
   const supportedChains: SpecificChain[] = config.evmChains;
-  
+
   // Test token addresses
   const testTokens = {
     // Test token from Base
@@ -48,14 +48,14 @@ describe('Noves API Integration Tests', () => {
 
     // Check Ethereum mainnet WETH token for response structure
     const url = `https://pricing.noves.fi/evm/eth/price/${testTokens.eth}`;
-    
+
     try {
       const response = await axios.get<NovesApiResponse>(url, {
         headers: {
-          'apiKey': apiKey,
-          'Accept': 'application/json'
+          apiKey: apiKey,
+          Accept: 'application/json',
         },
-        timeout: 5000
+        timeout: 5000,
       });
 
       // Check response structure
@@ -64,11 +64,13 @@ describe('Noves API Integration Tests', () => {
       expect(response.data).toHaveProperty('price');
       expect(response.data).toHaveProperty('priceStatus');
       expect(response.data).toHaveProperty('token');
-      
+
       console.log(`API response structure: ${JSON.stringify(response.data, null, 2)}`);
     } catch (error) {
       // If API is unavailable, skip test
-      console.log(`API test skipped due to error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.log(
+        `API test skipped due to error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
       return;
     }
   });
@@ -81,14 +83,14 @@ describe('Noves API Integration Tests', () => {
     }
 
     const url = `https://pricing.noves.fi/evm/eth/price/${testTokens.eth}`;
-    
+
     try {
       const response = await axios.get<NovesApiResponse>(url, {
         headers: {
-          'apiKey': apiKey,
-          'Accept': 'application/json'
+          apiKey: apiKey,
+          Accept: 'application/json',
         },
-        timeout: 5000
+        timeout: 5000,
       });
 
       // Basic check that we got a response
@@ -98,12 +100,18 @@ describe('Noves API Integration Tests', () => {
       if (axios.isAxiosError(error) && error.response) {
         // If we get an error that's not a 401 unauthorized, the header format might be wrong
         if (error.response.status !== 401) {
-          fail(`API request failed with status code ${error.response.status}. Header format might be incorrect.`);
+          fail(
+            `API request failed with status code ${error.response.status}. Header format might be incorrect.`,
+          );
         } else {
-          console.log('Got 401 unauthorized - this may be due to API key authentication issues, not header format.');
+          console.log(
+            'Got 401 unauthorized - this may be due to API key authentication issues, not header format.',
+          );
         }
       } else {
-        console.log(`API test skipped due to error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        console.log(
+          `API test skipped due to error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        );
       }
     }
   });
@@ -117,23 +125,25 @@ describe('Noves API Integration Tests', () => {
 
     // Try a newer token that might still be calculating
     const url = `https://pricing.noves.fi/evm/base/price/${testTokens.base}`;
-    
+
     try {
       const response = await axios.get<NovesApiResponse>(url, {
         headers: {
-          'apiKey': apiKey,
-          'Accept': 'application/json'
+          apiKey: apiKey,
+          Accept: 'application/json',
         },
-        timeout: 10000
+        timeout: 10000,
       });
 
       console.log(`Price status for Base token: ${response.data.priceStatus}`);
       console.log(`Full response: ${JSON.stringify(response.data, null, 2)}`);
-      
+
       // Just verify we got a status code, not checking if it's inProgress since it might have completed
       expect(response.data).toHaveProperty('priceStatus');
     } catch (error) {
-      console.log(`API test skipped due to error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.log(
+        `API test skipped due to error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
     }
   }, 15000); // Increase timeout to 15 seconds
 
@@ -147,22 +157,22 @@ describe('Noves API Integration Tests', () => {
     const token = testTokens.base;
     let foundOnChain: string | null = null;
     let completeResponse: NovesApiResponse | null = null;
-    
+
     // Limit to just a few chains to avoid timeouts in tests
     const testChains = ['eth', 'base', 'polygon'] as SpecificChain[];
-    
+
     // Test on each supported chain
     for (const chain of testChains) {
       const url = `https://pricing.noves.fi/evm/${chain}/price/${token}`;
-      
+
       try {
         console.log(`Testing token ${token} on chain ${chain}`);
         const response = await axios.get<NovesApiResponse>(url, {
           headers: {
-            'apiKey': apiKey,
-            'Accept': 'application/json'
+            apiKey: apiKey,
+            Accept: 'application/json',
           },
-          timeout: 10000
+          timeout: 10000,
         });
 
         // If response is successful and doesn't indicate a 'not found' status
@@ -175,7 +185,9 @@ describe('Noves API Integration Tests', () => {
               console.log(`✅ Token found on ${chain} with price: ${response.data.price.amount}`);
               break;
             } else {
-              console.log(`ℹ️ Response from ${chain} without price: ${JSON.stringify(response.data, null, 2)}`);
+              console.log(
+                `ℹ️ Response from ${chain} without price: ${JSON.stringify(response.data, null, 2)}`,
+              );
             }
           } else {
             console.log(`⏳ Price calculation in progress for ${chain}`);
@@ -187,23 +199,29 @@ describe('Noves API Integration Tests', () => {
           if (error.response.status === 401 || error.response.status === 404) {
             console.log(`❌ Token not found on ${chain} chain (${error.response.status})`);
           } else {
-            console.log(`Error checking chain ${chain}: ${error.response.status} - ${JSON.stringify(error.response.data)}`);
+            console.log(
+              `Error checking chain ${chain}: ${error.response.status} - ${JSON.stringify(error.response.data)}`,
+            );
           }
         } else {
-          console.log(`Network error checking chain ${chain}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+          console.log(
+            `Network error checking chain ${chain}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          );
         }
       }
-      
+
       // Add a small delay between requests to avoid rate limiting
-      await new Promise(resolve => setTimeout(resolve, 200));
+      await new Promise((resolve) => setTimeout(resolve, 200));
     }
 
     // If testing a known token on Base, we expect to find it
     if (token === testTokens.base) {
-      console.log(`Final result: token ${token} ${foundOnChain ? 'found on ' + foundOnChain : 'not found on any chain'}`);
+      console.log(
+        `Final result: token ${token} ${foundOnChain ? 'found on ' + foundOnChain : 'not found on any chain'}`,
+      );
       if (completeResponse) {
         console.log(`Complete response: ${JSON.stringify(completeResponse, null, 2)}`);
       }
     }
   }, 30000); // Increase timeout to 30 seconds
-}); 
+});

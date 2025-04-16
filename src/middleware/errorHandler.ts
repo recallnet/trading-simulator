@@ -5,7 +5,7 @@ import { Request, Response, NextFunction } from 'express';
  */
 export class ApiError extends Error {
   statusCode: number;
-  
+
   constructor(statusCode: number, message: string) {
     super(message);
     this.statusCode = statusCode;
@@ -17,12 +17,7 @@ export class ApiError extends Error {
 /**
  * Global error handler middleware
  */
-const errorHandler = (
-  err: Error | ApiError,
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+const errorHandler = (err: Error | ApiError, req: Request, res: Response, next: NextFunction) => {
   console.error(`Error: ${err.message}`);
   console.error(err.stack);
 
@@ -30,24 +25,24 @@ const errorHandler = (
   if (err instanceof ApiError) {
     return res.status(err.statusCode).json({
       success: false,
-      error: err.message
+      error: err.message,
     });
   }
-  
+
   // Handle inactive team errors
   if (err.message && err.message.includes('inactive')) {
     return res.status(403).json({
       success: false,
       error: err.message,
-      inactive: true
+      inactive: true,
     });
   }
 
   // Handle other errors
   return res.status(500).json({
     success: false,
-    error: 'Internal Server Error'
+    error: 'Internal Server Error',
   });
 };
 
-export default errorHandler; 
+export default errorHandler;

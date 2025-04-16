@@ -28,7 +28,7 @@ export class DexScreenerProvider implements PriceSource {
     zksync: 'zksync',
     scroll: 'scroll',
     mantle: 'mantle',
-    svm: 'solana'
+    svm: 'solana',
   };
 
   constructor() {
@@ -77,7 +77,11 @@ export class DexScreenerProvider implements PriceSource {
   /**
    * Convert a BlockchainType and SpecificChain to the correct chain identifier for DexScreener API
    */
-  private getDexScreenerChain(tokenAddress: string, chain?: BlockchainType, specificChain?: SpecificChain): string {
+  private getDexScreenerChain(
+    tokenAddress: string,
+    chain?: BlockchainType,
+    specificChain?: SpecificChain,
+  ): string {
     if (specificChain && this.chainMapping[specificChain]) {
       return this.chainMapping[specificChain];
     }
@@ -96,16 +100,16 @@ export class DexScreenerProvider implements PriceSource {
    */
   private async fetchPrice(tokenAddress: string, dexScreenerChain: string): Promise<number | null> {
     const url = `${this.API_BASE}/${dexScreenerChain}/${tokenAddress}`;
-    
+
     let retries = 0;
     while (retries <= this.MAX_RETRIES) {
       try {
         // Enforce rate limiting
         await this.enforceRateLimit();
-        
+
         // Make the API request
         const response = await axios.get(url);
-        
+
         // Check if response has data
         if (response.data && Array.isArray(response.data) && response.data.length > 0) {
           // Find first pair with a valid USD price
@@ -115,20 +119,23 @@ export class DexScreenerProvider implements PriceSource {
             }
           }
         }
-        
+
         // If no valid price found in response
         return null;
       } catch (error) {
-        console.error(`Error fetching price from DexScreener for ${tokenAddress} on ${dexScreenerChain}:`, error);
+        console.error(
+          `Error fetching price from DexScreener for ${tokenAddress} on ${dexScreenerChain}:`,
+          error,
+        );
         retries++;
-        
+
         // If we haven't reached the max retries, delay and try again
         if (retries <= this.MAX_RETRIES) {
           await this.delay(this.RETRY_DELAY);
         }
       }
     }
-    
+
     // If all retries failed
     return null;
   }
@@ -136,29 +143,33 @@ export class DexScreenerProvider implements PriceSource {
   /**
    * Get the price of a token
    */
-  async getPrice(tokenAddress: string, chain?: BlockchainType, specificChain?: SpecificChain): Promise<number | null> {
+  async getPrice(
+    tokenAddress: string,
+    chain?: BlockchainType,
+    specificChain?: SpecificChain,
+  ): Promise<number | null> {
     // Determine chain if not provided
     if (!chain) {
       chain = this.determineChain(tokenAddress);
     }
-    
+
     // Get the DexScreener chain identifier
     const dexScreenerChain = this.getDexScreenerChain(tokenAddress, chain, specificChain);
-    
+
     // Check cache first
     const cachedPrice = this.getCachedPrice(tokenAddress, dexScreenerChain);
     if (cachedPrice !== null) {
       return cachedPrice;
     }
-    
+
     // Fetch the price
     const price = await this.fetchPrice(tokenAddress, dexScreenerChain);
-    
+
     // Cache the result if we got a valid price
     if (price !== null) {
       this.setCachedPrice(tokenAddress, dexScreenerChain, price);
     }
-    
+
     return price;
   }
 
@@ -168,9 +179,9 @@ export class DexScreenerProvider implements PriceSource {
   async supports(tokenAddress: string): Promise<boolean> {
     const chain = this.determineChain(tokenAddress);
     const dexScreenerChain = this.getDexScreenerChain(tokenAddress, chain);
-    
+
     // Try to get a price - if successful, we support it
     const price = await this.getPrice(tokenAddress, chain);
     return price !== null;
   }
-} 
+}

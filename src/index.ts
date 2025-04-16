@@ -46,10 +46,10 @@ app.use('/api/docs', docsRoutes.default);
 
 // Legacy health check endpoint for backward compatibility
 app.get('/health', (req, res) => {
-  res.status(200).json({ 
-    status: 'ok', 
+  res.status(200).json({
+    status: 'ok',
     timestamp: new Date().toISOString(),
-    version: '1.0.0'
+    version: '1.0.0',
   });
 });
 
@@ -65,14 +65,14 @@ app.use(errorHandler);
 const startServer = async () => {
   const PORT = config.server.port;
   let databaseInitialized = false;
-  
+
   try {
     // Initialize database
     console.log('Checking database connection...');
     await initializeDatabase();
     console.log('Database connection and schema verification completed');
     databaseInitialized = true;
-    
+
     // Start snapshot scheduler
     services.scheduler.startSnapshotScheduler();
     console.log('Portfolio snapshot scheduler started');
@@ -81,14 +81,14 @@ const startServer = async () => {
     if (process.env.NODE_ENV === 'production') {
       console.warn(
         'WARNING: Starting server without successful database initialization. ' +
-        'Some functionality may be limited until database connection is restored.'
+          'Some functionality may be limited until database connection is restored.',
       );
     } else {
       console.error('Failed to start server due to database initialization error. Exiting...');
       process.exit(1);
     }
   }
-  
+
   // Start HTTP server
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`\n========================================`);
@@ -103,4 +103,4 @@ const startServer = async () => {
 // Start the server
 startServer();
 
-export default app; 
+export default app;

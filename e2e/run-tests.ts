@@ -2,7 +2,7 @@
 
 /**
  * Script to run end-to-end tests
- * 
+ *
  * This script handles:
  * 1. Setting up the test environment
  * 2. Running Jest tests
@@ -42,7 +42,7 @@ try {
   const dbSetupResult = spawnSync('npx', ['ts-node', 'scripts/setup-db.ts'], {
     env: { ...process.env, NODE_ENV: 'test' },
     stdio: ['inherit', logStream, logStream],
-    cwd: path.resolve(__dirname, '..')
+    cwd: path.resolve(__dirname, '..'),
   });
 
   if (dbSetupResult.status !== 0) {
@@ -51,10 +51,14 @@ try {
 
   // Run Jest tests
   log('\n🧪 Running E2E tests...');
-  const jestResult = spawnSync('npx', ['jest', '-c', 'e2e/jest.config.js', ...process.argv.slice(2)], {
-    stdio: ['inherit', logStream, logStream],
-    cwd: path.resolve(__dirname, '..')
-  });
+  const jestResult = spawnSync(
+    'npx',
+    ['jest', '-c', 'e2e/jest.config.js', ...process.argv.slice(2)],
+    {
+      stdio: ['inherit', logStream, logStream],
+      cwd: path.resolve(__dirname, '..'),
+    },
+  );
 
   if (jestResult.status !== 0) {
     process.exit(jestResult.status || 1);
@@ -71,4 +75,4 @@ try {
   }
   // Close the log stream
   logStream.end();
-} 
+}
