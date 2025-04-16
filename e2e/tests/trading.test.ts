@@ -3,6 +3,7 @@ import axios from 'axios';
 import { getBaseUrl } from '../utils/server';
 import config from '../../src/config';
 import { BlockchainType } from '../../src/types';
+import { services } from '../../src/services';
 
 describe('Trading API', () => {
   let adminApiKey: string;
@@ -287,18 +288,29 @@ describe('Trading API', () => {
     expect(excessiveAmountResponse.success).toBe(false);
     expect(excessiveAmountResponse.error).toContain('Cannot trade between identical tokens');
     
-    // Add a test for truly excessive amounts after fixing the token address
-    // The test should now execute a transaction where from != to
-    const solanaPriceResponse = await teamClient.executeTrade({
+    // Get portfolio value to calculate appropriate test amounts
+    const portfolioResponse = await teamClient.getPortfolio();
+    expect(portfolioResponse.success).toBe(true);
+    const portfolioValue = portfolioResponse.totalValue;
+    
+    // Test insufficient balance with an amount below max trade percentage but above actual balance
+    // Calculate 25% of portfolio value (below the 30% max trade limit) but ensure it exceeds the USDC balance
+    const insufficientBalanceAmount = Math.max(initialUsdcBalance * 1.1, Math.min(portfolioValue * 0.25, initialUsdcBalance * 1.5));
+    
+    // Check if this amount is actually greater than our balance but less than max trade percentage
+    console.log(`Testing insufficient balance with amount: ${insufficientBalanceAmount}`);
+    console.log(`USDC Balance: ${initialUsdcBalance}, 25% of Portfolio: ${portfolioValue * 0.25}`);
+    
+    const insufficientBalanceResponse = await teamClient.executeTrade({
       fromToken: usdcTokenAddress,
-      toToken: config.specificChainTokens.svm.sol, // Use SOL token which has a different address from USDC
-      amount: (initialUsdcBalance * 2).toString(), // Double the available balance
+      toToken: config.specificChainTokens.svm.sol,
+      amount: insufficientBalanceAmount.toString(),
       fromChain: BlockchainType.SVM,
       toChain: BlockchainType.SVM
     });
     
-    expect(solanaPriceResponse.success).toBe(false);
-    expect(solanaPriceResponse.error).toContain('Insufficient balance');
+    expect(insufficientBalanceResponse.success).toBe(false);
+    expect(insufficientBalanceResponse.error).toContain('Insufficient balance');
     
     // Try to execute a sell trade without having tokens
     const invalidSellResponse = await teamClient.executeTrade({
@@ -311,6 +323,145 @@ describe('Trading API', () => {
     
     expect(invalidSellResponse.success).toBe(false);
     expect(invalidSellResponse.error).toContain('Insufficient balance');
+    
+    // Test a small SOL sell to verify our balance is truly 0 for SOL
+    const solBalance = initialBalanceResponse.balance[config.specificChainTokens.svm.sol] || 0;
+    console.log(`SOL balance: ${solBalance}`);
+    
+    const smallSolTradeResponse = await teamClient.executeTrade({
+      fromToken: config.specificChainTokens.svm.sol,
+      toToken: usdcTokenAddress,
+      amount: '0.1', // Even a small amount should fail
+      fromChain: BlockchainType.SVM,
+      toChain: BlockchainType.SVM
+    });
+    
+    // We now understand this might pass if SOL has a balance
+    console.log(`SOL trade result: ${smallSolTradeResponse.success ? 'success' : 'failure'}`);
+    if (solBalance > 0) {
+      // If we have SOL, the trade should succeed
+      expect(smallSolTradeResponse.success).toBe(true);
+    } else {
+      // If we don't have SOL, the trade should fail
+      expect(smallSolTradeResponse.success).toBe(false);
+      expect(smallSolTradeResponse.error).toContain('Insufficient balance');
+    }
+    
+    // Get current balances and find a token that doesn't exist in our balance
+    const balanceResponse = await teamClient.getBalance();
+    const tokenAddresses = Object.keys(balanceResponse.balance);
+    console.log(`Team has balances for these tokens: ${tokenAddresses.join(', ')}`);
+    
+    // Use USDT on Base which is a real token but we're confident won't be initialized in test accounts
+    const baseUsdtAddress = "0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb"; // USDT on Base
+    
+    // Test a trade from a token we definitely don't have
+    const zeroBalanceTradeResponse = await teamClient.executeTrade({
+      fromToken: baseUsdtAddress,
+      toToken: config.specificChainTokens.svm.usdc,
+      amount: '0.1', // Amount doesn't matter as we have zero
+      fromChain: BlockchainType.EVM,
+      toChain: BlockchainType.SVM
+    });
+    
+    expect(zeroBalanceTradeResponse.success).toBe(false);
+    expect(zeroBalanceTradeResponse.error).toContain('Insufficient balance');
+    console.log(`Zero balance trade correctly rejected: ${zeroBalanceTradeResponse.error}`);
+  });
+  
+  test('cannot place a trade that exceeds the maximum amount', async () => {
+    // Setup admin client
+    const adminClient = createTestClient();
+    await adminClient.loginAsAdmin(adminApiKey);
+    
+    // Register team and get client
+    const { client: teamClient, team } = await registerTeamAndGetClient(adminClient, 'Max Trade Limit Team');
+    
+    // Start a competition with our team
+    await startTestCompetition(adminClient, `Max Trade Limit Test ${Date.now()}`, [team.id]);
+    
+    // Wait for balances to be properly initialized
+    await wait(500);
+    
+    // Check initial balance
+    const initialBalanceResponse = await teamClient.getBalance();
+    
+    const usdcTokenAddress = config.specificChainTokens.svm.usdc;
+    
+    // First, check if we have any SOL or other tokens and sell them to consolidate into USDC
+    const tokenAddressesBefore = Object.keys(initialBalanceResponse.balance);
+    console.log(`Team initial balances: ${JSON.stringify(initialBalanceResponse.balance)}`);
+    
+    // Consolidate all non-USDC SVM tokens into USDC
+    for (const tokenAddress of tokenAddressesBefore) {
+      // Skip USDC itself
+      if (tokenAddress === usdcTokenAddress) continue;
+      
+      // Only consolidate Solana (SVM) tokens - we want to avoid cross-chain trades
+      const tokenChain = services.priceTracker.determineChain(tokenAddress);
+      if (tokenChain !== BlockchainType.SVM) {
+        console.log(`Skipping ${tokenAddress} - not a Solana token (${tokenChain})`);
+        continue;
+      }
+      
+      const balance = parseFloat(initialBalanceResponse.balance[tokenAddress]?.toString() || '0');
+      
+      // If we have a balance, sell it for USDC
+      if (balance > 0) {
+        console.log(`Converting ${balance} of ${tokenAddress} to USDC (SVM token)`);
+        const consolidateResponse = await teamClient.executeTrade({
+          fromToken: tokenAddress,
+          toToken: usdcTokenAddress,
+          amount: balance.toString(),
+          fromChain: BlockchainType.SVM,
+          toChain: BlockchainType.SVM
+        });
+        
+        console.log(`Consolidation result: ${consolidateResponse.success ? 'success' : 'failure'}`);
+        if (!consolidateResponse.success) {
+          console.log(`Failed to consolidate ${tokenAddress}: ${consolidateResponse.error}`);
+        }
+      }
+    }
+    
+    // Wait for trades to process
+    await wait(500);
+    
+    // // Verify we now have a consolidated USDC balance
+    const balanceAfterConsolidation = await teamClient.getBalance();
+    console.log(JSON.stringify(balanceAfterConsolidation), 'balanceAfterConsolidation')
+    const consolidatedUsdcBalance = parseFloat(balanceAfterConsolidation.balance[usdcTokenAddress]?.toString() || '0');
+    console.log(`Consolidated USDC balance: ${consolidatedUsdcBalance}`);
+    expect(consolidatedUsdcBalance).toBeGreaterThan(0);
+    
+    // Get portfolio value to calculate trade percentage
+    const portfolioResponse = await teamClient.getPortfolio();
+    expect(portfolioResponse.success).toBe(true);
+    const portfolioValue = portfolioResponse.totalValue;
+    console.log(`Portfolio value: $${portfolioValue}`);
+    
+    // Try to trade almost all of our USDC balance for SOL
+    // This should be over the MAX_TRADE_PERCENTAGE limit (5% in .env.test)
+    const tradeAmount = consolidatedUsdcBalance * 0.95; // Use 95% of our USDC
+    console.log(`Attempting to trade ${tradeAmount} USDC (95% of our consolidated balance)`);
+    
+    // Calculate what percentage of portfolio this represents
+    const tradePercentage = (tradeAmount / portfolioValue) * 100;
+    console.log(`Trade amount: ${tradeAmount} USDC`);
+    console.log(`Portfolio value: $${portfolioValue}`);
+    console.log(`Trade percentage: ${tradePercentage}% (Max allowed: ${config.maxTradePercentage}%)`);
+    
+    const maxPercentageResponse = await teamClient.executeTrade({
+      fromToken: usdcTokenAddress,
+      toToken: config.specificChainTokens.svm.sol,
+      amount: tradeAmount.toString(),
+      fromChain: BlockchainType.SVM,
+      toChain: BlockchainType.SVM
+    });
+    
+    console.log(`Max percentage trade response: ${JSON.stringify(maxPercentageResponse)}`);
+    expect(maxPercentageResponse.success).toBe(false);
+    expect(maxPercentageResponse.error).toContain('exceeds maximum size');
   });
   
   test('team can fetch price and execute a calculated trade', async () => {

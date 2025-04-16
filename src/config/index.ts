@@ -170,6 +170,9 @@ export const config = {
   allowMockPriceHistory: process.env.ALLOW_MOCK_PRICE_HISTORY 
     ? process.env.ALLOW_MOCK_PRICE_HISTORY === 'true'
     : process.env.NODE_ENV !== 'production',
+  // Maximum trade size as percentage of portfolio value
+  // Defaults to 25% if not specified
+  maxTradePercentage: parseInt(process.env.MAX_TRADE_PERCENTAGE || '25', 10),
 };
 
 /**
