@@ -7,10 +7,10 @@ import { initializeDatabase } from '../src/database';
 const setupDatabase = async () => {
   try {
     console.log('Starting database initialization...');
-    
+
     // Initialize base database schema
     await initializeDatabase();
-    
+
     console.log('\nDatabase initialization completed successfully!');
     process.exit(0);
   } catch (error) {
@@ -20,4 +20,4 @@ const setupDatabase = async () => {
 };
 
 // Run the setup
-setupDatabase(); 
+setupDatabase();

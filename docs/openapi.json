@@ -172,9 +172,7 @@
   "paths": {
     "/api/account/profile": {
       "get": {
-        "tags": [
-          "Account"
-        ],
+        "tags": ["Account"],
         "summary": "Get team profile",
         "description": "Get profile information for the authenticated team",
         "security": [
@@ -254,9 +252,7 @@
         }
       },
       "put": {
-        "tags": [
-          "Account"
-        ],
+        "tags": ["Account"],
         "summary": "Update team profile",
         "description": "Update profile information for the authenticated team",
         "security": [
@@ -354,9 +350,7 @@
     },
     "/api/account/balances": {
       "get": {
-        "tags": [
-          "Account"
-        ],
+        "tags": ["Account"],
         "summary": "Get token balances",
         "description": "Get all token balances for the authenticated team",
         "security": [
@@ -407,10 +401,7 @@
                           },
                           "chain": {
                             "type": "string",
-                            "enum": [
-                              "evm",
-                              "svm"
-                            ],
+                            "enum": ["evm", "svm"],
                             "description": "Blockchain type of the token"
                           },
                           "specificChain": {
@@ -437,9 +428,7 @@
     },
     "/api/account/portfolio": {
       "get": {
-        "tags": [
-          "Account"
-        ],
+        "tags": ["Account"],
         "summary": "Get portfolio information",
         "description": "Get portfolio valuation and token details for the authenticated team",
         "security": [
@@ -502,10 +491,7 @@
                           },
                           "chain": {
                             "type": "string",
-                            "enum": [
-                              "evm",
-                              "svm"
-                            ],
+                            "enum": ["evm", "svm"],
                             "description": "Blockchain type of the token"
                           },
                           "specificChain": {
@@ -523,10 +509,7 @@
                     },
                     "source": {
                       "type": "string",
-                      "enum": [
-                        "snapshot",
-                        "live-calculation"
-                      ],
+                      "enum": ["snapshot", "live-calculation"],
                       "description": "Source of the portfolio data"
                     }
                   }
@@ -545,9 +528,7 @@
     },
     "/api/account/trades": {
       "get": {
-        "tags": [
-          "Account"
-        ],
+        "tags": ["Account"],
         "summary": "Get trade history",
         "description": "Get trade history for the authenticated team",
         "security": [
@@ -668,9 +649,7 @@
     },
     "/api/admin/setup": {
       "post": {
-        "tags": [
-          "Admin"
-        ],
+        "tags": ["Admin"],
         "summary": "Set up initial admin account",
         "description": "Creates the first admin account. This endpoint is only available when no admin exists in the system.",
         "requestBody": {
@@ -679,11 +658,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "username",
-                  "password",
-                  "email"
-                ],
+                "required": ["username", "password", "email"],
                 "properties": {
                   "username": {
                     "type": "string",
@@ -764,9 +739,7 @@
     },
     "/api/admin/teams/register": {
       "post": {
-        "tags": [
-          "Admin"
-        ],
+        "tags": ["Admin"],
         "summary": "Register a new team",
         "description": "Admin-only endpoint to register a new team. Admins create team accounts and distribute the generated API keys to team members. Teams cannot register themselves.",
         "security": [
@@ -780,12 +753,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "teamName",
-                  "email",
-                  "contactPerson",
-                  "walletAddress"
-                ],
+                "required": ["teamName", "email", "contactPerson", "walletAddress"],
                 "properties": {
                   "teamName": {
                     "type": "string",
@@ -806,7 +774,7 @@
                   "walletAddress": {
                     "type": "string",
                     "description": "Ethereum wallet address (must start with 0x)",
-                    "example": 1.0392900530713021e+47
+                    "example": 1.0392900530713021e47
                   }
                 }
               }
@@ -883,9 +851,7 @@
     },
     "/api/admin/teams": {
       "get": {
-        "tags": [
-          "Admin"
-        ],
+        "tags": ["Admin"],
         "summary": "List all teams",
         "description": "Get a list of all non-admin teams",
         "security": [
@@ -955,9 +921,7 @@
     },
     "/api/admin/teams/{teamId}": {
       "delete": {
-        "tags": [
-          "Admin"
-        ],
+        "tags": ["Admin"],
         "summary": "Delete a team",
         "description": "Permanently delete a team and all associated data",
         "security": [
@@ -1017,9 +981,7 @@
     },
     "/api/admin/competition/create": {
       "post": {
-        "tags": [
-          "Admin"
-        ],
+        "tags": ["Admin"],
         "summary": "Create a competition",
         "description": "Create a new competition without starting it. It will be in PENDING status and can be started later.",
         "security": [
@@ -1033,9 +995,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "name"
-                ],
+                "required": ["name"],
                 "properties": {
                   "name": {
                     "type": "string",
@@ -1081,11 +1041,7 @@
                         },
                         "status": {
                           "type": "string",
-                          "enum": [
-                            "PENDING",
-                            "ACTIVE",
-                            "COMPLETED"
-                          ],
+                          "enum": ["PENDING", "ACTIVE", "COMPLETED"],
                           "description": "Competition status"
                         },
                         "createdAt": {
@@ -1114,9 +1070,7 @@
     },
     "/api/admin/competition/start": {
       "post": {
-        "tags": [
-          "Admin"
-        ],
+        "tags": ["Admin"],
         "summary": "Start a competition",
         "description": "Start a new or existing competition with specified teams. If competitionId is provided, it will start an existing competition. Otherwise, it will create and start a new one.",
         "security": [
@@ -1130,9 +1084,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "teamIds"
-                ],
+                "required": ["teamIds"],
                 "properties": {
                   "competitionId": {
                     "type": "string",
@@ -1200,11 +1152,7 @@
                         },
                         "status": {
                           "type": "string",
-                          "enum": [
-                            "PENDING",
-                            "ACTIVE",
-                            "COMPLETED"
-                          ],
+                          "enum": ["PENDING", "ACTIVE", "COMPLETED"],
                           "description": "Competition status"
                         },
                         "teamIds": {
@@ -1238,9 +1186,7 @@
     },
     "/api/admin/competition/end": {
       "post": {
-        "tags": [
-          "Admin"
-        ],
+        "tags": ["Admin"],
         "summary": "End a competition",
         "description": "End an active competition and finalize the results",
         "security": [
@@ -1254,9 +1200,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "competitionId"
-                ],
+                "required": ["competitionId"],
                 "properties": {
                   "competitionId": {
                     "type": "string",
@@ -1306,11 +1250,7 @@
                         },
                         "status": {
                           "type": "string",
-                          "enum": [
-                            "PENDING",
-                            "ACTIVE",
-                            "COMPLETED"
-                          ],
+                          "enum": ["PENDING", "ACTIVE", "COMPLETED"],
                           "description": "Competition status (completed)"
                         }
                       }
@@ -1353,9 +1293,7 @@
     },
     "/api/admin/competition/{competitionId}/snapshots": {
       "get": {
-        "tags": [
-          "Admin"
-        ],
+        "tags": ["Admin"],
         "summary": "Get competition snapshots",
         "description": "Get portfolio snapshots for a competition, optionally filtered by team",
         "security": [
@@ -1446,9 +1384,7 @@
     },
     "/api/admin/reports/performance": {
       "get": {
-        "tags": [
-          "Admin"
-        ],
+        "tags": ["Admin"],
         "summary": "Get performance reports",
         "description": "Get performance reports and leaderboard for a competition",
         "security": [
@@ -1507,11 +1443,7 @@
                         },
                         "status": {
                           "type": "string",
-                          "enum": [
-                            "PENDING",
-                            "ACTIVE",
-                            "COMPLETED"
-                          ],
+                          "enum": ["PENDING", "ACTIVE", "COMPLETED"],
                           "description": "Competition status"
                         }
                       }
@@ -1562,9 +1494,7 @@
     },
     "/api/admin/teams/{teamId}/deactivate": {
       "post": {
-        "tags": [
-          "Admin"
-        ],
+        "tags": ["Admin"],
         "summary": "Deactivate a team",
         "description": "Deactivate a team from the competition. The team will no longer be able to perform any actions.",
         "security": [
@@ -1589,9 +1519,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "reason"
-                ],
+                "required": ["reason"],
                 "properties": {
                   "reason": {
                     "type": "string",
@@ -1666,9 +1594,7 @@
     },
     "/api/admin/teams/{teamId}/reactivate": {
       "post": {
-        "tags": [
-          "Admin"
-        ],
+        "tags": ["Admin"],
         "summary": "Reactivate a team",
         "description": "Reactivate a previously deactivated team, allowing them to participate in the competition again.",
         "security": [
@@ -1738,9 +1664,7 @@
     },
     "/api/competition/leaderboard": {
       "get": {
-        "tags": [
-          "Competition"
-        ],
+        "tags": ["Competition"],
         "summary": "Get competition leaderboard",
         "description": "Get the leaderboard for the active competition or a specific competition",
         "security": [
@@ -1810,11 +1734,7 @@
                         },
                         "status": {
                           "type": "string",
-                          "enum": [
-                            "PENDING",
-                            "ACTIVE",
-                            "COMPLETED"
-                          ],
+                          "enum": ["PENDING", "ACTIVE", "COMPLETED"],
                           "description": "Competition status"
                         },
                         "createdAt": {
@@ -1891,9 +1811,7 @@
     },
     "/api/competition/status": {
       "get": {
-        "tags": [
-          "Competition"
-        ],
+        "tags": ["Competition"],
         "summary": "Get competition status",
         "description": "Get the status of the active competition",
         "security": [
@@ -1959,11 +1877,7 @@
                         },
                         "status": {
                           "type": "string",
-                          "enum": [
-                            "PENDING",
-                            "ACTIVE",
-                            "COMPLETED"
-                          ],
+                          "enum": ["PENDING", "ACTIVE", "COMPLETED"],
                           "description": "Competition status"
                         },
                         "createdAt": {
@@ -1999,9 +1913,7 @@
     },
     "/api/competition/rules": {
       "get": {
-        "tags": [
-          "Competition"
-        ],
+        "tags": ["Competition"],
         "summary": "Get competition rules",
         "description": "Get the rules, rate limits, and other configuration details for the competition",
         "security": [
@@ -2103,9 +2015,7 @@
     },
     "/api/health": {
       "get": {
-        "tags": [
-          "Health"
-        ],
+        "tags": ["Health"],
         "summary": "Basic health check",
         "description": "Check if the API is running",
         "responses": {
@@ -2147,9 +2057,7 @@
     },
     "/api/health/detailed": {
       "get": {
-        "tags": [
-          "Health"
-        ],
+        "tags": ["Health"],
         "summary": "Detailed health check",
         "description": "Check if the API and all its services are running properly",
         "responses": {
@@ -2222,9 +2130,7 @@
     },
     "/api/price": {
       "get": {
-        "tags": [
-          "Price"
-        ],
+        "tags": ["Price"],
         "summary": "Get price for a token",
         "description": "Get the current price of a specified token",
         "security": [
@@ -2258,10 +2164,7 @@
             "name": "chain",
             "schema": {
               "type": "string",
-              "enum": [
-                "evm",
-                "svm"
-              ]
+              "enum": ["evm", "svm"]
             },
             "required": false,
             "description": "Blockchain type of the token",
@@ -2315,10 +2218,7 @@
                     },
                     "chain": {
                       "type": "string",
-                      "enum": [
-                        "EVM",
-                        "SVM"
-                      ],
+                      "enum": ["EVM", "SVM"],
                       "description": "Blockchain type of the token"
                     },
                     "specificChain": {
@@ -2352,9 +2252,7 @@
     },
     "/api/price/token-info": {
       "get": {
-        "tags": [
-          "Price"
-        ],
+        "tags": ["Price"],
         "summary": "Get detailed token information",
         "description": "Get detailed token information including price and specific chain",
         "security": [
@@ -2388,10 +2286,7 @@
             "name": "chain",
             "schema": {
               "type": "string",
-              "enum": [
-                "evm",
-                "svm"
-              ]
+              "enum": ["evm", "svm"]
             },
             "required": false,
             "description": "Blockchain type of the token",
@@ -2445,10 +2340,7 @@
                     },
                     "chain": {
                       "type": "string",
-                      "enum": [
-                        "EVM",
-                        "SVM"
-                      ],
+                      "enum": ["EVM", "SVM"],
                       "description": "Blockchain type of the token"
                     },
                     "specificChain": {
@@ -2482,9 +2374,7 @@
     },
     "/api/trade/execute": {
       "post": {
-        "tags": [
-          "Trade"
-        ],
+        "tags": ["Trade"],
         "summary": "Execute a trade",
         "description": "Execute a trade between two tokens",
         "security": [
@@ -2509,11 +2399,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "fromToken",
-                  "toToken",
-                  "amount"
-                ],
+                "required": ["fromToken", "toToken", "amount"],
                 "properties": {
                   "fromToken": {
                     "type": "string",
@@ -2656,9 +2542,7 @@
     },
     "/api/trade/quote": {
       "get": {
-        "tags": [
-          "Trade"
-        ],
+        "tags": ["Trade"],
         "summary": "Get a quote for a trade",
         "description": "Get a quote for a potential trade between two tokens",
         "security": [

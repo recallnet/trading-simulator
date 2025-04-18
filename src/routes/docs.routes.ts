@@ -10,4 +10,4 @@ router.get('/', DocsController.getApiDocs);
 // GET /api/docs/spec - Get raw OpenAPI specification
 router.get('/spec', DocsController.getApiSpec);
 
-export default router; 
+export default router;

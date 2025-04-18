@@ -16,23 +16,23 @@ export interface TokenInfo {
  */
 export enum BlockchainType {
   SVM = 'svm',
-  EVM = 'evm'
+  EVM = 'evm',
 }
 
 // New type for specific chains
-export type SpecificChain = 
-  | 'eth'      // Ethereum Mainnet
-  | 'polygon'  // Polygon
-  | 'bsc'      // Binance Smart Chain
+export type SpecificChain =
+  | 'eth' // Ethereum Mainnet
+  | 'polygon' // Polygon
+  | 'bsc' // Binance Smart Chain
   | 'arbitrum' // Arbitrum
   | 'optimism' // Optimism
-  | 'avalanche'// Avalanche
-  | 'base'     // Base
-  | 'linea'    // Linea
-  | 'zksync'   // zkSync Era
-  | 'scroll'   // Scroll
-  | 'mantle'   // Mantle
-  | 'svm';     // Solana (for consistency)
+  | 'avalanche' // Avalanche
+  | 'base' // Base
+  | 'linea' // Linea
+  | 'zksync' // zkSync Era
+  | 'scroll' // Scroll
+  | 'mantle' // Mantle
+  | 'svm'; // Solana (for consistency)
 
 // Mapping from SpecificChain to BlockchainType
 export const chainTypeMapping: Record<SpecificChain, BlockchainType> = {
@@ -47,7 +47,7 @@ export const chainTypeMapping: Record<SpecificChain, BlockchainType> = {
   zksync: BlockchainType.EVM,
   scroll: BlockchainType.EVM,
   mantle: BlockchainType.EVM,
-  svm: BlockchainType.SVM
+  svm: BlockchainType.SVM,
 };
 
 // Get general chain type from specific chain
@@ -86,7 +86,7 @@ export interface Trade {
   teamId: string;
   competitionId: string;
   error?: string;
-  
+
   // Chain information
   fromChain?: BlockchainType;
   toChain?: BlockchainType;
@@ -158,7 +158,7 @@ export interface Competition {
 export enum CompetitionStatus {
   PENDING = 'PENDING',
   ACTIVE = 'ACTIVE',
-  COMPLETED = 'COMPLETED'
+  COMPLETED = 'COMPLETED',
 }
 
 /**
@@ -190,4 +190,4 @@ export interface AuthenticatedRequest extends Request {
     id: string;
     name: string;
   };
-} 
+}

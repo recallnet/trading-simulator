@@ -28,7 +28,7 @@ export class TeamRepository extends BaseRepository<Team> {
           $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12
         ) RETURNING *
       `;
-      
+
       const values = [
         team.id,
         team.name,
@@ -41,13 +41,13 @@ export class TeamRepository extends BaseRepository<Team> {
         team.deactivationReason || null,
         team.deactivationDate || null,
         team.createdAt,
-        team.updatedAt
+        team.updatedAt,
       ];
-      
-      const result = client 
-        ? await client.query(query, values) 
+
+      const result = client
+        ? await client.query(query, values)
         : await this.db.query(query, values);
-      
+
       return this.mapToEntity(this.toCamelCase(result.rows[0]));
     } catch (error) {
       console.error('[TeamRepository] Error in create:', error);
@@ -67,16 +67,14 @@ export class TeamRepository extends BaseRepository<Team> {
         WHERE LOWER(email) = LOWER($1)
         LIMIT 1
       `;
-      
+
       const values = [email];
-      
-      const result = client 
-        ? await client.query(query, values) 
+
+      const result = client
+        ? await client.query(query, values)
         : await this.db.query(query, values);
-      
-      return result.rows.length > 0 
-        ? this.mapToEntity(this.toCamelCase(result.rows[0])) 
-        : null;
+
+      return result.rows.length > 0 ? this.mapToEntity(this.toCamelCase(result.rows[0])) : null;
     } catch (error) {
       console.error('[TeamRepository] Error in findByEmail:', error);
       throw error;
@@ -105,7 +103,7 @@ export class TeamRepository extends BaseRepository<Team> {
         WHERE id = $11
         RETURNING *
       `;
-      
+
       const values = [
         team.name,
         team.email,
@@ -117,17 +115,17 @@ export class TeamRepository extends BaseRepository<Team> {
         team.deactivationReason || null,
         team.deactivationDate || null,
         new Date(),
-        team.id
+        team.id,
       ];
-      
-      const result = client 
-        ? await client.query(query, values) 
+
+      const result = client
+        ? await client.query(query, values)
         : await this.db.query(query, values);
-      
+
       if (result.rows.length === 0) {
         throw new Error(`Team with ID ${team.id} not found`);
       }
-      
+
       return this.mapToEntity(this.toCamelCase(result.rows[0]));
     } catch (error) {
       console.error('[TeamRepository] Error in update:', error);
@@ -146,16 +144,14 @@ export class TeamRepository extends BaseRepository<Team> {
         SELECT * FROM teams
         WHERE api_key = $1
       `;
-      
+
       const values = [apiKey];
-      
-      const result = client 
-        ? await client.query(query, values) 
+
+      const result = client
+        ? await client.query(query, values)
         : await this.db.query(query, values);
-      
-      return result.rows.length > 0 
-        ? this.mapToEntity(this.toCamelCase(result.rows[0])) 
-        : null;
+
+      return result.rows.length > 0 ? this.mapToEntity(this.toCamelCase(result.rows[0])) : null;
     } catch (error) {
       console.error('[TeamRepository] Error in findByApiKey:', error);
       throw error;
@@ -168,19 +164,23 @@ export class TeamRepository extends BaseRepository<Team> {
    * @param competitionId Competition ID
    * @param client Optional database client for transactions
    */
-  async isTeamInCompetition(teamId: string, competitionId: string, client?: PoolClient): Promise<boolean> {
+  async isTeamInCompetition(
+    teamId: string,
+    competitionId: string,
+    client?: PoolClient,
+  ): Promise<boolean> {
     try {
       const query = `
         SELECT 1 FROM competition_teams
         WHERE team_id = $1 AND competition_id = $2
       `;
-      
+
       const values = [teamId, competitionId];
-      
-      const result = client 
-        ? await client.query(query, values) 
+
+      const result = client
+        ? await client.query(query, values)
         : await this.db.query(query, values);
-      
+
       return result.rows.length > 0;
     } catch (error) {
       console.error('[TeamRepository] Error in isTeamInCompetition:', error);
@@ -211,29 +211,24 @@ export class TeamRepository extends BaseRepository<Team> {
         WHERE id = $4
         RETURNING *
       `;
-      
-      const values = [
-        reason,
-        new Date(),
-        new Date(),
-        teamId
-      ];
-      
-      const result = client 
-        ? await client.query(query, values) 
+
+      const values = [reason, new Date(), new Date(), teamId];
+
+      const result = client
+        ? await client.query(query, values)
         : await this.db.query(query, values);
-      
+
       if (result.rows.length === 0) {
         return null;
       }
-      
+
       return this.mapToEntity(this.toCamelCase(result.rows[0]));
     } catch (error) {
       console.error('[TeamRepository] Error in deactivateTeam:', error);
       throw error;
     }
   }
-  
+
   /**
    * Reactivate a team
    * @param teamId Team ID to reactivate
@@ -256,20 +251,17 @@ export class TeamRepository extends BaseRepository<Team> {
         WHERE id = $2
         RETURNING *
       `;
-      
-      const values = [
-        new Date(),
-        teamId
-      ];
-      
-      const result = client 
-        ? await client.query(query, values) 
+
+      const values = [new Date(), teamId];
+
+      const result = client
+        ? await client.query(query, values)
         : await this.db.query(query, values);
-      
+
       if (result.rows.length === 0) {
         return null;
       }
-      
+
       return this.mapToEntity(this.toCamelCase(result.rows[0]));
     } catch (error) {
       console.error('[TeamRepository] Error in reactivateTeam:', error);
@@ -288,12 +280,10 @@ export class TeamRepository extends BaseRepository<Team> {
         WHERE active = false
         ORDER BY deactivation_date DESC
       `;
-      
-      const result = client 
-        ? await client.query(query) 
-        : await this.db.query(query);
-      
-      return result.rows.map((row: any) => this.mapToEntity(this.toCamelCase(row)));
+
+      const result = client ? await client.query(query) : await this.db.query(query);
+
+      return result.rows.map((row: DatabaseRow) => this.mapToEntity(this.toCamelCase(row)));
     } catch (error) {
       console.error('[TeamRepository] Error in findInactiveTeams:', error);
       throw error;
@@ -306,18 +296,20 @@ export class TeamRepository extends BaseRepository<Team> {
    */
   protected mapToEntity(data: DatabaseRow): Team {
     return {
-      id: data.id,
-      name: data.name,
-      email: data.email,
-      contactPerson: data.contactPerson,
-      apiKey: data.apiKey,
-      walletAddress: data.walletAddress,
-      isAdmin: data.isAdmin || false,
-      active: data.active !== undefined ? data.active : false,
-      deactivationReason: data.deactivationReason,
-      deactivationDate: data.deactivationDate ? new Date(data.deactivationDate) : undefined,
-      createdAt: new Date(data.createdAt),
-      updatedAt: new Date(data.updatedAt)
+      id: data.id as string,
+      name: data.name as string,
+      email: data.email as string,
+      contactPerson: data.contactPerson as string,
+      apiKey: data.apiKey as string,
+      walletAddress: data.walletAddress as string,
+      isAdmin: data.isAdmin ? Boolean(data.isAdmin) : false,
+      active: data.active !== undefined ? Boolean(data.active) : false,
+      deactivationReason: data.deactivationReason as string | undefined,
+      deactivationDate: data.deactivationDate
+        ? new Date(data.deactivationDate as string | number | Date)
+        : undefined,
+      createdAt: new Date(data.createdAt as string | number | Date),
+      updatedAt: new Date(data.updatedAt as string | number | Date),
     };
   }
-} 
+}

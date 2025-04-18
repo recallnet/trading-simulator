@@ -20,10 +20,16 @@ export class SerumProvider implements PriceSource {
     this.connection = new Connection('https://api.mainnet-beta.solana.com', 'confirmed');
     this.marketCache = new Map();
     this.priceCache = new Map();
-    
+
     // Pre-populate some known markets
-    this.marketCache.set('So11111111111111111111111111111111111111112', 'C1EuT9VokAKLiW7i2ASnZUvxDoKuKkCpDDeNxAptuNe4'); // SOL/USDC
-    this.marketCache.set('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', '5KgMknbJ44GBLMp5yrLYW2H5fuvoJM4pWnyXMW13Yang'); // USDC/USDT
+    this.marketCache.set(
+      'So11111111111111111111111111111111111111112',
+      'C1EuT9VokAKLiW7i2ASnZUvxDoKuKkCpDDeNxAptuNe4',
+    ); // SOL/USDC
+    this.marketCache.set(
+      'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
+      '5KgMknbJ44GBLMp5yrLYW2H5fuvoJM4pWnyXMW13Yang',
+    ); // USDC/USDT
     // Add more market pairs as needed
   }
 
@@ -60,7 +66,7 @@ export class SerumProvider implements PriceSource {
       }
 
       console.log(`[SerumProvider] Getting price for ${tokenAddress}`);
-      
+
       // Find the market address for this token
       let marketAddress = this.marketCache.get(tokenAddress);
       if (!marketAddress) {
@@ -71,13 +77,15 @@ export class SerumProvider implements PriceSource {
       }
 
       console.log(`[SerumProvider] Found market address for ${tokenAddress}: ${marketAddress}`);
-      
+
       // Since we don't want to include the full @project-serum/serum library in the app,
       // we'll use a simpler approach with direct RPC calls
       for (let attempt = 1; attempt <= this.MAX_RETRIES; attempt++) {
         try {
-          console.log(`[SerumProvider] Attempt ${attempt}/${this.MAX_RETRIES} to fetch price for ${tokenAddress}`);
-          
+          console.log(
+            `[SerumProvider] Attempt ${attempt}/${this.MAX_RETRIES} to fetch price for ${tokenAddress}`,
+          );
+
           // Query the market's orderbook
           // This is a simplified approach - in practice, you'd use the Serum library to properly parse the orderbook
           const response = await axios.post(
@@ -90,31 +98,31 @@ export class SerumProvider implements PriceSource {
                 marketAddress,
                 {
                   encoding: 'base64',
-                }
-              ]
+                },
+              ],
             },
             {
               headers: {
                 'Content-Type': 'application/json',
               },
               timeout: 10000,
-            }
+            },
           );
-          
+
           if (!response.data?.result?.value) {
             console.log(`[SerumProvider] No market data available for ${marketAddress}`);
             if (attempt === this.MAX_RETRIES) return null;
             await this.delay(this.RETRY_DELAY * attempt);
             continue;
           }
-          
+
           // Note: This is where you would properly parse the Serum market data
           // In a real implementation, we'd use @project-serum/serum library's Market.load and other methods
-          
+
           // For now, let's use a placeholder price if the account exists
           // This is just to demonstrate the structure - real implementation would parse orderbook data
           let price = 0;
-          
+
           // For common tokens like SOL, we'll return reasonable values for testing
           if (tokenAddress === 'So11111111111111111111111111111111111111112') {
             price = 80 + Math.random() * 10; // SOL price ~$80-90 (as of my implementation)
@@ -125,12 +133,12 @@ export class SerumProvider implements PriceSource {
             // Note: this is a placeholder
             price = 0.1 + Math.random() * 5;
           }
-          
+
           if (isNaN(price) || price <= 0) {
             console.log(`[SerumProvider] Invalid price format for token: ${tokenAddress}`);
             return null;
           }
-          
+
           console.log(`[SerumProvider] Found price for ${tokenAddress}: $${price}`);
           this.setCachedPrice(tokenAddress, price);
           return price;
@@ -140,10 +148,13 @@ export class SerumProvider implements PriceSource {
           await this.delay(this.RETRY_DELAY * attempt);
         }
       }
-      
+
       return null;
     } catch (error) {
-      console.error(`[SerumProvider] Error fetching price for ${tokenAddress}:`, error instanceof Error ? error.message : 'Unknown error');
+      console.error(
+        `[SerumProvider] Error fetching price for ${tokenAddress}:`,
+        error instanceof Error ? error.message : 'Unknown error',
+      );
       return null;
     }
   }
@@ -154,7 +165,7 @@ export class SerumProvider implements PriceSource {
       if (this.getCachedPrice(tokenAddress) !== null) {
         return true;
       }
-      
+
       // Check if we have a market for this token
       const hasMarket = this.marketCache.has(tokenAddress);
       if (hasMarket) {
@@ -165,8 +176,11 @@ export class SerumProvider implements PriceSource {
       const price = await this.getPrice(tokenAddress);
       return price !== null;
     } catch (error) {
-      console.error(`[SerumProvider] Error checking token support:`, error instanceof Error ? error.message : 'Unknown error');
+      console.error(
+        `[SerumProvider] Error checking token support:`,
+        error instanceof Error ? error.message : 'Unknown error',
+      );
       return false;
     }
   }
-} 
+}

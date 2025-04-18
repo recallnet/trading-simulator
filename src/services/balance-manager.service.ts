@@ -56,10 +56,14 @@ export class BalanceManager {
       const specificChain = chain as SpecificChain;
 
       // Only process chains that we have token configurations for
-      if (specificChain === 'eth' || specificChain === 'polygon' ||
-        specificChain === 'base' || specificChain === 'svm' || 
-        specificChain === 'optimism' || specificChain === 'arbitrum') {
-
+      if (
+        specificChain === 'eth' ||
+        specificChain === 'polygon' ||
+        specificChain === 'base' ||
+        specificChain === 'svm' ||
+        specificChain === 'optimism' ||
+        specificChain === 'arbitrum'
+      ) {
         // Type-safe access to the chain tokens
         const chainTokens = specificChainTokens[specificChain];
 
@@ -69,7 +73,9 @@ export class BalanceManager {
           const tokenAddress = chainTokens[symbol as keyof typeof chainTokens];
 
           if (tokenAddress && balance > 0) {
-            console.log(`[BalanceManager] Setting initial balance for specific chain ${chain} ${symbol}: ${balance}`);
+            console.log(
+              `[BalanceManager] Setting initial balance for specific chain ${chain} ${symbol}: ${balance}`,
+            );
             balances.set(tokenAddress, balance);
           }
         });
@@ -107,7 +113,10 @@ export class BalanceManager {
 
       return 0;
     } catch (error) {
-      console.error(`[BalanceManager] Error getting balance for team ${teamId}, token ${tokenAddress}:`, error);
+      console.error(
+        `[BalanceManager] Error getting balance for team ${teamId}, token ${tokenAddress}:`,
+        error,
+      );
       return 0;
     }
   }
@@ -124,7 +133,7 @@ export class BalanceManager {
 
       // Update cache
       const balanceMap = new Map<string, number>();
-      balances.forEach(balance => {
+      balances.forEach((balance) => {
         balanceMap.set(balance.token, balance.amount);
       });
       this.balanceCache.set(teamId, balanceMap);
@@ -157,9 +166,14 @@ export class BalanceManager {
       }
       this.balanceCache.get(teamId)?.set(tokenAddress, amount);
 
-      console.log(`[BalanceManager] Updated balance for team ${teamId}, token ${tokenAddress}: ${amount}`);
+      console.log(
+        `[BalanceManager] Updated balance for team ${teamId}, token ${tokenAddress}: ${amount}`,
+      );
     } catch (error) {
-      console.error(`[BalanceManager] Error updating balance for team ${teamId}, token ${tokenAddress}:`, error);
+      console.error(
+        `[BalanceManager] Error updating balance for team ${teamId}, token ${tokenAddress}:`,
+        error,
+      );
       throw error;
     }
   }
@@ -220,7 +234,11 @@ export class BalanceManager {
    * @param amount The amount to check
    * @returns True if the team has sufficient balance
    */
-  async hasSufficientBalance(teamId: string, tokenAddress: string, amount: number): Promise<boolean> {
+  async hasSufficientBalance(
+    teamId: string,
+    tokenAddress: string,
+    amount: number,
+  ): Promise<boolean> {
     const balance = await this.getBalance(teamId, tokenAddress);
     return balance >= amount;
   }
@@ -239,4 +257,4 @@ export class BalanceManager {
       return false;
     }
   }
-} 
+}

@@ -8,10 +8,10 @@ import { dropAllTables } from '../../scripts/drop-all-tables';
 
 /**
  * Database Manager for E2E Tests
- * 
+ *
  * This utility provides a standardized way to manage database state for end-to-end tests.
  * It uses the same DatabaseConnection as the main application for consistency.
- * 
+ *
  * Features:
  * - Uses the same connection pool as the application
  * - Complete database reset (drops all tables) before initialization
@@ -21,14 +21,14 @@ export class DbManager {
   private static instance: DbManager;
   private dbConnection: DatabaseConnection;
   private initialized = false;
-  
+
   /**
    * Private constructor to enforce singleton pattern
    */
   private constructor() {
     // Load environment variables if not already loaded
     config({ path: path.resolve(__dirname, '../../.env.test') });
-    
+
     // Use the main application's database connection
     this.dbConnection = DatabaseConnection.getInstance();
   }
@@ -77,11 +77,14 @@ export class DbManager {
       console.log(`Connected to postgres to check if database ${dbConfig.database} exists`);
 
       // Check if our test database exists
-      const result = await client.query(`
+      const result = await client.query(
+        `
         SELECT EXISTS(
           SELECT FROM pg_database WHERE datname = $1
         );
-      `, [dbConfig.database]);
+      `,
+        [dbConfig.database],
+      );
 
       if (!result.rows[0].exists) {
         console.log(`Test database "${dbConfig.database}" does not exist, creating it...`);
@@ -111,11 +114,11 @@ export class DbManager {
     }
 
     console.log('Starting database initialization...');
-    
+
     try {
       // First ensure the test database exists
       await this.ensureTestDatabaseExists();
-      
+
       // Check if we can connect to the database
       try {
         await this.dbConnection.query('SELECT 1');
@@ -124,7 +127,7 @@ export class DbManager {
         console.error('Error connecting to database:', error);
         throw error;
       }
-      
+
       // Drop all existing tables (if any) to ensure a clean slate
       console.log('Dropping all existing tables to ensure a clean schema...');
       try {
@@ -136,28 +139,27 @@ export class DbManager {
         console.warn('Error dropping tables:', error);
         console.log('Continuing with initialization...');
       }
-      
+
       // Use the production database initialization code directly
       // This ensures the schema is consistent with production
       console.log('[Database] Initializing database schema...');
       await initializeDatabase();
-      
+
       console.log('Database schema initialized successfully');
       this.initialized = true;
-      
     } catch (error) {
       console.error('Failed to initialize database:', error);
       throw error;
     }
   }
-  
+
   /**
    * Execute a query using the pool
    */
   public async query(text: string, params: any[] = []): Promise<any> {
     return await this.dbConnection.query(text, params);
   }
-  
+
   /**
    * Get a client from the pool for a transaction
    * Make sure to release the client when done
@@ -175,33 +177,33 @@ export class DbManager {
 
   /**
    * Reset the database to a clean state
-   * - Truncates all tables 
+   * - Truncates all tables
    * - Resets sequences
    */
   public async resetDatabase(): Promise<void> {
     if (!this.initialized) {
       throw new Error('Database not initialized. Call initialize() first.');
     }
-    
+
     return await this.transaction(async (client) => {
       // Disable foreign key constraints temporarily
       await client.query('SET CONSTRAINTS ALL DEFERRED');
-      
+
       // Get all tables
       const tablesResult = await client.query(`
         SELECT tablename FROM pg_tables 
         WHERE schemaname = 'public'
       `);
-      
-      // Truncate all tables 
+
+      // Truncate all tables
       if (tablesResult.rows.length > 0) {
-        const tables = tablesResult.rows.map(row => `"${row.tablename}"`).join(', ');
+        const tables = tablesResult.rows.map((row) => `"${row.tablename}"`).join(', ');
         if (tables) {
           console.log(`Truncating tables: ${tables}`);
           await client.query(`TRUNCATE TABLE ${tables} RESTART IDENTITY CASCADE`);
         }
       }
-      
+
       console.log('Database reset complete');
     });
   }
@@ -214,21 +216,21 @@ export class DbManager {
     if (!this.initialized) {
       throw new Error('Database not initialized. Call initialize() first.');
     }
-    
+
     return await this.transaction(async (client) => {
       // Disable foreign key constraints temporarily
       await client.query('SET session_replication_role = replica');
-      
+
       // Truncate specific tables that might contain test data
       await client.query('TRUNCATE teams CASCADE');
       await client.query('TRUNCATE balances CASCADE');
       await client.query('TRUNCATE trades CASCADE');
       await client.query('TRUNCATE competitions CASCADE');
       await client.query('TRUNCATE prices CASCADE');
-      
+
       // Re-enable foreign key constraints
       await client.query('SET session_replication_role = DEFAULT');
-      
+
       console.log('Test state cleaned up');
     });
   }
@@ -255,7 +257,7 @@ export async function initializeDb(): Promise<void> {
 }
 
 export function getPool(): any {
-  // This is maintained for API compatibility, but now returns 
+  // This is maintained for API compatibility, but now returns
   // the DatabaseConnection instance instead of a raw Pool
   return DatabaseConnection.getInstance();
 }
@@ -270,4 +272,4 @@ export async function resetDb(): Promise<void> {
 
 export async function cleanupTestState(): Promise<void> {
   return dbManager.cleanupTestState();
-} 
+}

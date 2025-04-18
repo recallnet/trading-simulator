@@ -91,7 +91,7 @@ const router = Router();
  *                         description: Current portfolio value in USD
  *                       active:
  *                         type: boolean
- *                         description: Whether the team is active 
+ *                         description: Whether the team is active
  *                       deactivationReason:
  *                         type: string
  *                         nullable: true
@@ -263,4 +263,4 @@ router.get('/status', CompetitionController.getStatus);
  */
 router.get('/rules', CompetitionController.getRules);
 
-export default router; 
+export default router;

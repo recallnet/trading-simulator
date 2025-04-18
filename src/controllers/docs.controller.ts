@@ -17,13 +17,13 @@ export class DocsController {
       docExpansion: 'none',
       filter: true,
       showRequestDuration: true,
-    }
+    },
   };
 
   /**
    * Get API documentation - Serves the Swagger UI
    * This is a placeholder method for route configuration - the actual UI is handled by swagger-ui-express
-   * 
+   *
    * @openapi
    * /api/docs:
    *   get:
@@ -40,15 +40,15 @@ export class DocsController {
    *               type: string
    */
   static getApiDocs = swaggerUi.setup(swaggerSpec, DocsController.swaggerUiOptions);
-  
+
   /**
    * Middleware for serving swagger-ui assets
    */
   static serveAssets = swaggerUi.serve;
-  
+
   /**
    * Get raw OpenAPI specification in JSON format
-   * 
+   *
    * @openapi
    * /api/docs/spec:
    *   get:
@@ -78,4 +78,4 @@ export class DocsController {
       next(error);
     }
   }
-} 
+}

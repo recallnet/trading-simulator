@@ -12,7 +12,7 @@ import { AuthenticatedRequest } from '../types';
 export class CompetitionController {
   /**
    * Get leaderboard for a competition
-   * 
+   *
    * @openapi
    * /api/competition/leaderboard:
    *   get:
@@ -113,7 +113,8 @@ export class CompetitionController {
   static async getLeaderboard(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
       // Get active competition or use competitionId from query
-      const competitionId = req.query.competitionId as string ||
+      const competitionId =
+        (req.query.competitionId as string) ||
         (await services.competitionManager.getActiveCompetition())?.id;
 
       if (!competitionId) {
@@ -142,22 +143,29 @@ export class CompetitionController {
 
       // If participant access is disabled and user is not an admin, deny access
       if (participantLeaderboardAccessDisabled && !isAdmin) {
-        console.log(`[CompetitionController] Denying leaderboard access to non-admin team ${teamId} as participant access is disabled`);
-        throw new ApiError(403, 'Leaderboard access is currently restricted to administrators only');
+        console.log(
+          `[CompetitionController] Denying leaderboard access to non-admin team ${teamId} as participant access is disabled`,
+        );
+        throw new ApiError(
+          403,
+          'Leaderboard access is currently restricted to administrators only',
+        );
       }
 
       // If not an admin, verify team is part of the competition
       if (!isAdmin) {
         const isTeamInCompetition = await repositories.teamRepository.isTeamInCompetition(
           teamId,
-          competitionId
+          competitionId,
         );
 
         if (!isTeamInCompetition) {
           throw new ApiError(403, 'Your team is not participating in this competition');
         }
       } else {
-        console.log(`[CompetitionController] Admin ${teamId} accessing leaderboard for competition ${competitionId}`);
+        console.log(
+          `[CompetitionController] Admin ${teamId} accessing leaderboard for competition ${competitionId}`,
+        );
       }
 
       // Get leaderboard
@@ -167,13 +175,11 @@ export class CompetitionController {
       const teams = await services.teamManager.getAllTeams(false);
 
       // Create map of all teams
-      const teamMap = new Map(teams.map(team => [team.id, team]));
+      const teamMap = new Map(teams.map((team) => [team.id, team]));
 
       // Track teams with inactive status
       const inactiveTeamIds = new Set(
-        teams
-          .filter(team => team.active === false)
-          .map(team => team.id)
+        teams.filter((team) => team.active === false).map((team) => team.id),
       );
 
       const hasInactiveTeams = inactiveTeamIds.size > 0;
@@ -189,7 +195,7 @@ export class CompetitionController {
           teamName: team ? team.name : 'Unknown Team',
           portfolioValue: entry.value,
           active: team?.active !== false,
-          deactivationReason: isInactive ? team?.deactivationReason : null
+          deactivationReason: isInactive ? team?.deactivationReason : null,
         };
       });
 
@@ -199,7 +205,7 @@ export class CompetitionController {
         competition,
         leaderboard: formattedLeaderboard,
         hasInactiveTeams,
-        inactiveTeamsFiltered: false
+        inactiveTeamsFiltered: false,
       });
     } catch (error) {
       next(error);
@@ -208,7 +214,7 @@ export class CompetitionController {
 
   /**
    * Get status of the current competition
-   * 
+   *
    * @openapi
    * /api/competition/status:
    *   get:
@@ -286,10 +292,10 @@ export class CompetitionController {
       if (!teamId) {
         const info = activeCompetition
           ? {
-            id: activeCompetition.id,
-            name: activeCompetition.name,
-            status: activeCompetition.status
-          }
+              id: activeCompetition.id,
+              name: activeCompetition.name,
+              status: activeCompetition.status,
+            }
           : null;
 
         console.log(`[CompetitionController] Returning basic competition status (no auth)`);
@@ -298,7 +304,7 @@ export class CompetitionController {
           success: true,
           active: !!activeCompetition,
           competition: info,
-          message: "Authenticate to get full competition details"
+          message: 'Authenticate to get full competition details',
         });
       }
 
@@ -310,7 +316,7 @@ export class CompetitionController {
           success: true,
           active: false,
           competition: null,
-          message: "No active competition found"
+          message: 'No active competition found',
         });
       }
 
@@ -319,7 +325,7 @@ export class CompetitionController {
       // Check if the team is part of the competition
       const isTeamInCompetition = await repositories.teamRepository.isTeamInCompetition(
         teamId,
-        activeCompetition.id
+        activeCompetition.id,
       );
 
       // Check if the team is an admin
@@ -327,7 +333,9 @@ export class CompetitionController {
 
       // If team is not in competition and not an admin, return limited info
       if (!isTeamInCompetition && !isAdmin) {
-        console.log(`[CompetitionController] Team ${teamId} is not in competition ${activeCompetition.id}`);
+        console.log(
+          `[CompetitionController] Team ${teamId} is not in competition ${activeCompetition.id}`,
+        );
 
         return res.status(200).json({
           success: true,
@@ -336,9 +344,9 @@ export class CompetitionController {
             id: activeCompetition.id,
             name: activeCompetition.name,
             status: activeCompetition.status,
-            startDate: activeCompetition.startDate
+            startDate: activeCompetition.startDate,
           },
-          message: "Your team is not participating in this competition"
+          message: 'Your team is not participating in this competition',
         });
       }
 
@@ -346,14 +354,16 @@ export class CompetitionController {
       if (isAdmin) {
         console.log(`[CompetitionController] Admin ${teamId} accessing competition status`);
       } else {
-        console.log(`[CompetitionController] Team ${teamId} is participating in competition ${activeCompetition.id}`);
+        console.log(
+          `[CompetitionController] Team ${teamId} is participating in competition ${activeCompetition.id}`,
+        );
       }
 
       res.status(200).json({
         success: true,
         active: true,
         competition: activeCompetition,
-        participating: true
+        participating: true,
       });
     } catch (error) {
       next(error);
@@ -362,7 +372,7 @@ export class CompetitionController {
 
   /**
    * Get rules for the competition
-   * 
+   *
    * @openapi
    * /api/competition/rules:
    *   get:
@@ -445,7 +455,7 @@ export class CompetitionController {
 
         const isTeamInCompetition = await repositories.teamRepository.isTeamInCompetition(
           teamId,
-          activeCompetition.id
+          activeCompetition.id,
         );
 
         if (!isTeamInCompetition) {
@@ -463,7 +473,8 @@ export class CompetitionController {
 
       // Chain-specific balances
       for (const chain of Object.keys(config.specificChainBalances)) {
-        const chainBalances = config.specificChainBalances[chain as keyof typeof config.specificChainBalances];
+        const chainBalances =
+          config.specificChainBalances[chain as keyof typeof config.specificChainBalances];
         const tokenItems = [];
 
         for (const token of Object.keys(chainBalances)) {
@@ -496,7 +507,7 @@ export class CompetitionController {
             'No shorting allowed (trades limited to available balance)',
             'Slippage is applied to all trades based on trade size',
             `Cross-chain trading: ${features.ALLOW_CROSS_CHAIN_TRADING ? 'Enabled' : 'Disabled'}`,
-            'Transaction fees are not simulated'
+            'Transaction fees are not simulated',
           ],
           rateLimits: [
             `${config.rateLimiting.maxRequests} requests per ${config.rateLimiting.windowMs / 1000} seconds per endpoint`,
@@ -504,20 +515,21 @@ export class CompetitionController {
             '300 requests per minute for price queries',
             '30 requests per minute for balance/portfolio checks',
             '3,000 requests per minute across all endpoints',
-            '10,000 requests per hour per team'
+            '10,000 requests per hour per team',
           ],
           availableChains: {
             svm: true,
-            evm: evmChains
+            evm: evmChains,
           },
-          slippageFormula: 'baseSlippage = (tradeAmountUSD / 10000) * 0.05%, actualSlippage = baseSlippage * (0.9 + (Math.random() * 0.2))',
+          slippageFormula:
+            'baseSlippage = (tradeAmountUSD / 10000) * 0.05%, actualSlippage = baseSlippage * (0.9 + (Math.random() * 0.2))',
           portfolioSnapshots: {
-            interval: `${config.portfolio.snapshotIntervalMs / 60000} minutes`
-          }
-        }
+            interval: `${config.portfolio.snapshotIntervalMs / 60000} minutes`,
+          },
+        },
       });
     } catch (error) {
       next(error);
     }
   }
-} 
+}

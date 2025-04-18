@@ -56,7 +56,7 @@ export class TradeSimulator {
     toToken: string,
     fromAmount: number,
     slippageTolerance?: number,
-    chainOptions?: ChainOptions
+    chainOptions?: ChainOptions,
   ): Promise<TradeResult> {
     try {
       console.log(`\n[TradeSimulator] Starting trade execution:
@@ -77,7 +77,7 @@ export class TradeSimulator {
           error: 'Trade amount too small (minimum: 0.000001)',
         };
       }
-      
+
       // Prevent trading between identical tokens
       if (fromToken === toToken) {
         console.log(`[TradeSimulator] Cannot trade between identical tokens: ${fromToken}`);
@@ -89,29 +89,38 @@ export class TradeSimulator {
 
       // Get prices with chain information for better performance
       let fromTokenChain: BlockchainType, toTokenChain: BlockchainType;
-      let fromTokenSpecificChain: SpecificChain | undefined, toTokenSpecificChain: SpecificChain | undefined;
-      
+      let fromTokenSpecificChain: SpecificChain | undefined,
+        toTokenSpecificChain: SpecificChain | undefined;
+
       // For the source token
       if (chainOptions?.fromChain) {
         fromTokenChain = chainOptions.fromChain;
         fromTokenSpecificChain = chainOptions.fromSpecificChain;
-        console.log(`[TradeSimulator] Using provided chain for fromToken: ${fromTokenChain}, specificChain: ${fromTokenSpecificChain || 'none'}`);
+        console.log(
+          `[TradeSimulator] Using provided chain for fromToken: ${fromTokenChain}, specificChain: ${fromTokenSpecificChain || 'none'}`,
+        );
       } else {
         fromTokenChain = this.priceTracker.determineChain(fromToken);
         console.log(`[TradeSimulator] Detected chain for fromToken: ${fromTokenChain}`);
       }
-      
+
       // For the destination token
       if (chainOptions?.toChain) {
         toTokenChain = chainOptions.toChain;
         toTokenSpecificChain = chainOptions.toSpecificChain;
-        console.log(`[TradeSimulator] Using provided chain for toToken: ${toTokenChain}, specificChain: ${toTokenSpecificChain || 'none'}`);
+        console.log(
+          `[TradeSimulator] Using provided chain for toToken: ${toTokenChain}, specificChain: ${toTokenSpecificChain || 'none'}`,
+        );
       } else {
         toTokenChain = this.priceTracker.determineChain(toToken);
         console.log(`[TradeSimulator] Detected chain for toToken: ${toTokenChain}`);
       }
-      
-      const fromPrice = await this.priceTracker.getPrice(fromToken, fromTokenChain, fromTokenSpecificChain);
+
+      const fromPrice = await this.priceTracker.getPrice(
+        fromToken,
+        fromTokenChain,
+        fromTokenSpecificChain,
+      );
       const toPrice = await this.priceTracker.getPrice(toToken, toTokenChain, toTokenSpecificChain);
 
       if (!fromPrice || !toPrice) {
@@ -127,7 +136,7 @@ export class TradeSimulator {
 
       // Calculate the trade using USD values
       const fromValueUSD = fromAmount * fromPrice;
-      
+
       // Validate balances
       const currentBalance = await this.balanceManager.getBalance(teamId, fromToken);
       console.log(`[TradeSimulator] Current balance of ${fromToken}: ${currentBalance}`);
@@ -139,30 +148,40 @@ export class TradeSimulator {
           error: 'Insufficient balance',
         };
       }
-      
+
       // Check for cross-chain trades if not allowed
-      if (!this.allowCrossChainTrading && 
-          (fromTokenChain !== toTokenChain || 
-           (fromTokenSpecificChain && toTokenSpecificChain && fromTokenSpecificChain !== toTokenSpecificChain))) {
-        console.log(`[TradeSimulator] Cross-chain trading is disabled. Cannot trade between ${fromTokenChain}(${fromTokenSpecificChain || 'none'}) and ${toTokenChain}(${toTokenSpecificChain || 'none'})`);
+      if (
+        !this.allowCrossChainTrading &&
+        (fromTokenChain !== toTokenChain ||
+          (fromTokenSpecificChain &&
+            toTokenSpecificChain &&
+            fromTokenSpecificChain !== toTokenSpecificChain))
+      ) {
+        console.log(
+          `[TradeSimulator] Cross-chain trading is disabled. Cannot trade between ${fromTokenChain}(${fromTokenSpecificChain || 'none'}) and ${toTokenChain}(${toTokenSpecificChain || 'none'})`,
+        );
         return {
           success: false,
-          error: 'Cross-chain trading is disabled. Both tokens must be on the same blockchain.'
+          error: 'Cross-chain trading is disabled. Both tokens must be on the same blockchain.',
         };
       }
-      
+
       console.log(`[TradeSimulator] Got prices:
                 From Token (${fromToken}): $${fromPrice} (${fromTokenChain})
                 To Token (${toToken}): $${toPrice} (${toTokenChain})
             `);
-      
+
       // Calculate portfolio value to check maximum trade size (configurable percentage of portfolio)
       const portfolioValue = await this.calculatePortfolioValue(teamId);
       const maxTradeValue = portfolioValue * (this.maxTradePercentage / 100);
-      console.log(`[TradeSimulator] Portfolio value: $${portfolioValue}, Max trade value: $${maxTradeValue}, Attempted trade value: $${fromValueUSD}`);
-      
+      console.log(
+        `[TradeSimulator] Portfolio value: $${portfolioValue}, Max trade value: $${maxTradeValue}, Attempted trade value: $${fromValueUSD}`,
+      );
+
       if (fromValueUSD > maxTradeValue) {
-        console.log(`[TradeSimulator] Trade exceeds maximum size: $${fromValueUSD} > $${maxTradeValue} (${this.maxTradePercentage}% of portfolio)`);
+        console.log(
+          `[TradeSimulator] Trade exceeds maximum size: $${fromValueUSD} > $${maxTradeValue} (${this.maxTradePercentage}% of portfolio)`,
+        );
         return {
           success: false,
           error: `Trade exceeds maximum size (${this.maxTradePercentage}% of portfolio value)`,
@@ -171,9 +190,9 @@ export class TradeSimulator {
 
       // Apply slippage based on trade size
       const baseSlippage = (fromValueUSD / 10000) * 0.05; // 0.05% per $10,000 (10x lower than before)
-      const actualSlippage = baseSlippage * (0.9 + (Math.random() * 0.2)); // ±10% randomness (reduced from ±20%)
+      const actualSlippage = baseSlippage * (0.9 + Math.random() * 0.2); // ±10% randomness (reduced from ±20%)
       const slippagePercentage = actualSlippage * 100;
-      
+
       // Calculate final amount with slippage
       const effectiveFromValueUSD = fromValueUSD * (1 - actualSlippage);
       const toAmount = effectiveFromValueUSD / toPrice;
@@ -217,7 +236,7 @@ export class TradeSimulator {
         fromChain: fromTokenChain,
         toChain: toTokenChain,
         fromSpecificChain: fromTokenSpecificChain,
-        toSpecificChain: toTokenSpecificChain
+        toSpecificChain: toTokenSpecificChain,
       };
 
       // Store the trade in database
@@ -240,10 +259,14 @@ export class TradeSimulator {
 
       // Trigger a portfolio snapshot after successful trade execution
       // We run this asynchronously without awaiting to avoid delaying the trade response
-      services.competitionManager.takePortfolioSnapshots(competitionId).catch(error => {
-        console.error(`[TradeSimulator] Error taking portfolio snapshot after trade: ${error.message}`);
+      services.competitionManager.takePortfolioSnapshots(competitionId).catch((error) => {
+        console.error(
+          `[TradeSimulator] Error taking portfolio snapshot after trade: ${error.message}`,
+        );
       });
-      console.log(`[TradeSimulator] Portfolio snapshot triggered for competition ${competitionId} after trade`);
+      console.log(
+        `[TradeSimulator] Portfolio snapshot triggered for competition ${competitionId} after trade`,
+      );
 
       return {
         success: true,
@@ -275,15 +298,15 @@ export class TradeSimulator {
           return cachedTrades.slice(0, limit);
         }
       }
-      
+
       // Get from database
       const trades = await repositories.tradeRepository.getTeamTrades(teamId, limit, offset);
-      
+
       // Update cache if fetching recent trades
       if (!offset && (!limit || limit <= 100)) {
         this.tradeCache.set(teamId, [...trades]);
       }
-      
+
       return trades;
     } catch (error) {
       console.error(`[TradeSimulator] Error getting team trades:`, error);
@@ -298,7 +321,11 @@ export class TradeSimulator {
    * @param offset Optional offset for pagination
    * @returns Array of Trade objects
    */
-  async getCompetitionTrades(competitionId: string, limit?: number, offset?: number): Promise<Trade[]> {
+  async getCompetitionTrades(
+    competitionId: string,
+    limit?: number,
+    offset?: number,
+  ): Promise<Trade[]> {
     try {
       return await repositories.tradeRepository.getCompetitionTrades(competitionId, limit, offset);
     } catch (error) {
@@ -315,14 +342,14 @@ export class TradeSimulator {
   async calculatePortfolioValue(teamId: string): Promise<number> {
     let totalValue = 0;
     const balances = await this.balanceManager.getAllBalances(teamId);
-    
+
     for (const balance of balances) {
       const price = await this.priceTracker.getPrice(balance.token);
       if (price) {
         totalValue += balance.amount * price;
       }
     }
-    
+
     return totalValue;
   }
 
@@ -340,4 +367,4 @@ export class TradeSimulator {
       return false;
     }
   }
-} 
+}

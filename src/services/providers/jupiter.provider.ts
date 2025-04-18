@@ -56,12 +56,14 @@ export class JupiterProvider implements PriceSource {
       // Check cache first
       const cachedPrice = this.getCachedPrice(tokenAddress);
       if (cachedPrice !== null && cachedPrice.confidence === 'high') {
-        console.log(`[JupiterProvider] Using cached price for ${tokenAddress}: $${cachedPrice.price}`);
+        console.log(
+          `[JupiterProvider] Using cached price for ${tokenAddress}: $${cachedPrice.price}`,
+        );
         return cachedPrice.price;
       }
 
       console.log(`[JupiterProvider] Getting price for ${tokenAddress}`);
-      
+
       for (let attempt = 1; attempt <= this.MAX_RETRIES; attempt++) {
         try {
           await this.enforceRateLimit();
@@ -70,7 +72,7 @@ export class JupiterProvider implements PriceSource {
           console.log(`[JupiterProvider] Debug: Full URL being used: ${url}`);
 
           console.log(
-            `[JupiterProvider] Attempt ${attempt}/${this.MAX_RETRIES} to fetch price for ${tokenAddress}`
+            `[JupiterProvider] Attempt ${attempt}/${this.MAX_RETRIES} to fetch price for ${tokenAddress}`,
           );
 
           const response = await axios.get(url, {
@@ -103,7 +105,9 @@ export class JupiterProvider implements PriceSource {
           }
 
           this.setCachedPrice(tokenAddress, price, confidence);
-          console.log(`[JupiterProvider] Successfully fetched price for ${tokenAddress}: $${price}`);
+          console.log(
+            `[JupiterProvider] Successfully fetched price for ${tokenAddress}: $${price}`,
+          );
           return price;
         } catch (error) {
           if (attempt === this.MAX_RETRIES) {
@@ -123,7 +127,10 @@ export class JupiterProvider implements PriceSource {
       }
       return null;
     } catch (error) {
-      console.error(`[JupiterProvider] Error fetching price for ${tokenAddress}:`, error instanceof Error ? error.message : 'Unknown error');
+      console.error(
+        `[JupiterProvider] Error fetching price for ${tokenAddress}:`,
+        error instanceof Error ? error.message : 'Unknown error',
+      );
       return null;
     }
   }
@@ -139,8 +146,11 @@ export class JupiterProvider implements PriceSource {
       const price = await this.getPrice(tokenAddress);
       return price !== null;
     } catch (error) {
-      console.error(`[JupiterProvider] Error checking token support:`, error instanceof Error ? error.message : 'Unknown error');
+      console.error(
+        `[JupiterProvider] Error checking token support:`,
+        error instanceof Error ? error.message : 'Unknown error',
+      );
       return false;
     }
   }
-} 
+}

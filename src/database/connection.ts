@@ -1,4 +1,4 @@
-import { Pool, PoolClient } from 'pg';
+import { Pool, PoolClient, QueryResult, QueryResultRow } from 'pg';
 import { config } from '../config';
 import fs from 'fs';
 
@@ -17,7 +17,7 @@ export class DatabaseConnection {
       if (!config.database.ssl) {
         return { ssl: undefined };
       }
-      
+
       // If a custom CA certificate path is provided, use it
       // This allows using self-signed certs while maintaining validation
       const caPath = process.env.DB_CA_CERT_PATH;
@@ -25,11 +25,11 @@ export class DatabaseConnection {
         return {
           ssl: {
             ca: fs.readFileSync(caPath).toString(),
-            rejectUnauthorized: true
-          }
+            rejectUnauthorized: true,
+          },
         };
       }
-      
+
       // Default secure SSL configuration (for all environments)
       return { ssl: true };
     })();
@@ -39,9 +39,9 @@ export class DatabaseConnection {
       // Use connection URL which includes all connection parameters
       this.pool = new Pool({
         connectionString: config.database.url,
-        ...sslConfig
+        ...sslConfig,
       });
-      
+
       console.log('[DatabaseConnection] Connected to PostgreSQL using connection URL');
     } else {
       // Use individual connection parameters
@@ -56,8 +56,10 @@ export class DatabaseConnection {
         idleTimeoutMillis: 30000, // How long a client is allowed to remain idle before being closed
         connectionTimeoutMillis: 2000, // How long to wait for a connection to become available
       });
-      
-      console.log(`[DatabaseConnection] Connected to PostgreSQL at ${config.database.host}:${config.database.port}`);
+
+      console.log(
+        `[DatabaseConnection] Connected to PostgreSQL at ${config.database.host}:${config.database.port}`,
+      );
     }
 
     this.pool.on('error', (err: Error) => {
@@ -88,9 +90,12 @@ export class DatabaseConnection {
    * @param text Query text
    * @param params Query parameters
    */
-  public async query(text: string, params: any[] = []): Promise<any> {
+  public async query<T extends QueryResultRow = Record<string, unknown>>(
+    text: string,
+    params: unknown[] = [],
+  ): Promise<QueryResult<T>> {
     try {
-      const res = await this.pool.query(text, params);
+      const res = await this.pool.query<T>(text, params);
       return res;
     } catch (err) {
       console.error(`[DatabaseConnection] Error executing query: ${text}`, err);
@@ -123,4 +128,4 @@ export class DatabaseConnection {
   public async close(): Promise<void> {
     await this.pool.end();
   }
-} 
+}

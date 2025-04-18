@@ -29,6 +29,7 @@ e2e/
 The tests are configured to use a separate `.env.test` file in the project root when running with `NODE_ENV=test`. This allows you to maintain different configuration settings for testing without affecting your development or production environments.
 
 To ensure your tests run with the correct environment:
+
 - Make sure you have a `.env.test` file in the project root
 - Run tests with `NODE_ENV=test` prefix, e.g., `NODE_ENV=test npm run test:e2e`
 - The test setup will automatically load and use this file
@@ -91,6 +92,7 @@ npm run test:e2e:watch
 ## Test Flow
 
 Each test follows a similar pattern:
+
 1. Setup test environment (database, server)
 2. Create necessary test data (admin account, teams, competition)
 3. Execute the functionality being tested
@@ -100,6 +102,7 @@ Each test follows a similar pattern:
 ## Adding New Tests
 
 When adding new tests:
+
 1. Create a new file in the `tests/` directory
 2. Import necessary utilities from the `utils/` directory
 3. Structure your tests using Jest's `describe` and `test` functions
@@ -108,6 +111,7 @@ When adding new tests:
 ## Debugging
 
 For debugging tests, you can:
+
 - Increase the log level in `.env.test`
 - Add `console.log` statements
-- Use the `await wait(ms)` helper function to pause execution during debugging 
+- Use the `await wait(ms)` helper function to pause execution during debugging

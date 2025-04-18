@@ -2,7 +2,7 @@ import { TradingSimulatorClient, BalancesResponse } from './api-client';
 
 /**
  * Example: Get Team Balances
- * 
+ *
  * This example demonstrates how to get your team's balances using the Trading Simulator client.
  */
 
@@ -16,22 +16,24 @@ const client = new TradingSimulatorClient(apiKey, baseUrl, true); // Enable debu
 async function getBalances(): Promise<BalancesResponse> {
   try {
     console.log('Getting team balances...');
-    
+
     // Get balances using the client
     const balanceResponse = await client.getBalances();
-    
+
     console.log('Balance Response:', JSON.stringify(balanceResponse, null, 2));
-    
+
     // Process the balances for easier viewing
     console.log('\nToken Balances:');
     if (balanceResponse.balances && balanceResponse.balances.length > 0) {
-      balanceResponse.balances.forEach(balance => {
-        console.log(`- ${balance.token}: ${balance.amount} (Chain: ${balance.chain}${balance.specificChain ? `, ${balance.specificChain}` : ''})`);
+      balanceResponse.balances.forEach((balance) => {
+        console.log(
+          `- ${balance.token}: ${balance.amount} (Chain: ${balance.chain}${balance.specificChain ? `, ${balance.specificChain}` : ''})`,
+        );
       });
     } else {
       console.log('No balances found');
     }
-    
+
     /* Expected response format:
     {
       "success": true,
@@ -58,9 +60,8 @@ async function getBalances(): Promise<BalancesResponse> {
       ]
     }
     */
-    
+
     return balanceResponse;
-    
   } catch (error) {
     console.error('Error getting balances:', error);
     throw error;
@@ -68,7 +69,7 @@ async function getBalances(): Promise<BalancesResponse> {
 }
 
 // Execute the function
-getBalances().catch(error => {
+getBalances().catch((error) => {
   console.error('Failed to get balances:', error);
   process.exit(1);
-}); 
+});
