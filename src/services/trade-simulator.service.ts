@@ -189,10 +189,12 @@ export class TradeSimulator {
         };
       }
 
-      console.log(`[TradeSimulator] Got prices:
-                From Token (${fromToken}): $${fromPrice} (${fromTokenChain})
-                To Token (${toToken}): $${toPrice} (${toTokenChain})
-            `);
+      const fromPrice = await this.priceTracker.getPrice(
+        fromToken,
+        fromTokenChain,
+        fromTokenSpecificChain,
+      );
+      const toPrice = await this.priceTracker.getPrice(toToken, toTokenChain, toTokenSpecificChain);
 
       // Calculate portfolio value to check maximum trade size (configurable percentage of portfolio)
       const portfolioValue = await this.calculatePortfolioValue(teamId);

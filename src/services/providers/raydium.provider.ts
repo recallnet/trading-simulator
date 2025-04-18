@@ -13,6 +13,17 @@ interface RaydiumTokenPrice {
   price: string;
 }
 
+interface RaydiumPool {
+  liquidity: number;
+  price: number;
+  mint1: string;
+}
+
+interface RaydiumTokenPrice {
+  symbol: string;
+  price: string;
+}
+
 /**
  * Raydium price provider implementation
  * Uses Raydium's API to get token prices

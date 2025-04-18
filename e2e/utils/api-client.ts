@@ -336,7 +336,6 @@ export class ApiClient {
       return this.handleApiError(error, 'get balances');
     }
   }
-
   /**
    * Get portfolio value and information
    */
