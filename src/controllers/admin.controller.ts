@@ -701,4 +701,41 @@ export class AdminController {
       next(error);
     }
   }
+
+  /**
+   * Get a team's API key
+   * @param req Express request
+   * @param res Express response
+   * @param next Express next function
+   */
+  static async getTeamApiKey(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { teamId } = req.params;
+
+      if (!teamId) {
+        throw new ApiError(400, 'Team ID is required');
+      }
+
+      // Get the decrypted API key using the service method
+      // The service method now handles team lookup and admin validation
+      const result = await services.teamManager.getDecryptedApiKeyById(teamId);
+
+      if (!result.success) {
+        // If there was an error, use the error code and message from the service
+        throw new ApiError(result.errorCode || 500, result.errorMessage || 'Unknown error');
+      }
+
+      // Return the team with the decrypted API key
+      res.status(200).json({
+        success: true,
+        team: {
+          id: result.team?.id || teamId,
+          name: result.team?.name || 'Unknown',
+          apiKey: result.apiKey,
+        },
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }

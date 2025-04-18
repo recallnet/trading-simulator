@@ -281,6 +281,72 @@ export class TeamManager {
   }
 
   /**
+   * Get a decrypted API key for a specific team
+   * This is intended only for admin access to help teams that have lost their API keys
+   * @param teamId ID of the team whose API key should be retrieved
+   * @returns Object with success status, the decrypted API key if successful, team details, and error information if not
+   */
+  public async getDecryptedApiKeyById(teamId: string): Promise<{
+    success: boolean;
+    apiKey?: string;
+    team?: {
+      id: string;
+      name: string;
+    };
+    errorCode?: number;
+    errorMessage?: string;
+  }> {
+    try {
+      // Get the team
+      const team = await repositories.teamRepository.findById(teamId);
+
+      if (!team) {
+        return {
+          success: false,
+          errorCode: 404,
+          errorMessage: 'Team not found',
+        };
+      }
+
+      // Check if this is an admin account
+      if (team.isAdmin) {
+        return {
+          success: false,
+          errorCode: 403,
+          errorMessage: 'Cannot retrieve API key for admin accounts',
+        };
+      }
+
+      try {
+        // Use the private method to decrypt the key
+        const apiKey = this.decryptApiKey(team.apiKey);
+        return {
+          success: true,
+          apiKey,
+          team: {
+            id: team.id,
+            name: team.name,
+          },
+        };
+      } catch (decryptError) {
+        console.error(`[TeamManager] Error decrypting API key for team ${teamId}:`, decryptError);
+        return {
+          success: false,
+          errorCode: 500,
+          errorMessage: 'Failed to decrypt API key',
+        };
+      }
+    } catch (error) {
+      console.error(`[TeamManager] Error retrieving decrypted API key for team ${teamId}:`, error);
+      return {
+        success: false,
+        errorCode: 500,
+        errorMessage: 'Server error retrieving API key',
+      };
+    }
+  }
+
+  /**
    * Check if the system is healthy
    */
   async isHealthy(): Promise<boolean> {

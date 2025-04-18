@@ -24,6 +24,7 @@ import {
   TradeExecutionParams,
   QuoteResponse,
   PortfolioResponse,
+  TeamApiKeyResponse,
 } from './api-types';
 
 /**
@@ -636,6 +637,19 @@ export class ApiClient {
       return response.data as T;
     } catch (error) {
       return this.handleApiError(error, `${method} ${path}`);
+    }
+  }
+
+  /**
+   * Get a team's API key (admin only)
+   * @param teamId The ID of the team
+   */
+  async getTeamApiKey(teamId: string): Promise<TeamApiKeyResponse | ErrorResponse> {
+    try {
+      const response = await this.axiosInstance.get(`/api/admin/teams/${teamId}/key`);
+      return response.data;
+    } catch (error) {
+      return this.handleApiError(error, 'get team API key');
     }
   }
 }
