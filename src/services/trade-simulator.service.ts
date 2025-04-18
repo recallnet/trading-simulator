@@ -189,13 +189,6 @@ export class TradeSimulator {
         };
       }
 
-      const fromPrice = await this.priceTracker.getPrice(
-        fromToken,
-        fromTokenChain,
-        fromTokenSpecificChain,
-      );
-      const toPrice = await this.priceTracker.getPrice(toToken, toTokenChain, toTokenSpecificChain);
-
       // Calculate portfolio value to check maximum trade size (configurable percentage of portfolio)
       const portfolioValue = await this.calculatePortfolioValue(teamId);
       const maxTradeValue = portfolioValue * (this.maxTradePercentage / 100);
