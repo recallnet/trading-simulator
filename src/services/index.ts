@@ -11,7 +11,7 @@ import { SchedulerService } from './scheduler.service';
  */
 class ServiceRegistry {
   private static instance: ServiceRegistry;
-  
+
   // Services
   private _balanceManager: BalanceManager;
   private _priceTracker: PriceTracker;
@@ -19,7 +19,7 @@ class ServiceRegistry {
   private _competitionManager: CompetitionManager;
   private _teamManager: TeamManager;
   private _scheduler: SchedulerService;
-  
+
   private constructor() {
     // Initialize services in dependency order
     this._balanceManager = new BalanceManager();
@@ -28,16 +28,16 @@ class ServiceRegistry {
     this._competitionManager = new CompetitionManager(
       this._balanceManager,
       this._tradeSimulator,
-      this._priceTracker
+      this._priceTracker,
     );
     this._teamManager = new TeamManager();
-    
+
     // Initialize and start the scheduler
     this._scheduler = new SchedulerService(this._competitionManager);
-    
+
     console.log('[ServiceRegistry] All services initialized');
   }
-  
+
   /**
    * Get the singleton instance
    */
@@ -47,28 +47,28 @@ class ServiceRegistry {
     }
     return ServiceRegistry.instance;
   }
-  
+
   // Service getters
   get balanceManager(): BalanceManager {
     return this._balanceManager;
   }
-  
+
   get priceTracker(): PriceTracker {
     return this._priceTracker;
   }
-  
+
   get tradeSimulator(): TradeSimulator {
     return this._tradeSimulator;
   }
-  
+
   get competitionManager(): CompetitionManager {
     return this._competitionManager;
   }
-  
+
   get teamManager(): TeamManager {
     return this._teamManager;
   }
-  
+
   get scheduler(): SchedulerService {
     return this._scheduler;
   }
@@ -78,10 +78,4 @@ class ServiceRegistry {
 export const services = ServiceRegistry.getInstance();
 
 // Export service types for convenience
-export {
-  BalanceManager,
-  PriceTracker,
-  TradeSimulator,
-  CompetitionManager,
-  TeamManager
-}; 
+export { BalanceManager, PriceTracker, TradeSimulator, CompetitionManager, TeamManager };

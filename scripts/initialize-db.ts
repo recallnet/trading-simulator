@@ -1,80 +1,6 @@
-import { DatabaseConnection } from "../src/database/connection";
-import * as fs from "fs";
-import * as path from "path";
-import { Client } from "pg";
-import { config } from "../src/config";
-
-async function ensureDatabaseExists(): Promise<void> {
-  // For Render PostgreSQL, we need to use the connection string directly if available
-  if (config.database.url) {
-    const client = new Client({
-      connectionString: config.database.url,
-      ssl: true
-    });
-    
-    try {
-      await client.connect();
-      console.log("Connected to Render PostgreSQL using connection string");
-      
-      // For managed databases like Render, database creation is typically not allowed
-      // so we'll just check if our database exists
-      const result = await client.query(
-        `SELECT EXISTS(
-          SELECT FROM pg_database WHERE datname = $1
-        );`,
-        [config.database.database]
-      );
-      
-      if (!result.rows[0].exists) {
-        console.log(`Database "${config.database.database}" does not exist. Note: On managed services like Render, you typically need to create databases through their dashboard.`);
-      } else {
-        console.log(`Database "${config.database.database}" exists.`);
-      }
-      
-    } catch (error) {
-      console.error("Error connecting to database:", error);
-      throw error;
-    } finally {
-      await client.end();
-    }
-    return;
-  }
-  
-  // Fall back to original approach for local development
-  const client = new Client({
-    host: config.database.host,
-    port: config.database.port,
-    user: config.database.username,
-    password: config.database.password,
-    database: "postgres", // Connect to default database first
-    ssl: config.database.ssl ? true : undefined
-  });
-
-  try {
-    await client.connect();
-
-    // Check if our target database exists
-    const result = await client.query(
-      `
-      SELECT EXISTS(
-        SELECT FROM pg_database WHERE datname = $1
-      );
-    `,
-      [config.database.database]
-    );
-
-    if (!result.rows[0].exists) {
-      console.log(`Creating database "${config.database.database}"...`);
-      await client.query(`CREATE DATABASE "${config.database.database}";`);
-      console.log("Database created successfully");
-    }
-  } catch (error) {
-    console.error("Error ensuring database exists:", error);
-    throw error;
-  } finally {
-    await client.end();
-  }
-}
+import { DatabaseConnection } from '../src/database/connection';
+import * as fs from 'fs';
+import * as path from 'path';
 
 /**
  * Split the SQL initialization file into sections by comments
@@ -82,17 +8,17 @@ async function ensureDatabaseExists(): Promise<void> {
  */
 function splitSqlIntoSections(sql: string): string[] {
   // Split into major sections: tables, indexes, functions
-  
+
   // Find the function definition part
   const functionsStartIndex = sql.indexOf('-- Function to update updated_at timestamp');
   const tablesPart = functionsStartIndex !== -1 ? sql.substring(0, functionsStartIndex) : sql;
   const functionsPart = functionsStartIndex !== -1 ? sql.substring(functionsStartIndex) : '';
-  
+
   // Split tables by CREATE TABLE
   const tables = tablesPart.split(/-- [A-Za-z]+ table/);
-  
+
   const result: string[] = [];
-  
+
   // Add each table section
   for (let i = 1; i < tables.length; i++) {
     const tableSection = tables[i].trim();
@@ -100,12 +26,12 @@ function splitSqlIntoSections(sql: string): string[] {
       result.push(`-- Table section ${i}\n${tableSection}`);
     }
   }
-  
+
   // Add the functions and triggers section last
   if (functionsPart) {
     result.push(functionsPart);
   }
-  
+
   return result;
 }
 
@@ -114,13 +40,11 @@ function splitSqlIntoSections(sql: string): string[] {
  * Creates tables and indices if they don't exist
  */
 export async function initializeDatabase(): Promise<void> {
-  // First ensure the database exists
-  await ensureDatabaseExists();
-
+  // Get the database connection
   const db = DatabaseConnection.getInstance();
 
   try {
-    console.log("[Database] Checking database connection and schema...");
+    console.log('[Database] Checking database connection and schema...');
 
     // Now check if the database schema is already initialized
     const tableCheckResult = await db.query(`
@@ -134,43 +58,38 @@ export async function initializeDatabase(): Promise<void> {
     const tablesExist = tableCheckResult.rows[0]?.exists;
 
     if (tablesExist) {
-      console.log(
-        "[Database] Database schema already initialized, skipping initialization"
-      );
+      console.log('[Database] Database schema already initialized, skipping initialization');
       return;
     }
 
-    console.log("[Database] Tables not found, initializing database schema...");
+    console.log('[Database] Tables not found, initializing database schema...');
 
     // Read SQL file
-    const sqlFile = path.join(__dirname, "../src/database/init.sql");
-    const sql = fs.readFileSync(sqlFile, "utf8");
+    const sqlFile = path.join(__dirname, '../src/database/init.sql');
+    const sql = fs.readFileSync(sqlFile, 'utf8');
 
     // Split the SQL into sections for easier error isolation
     const sqlSections = splitSqlIntoSections(sql);
-    
+
     // Execute each section separately to better isolate errors
     for (let i = 0; i < sqlSections.length; i++) {
       try {
-        console.log(`[Database] Executing SQL section ${i+1} of ${sqlSections.length}...`);
+        console.log(`[Database] Executing SQL section ${i + 1} of ${sqlSections.length}...`);
         await db.query(sqlSections[i]);
       } catch (error) {
-        console.error(`[Database] Error executing SQL section ${i+1}:`, error);
-        console.error("SQL section content:", sqlSections[i].substring(0, 200) + "...");
+        console.error(`[Database] Error executing SQL section ${i + 1}:`, error);
+        console.error('SQL section content:', sqlSections[i].substring(0, 200) + '...');
         throw error;
       }
     }
 
-    console.log("[Database] Database schema initialized successfully");
+    console.log('[Database] Database schema initialized successfully');
   } catch (error) {
     // If there's a database connection error, we should log but not fail server startup
-    console.error(
-      "[Database] Error during database schema check/initialization:",
-      error
-    );
-    if (process.env.NODE_ENV === "production") {
+    console.error('[Database] Error during database schema check/initialization:', error);
+    if (process.env.NODE_ENV === 'production') {
       console.warn(
-        "[Database] Continuing server startup despite database error in production mode"
+        '[Database] Continuing server startup despite database error in production mode',
       );
     } else {
       throw error; // In development, we want to fail fast
@@ -182,11 +101,11 @@ export async function initializeDatabase(): Promise<void> {
 if (require.main === module) {
   initializeDatabase()
     .then(() => {
-      console.log("Database initialization completed");
+      console.log('Database initialization completed');
       process.exit(0);
     })
     .catch((err) => {
-      console.error("Database initialization failed:", err);
+      console.error('Database initialization failed:', err);
       process.exit(1);
     });
 }

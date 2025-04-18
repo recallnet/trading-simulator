@@ -250,4 +250,4 @@ router.post('/execute', TradeController.executeTrade);
  */
 router.get('/quote', TradeController.getQuote);
 
-export default router; 
+export default router;

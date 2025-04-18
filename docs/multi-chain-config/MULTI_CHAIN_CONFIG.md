@@ -147,27 +147,57 @@ multiChainInitialBalances: {
 // Helper function to parse specific chain initial balance environment variables
 const getSpecificChainBalances = (): Record<SpecificChain, Record<string, number>> => {
   const result: Partial<Record<SpecificChain, Record<string, number>>> = {};
-  
+
   // Ethereum Mainnet
-  if (process.env.INITIAL_ETH_ETH_BALANCE || process.env.INITIAL_ETH_USDC_BALANCE || process.env.INITIAL_ETH_USDT_BALANCE || process.env.INITIAL_ETH_LINK_BALANCE) {
+  if (
+    process.env.INITIAL_ETH_ETH_BALANCE ||
+    process.env.INITIAL_ETH_USDC_BALANCE ||
+    process.env.INITIAL_ETH_USDT_BALANCE ||
+    process.env.INITIAL_ETH_LINK_BALANCE
+  ) {
     result.eth = {
-      eth: parseInt(process.env.INITIAL_ETH_ETH_BALANCE || process.env.INITIAL_EVM_ETH_BALANCE || '0', 10),
-      usdc: parseInt(process.env.INITIAL_ETH_USDC_BALANCE || process.env.INITIAL_EVM_USDC_BALANCE || '0', 10),
-      usdt: parseInt(process.env.INITIAL_ETH_USDT_BALANCE || process.env.INITIAL_EVM_USDT_BALANCE || '0', 10),
-      link: parseInt(process.env.INITIAL_ETH_LINK_BALANCE || process.env.INITIAL_EVM_LINK_BALANCE || '0', 10)
+      eth: parseInt(
+        process.env.INITIAL_ETH_ETH_BALANCE || process.env.INITIAL_EVM_ETH_BALANCE || '0',
+        10,
+      ),
+      usdc: parseInt(
+        process.env.INITIAL_ETH_USDC_BALANCE || process.env.INITIAL_EVM_USDC_BALANCE || '0',
+        10,
+      ),
+      usdt: parseInt(
+        process.env.INITIAL_ETH_USDT_BALANCE || process.env.INITIAL_EVM_USDT_BALANCE || '0',
+        10,
+      ),
+      link: parseInt(
+        process.env.INITIAL_ETH_LINK_BALANCE || process.env.INITIAL_EVM_LINK_BALANCE || '0',
+        10,
+      ),
     };
   }
-  
+
   // Polygon
-  if (process.env.INITIAL_POLYGON_MATIC_BALANCE || process.env.INITIAL_POLYGON_USDC_BALANCE || process.env.INITIAL_POLYGON_LINK_BALANCE) {
+  if (
+    process.env.INITIAL_POLYGON_MATIC_BALANCE ||
+    process.env.INITIAL_POLYGON_USDC_BALANCE ||
+    process.env.INITIAL_POLYGON_LINK_BALANCE
+  ) {
     result.polygon = {
       matic: parseInt(process.env.INITIAL_POLYGON_ETH_BALANCE || '0', 10),
-      usdc: parseInt(process.env.INITIAL_POLYGON_USDC_BALANCE || process.env.INITIAL_EVM_USDC_BALANCE || '0', 10),
-      usdt: parseInt(process.env.INITIAL_POLYGON_USDT_BALANCE || process.env.INITIAL_EVM_USDT_BALANCE || '0', 10),
-      link: parseInt(process.env.INITIAL_POLYGON_LINK_BALANCE || process.env.INITIAL_EVM_LINK_BALANCE || '0', 10)
+      usdc: parseInt(
+        process.env.INITIAL_POLYGON_USDC_BALANCE || process.env.INITIAL_EVM_USDC_BALANCE || '0',
+        10,
+      ),
+      usdt: parseInt(
+        process.env.INITIAL_POLYGON_USDT_BALANCE || process.env.INITIAL_EVM_USDT_BALANCE || '0',
+        10,
+      ),
+      link: parseInt(
+        process.env.INITIAL_POLYGON_LINK_BALANCE || process.env.INITIAL_EVM_LINK_BALANCE || '0',
+        10,
+      ),
     };
   }
-  
+
   // Add SVM (Solana) balances
   result.svm = {
     sol: parseInt(process.env.INITIAL_SVM_SOL_BALANCE || '0', 10),
@@ -175,9 +205,9 @@ const getSpecificChainBalances = (): Record<SpecificChain, Record<string, number
     usdt: parseInt(process.env.INITIAL_SVM_USDT_BALANCE || '0', 10),
     // Add new token balances as needed
   };
-  
+
   // Add other chains as needed
-  
+
   return result as Record<SpecificChain, Record<string, number>>;
 };
 ```
@@ -211,4 +241,4 @@ The system uses the following process to determine which chains to query:
 3. The `MultiChainProvider` attempts to fetch prices from each chain in the specified order until it finds a valid price.
 4. This approach ensures that the system can fall back to alternative chains if a price is not available on the preferred chain.
 
-This approach ensures that teams start with the appropriate balances for tokens on both blockchains, enabling them to trade across chains using the multi-chain support provided by the DexScreener integration. 
+This approach ensures that teams start with the appropriate balances for tokens on both blockchains, enabling them to trade across chains using the multi-chain support provided by the DexScreener integration.

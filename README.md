@@ -16,8 +16,9 @@ The Multi-Chain Trading Simulator is a standalone server designed to host tradin
 - Competition management with leaderboards
 - Comprehensive API for trading and account management
 - Rate limiting and security features
-- **NEW: Chain Override Feature** - Specify the exact chain for EVM tokens to reduce API response times from seconds to milliseconds
-- **NEW: Cross-Chain Trading Controls** - Configure whether trades between different chains are allowed or restricted
+- Chain Override Feature - Specify the exact chain for EVM tokens to reduce API response times from seconds to milliseconds
+- Cross-Chain Trading Controls - Configure whether trades between different chains are allowed or restricted
+- Leaderboard Access Control - Configure whether participants can access the leaderboard or if it's restricted to administrators only
 
 ## Current Development Status
 
@@ -39,7 +40,7 @@ The application follows an MVC (Model-View-Controller) architecture with a robus
 - ✅ Portfolio snapshots with configurable intervals and price freshness optimization
 - ✅ Multiple price providers (DexScreener, Noves, Jupiter, Raydium)
 - ✅ Testing (Complete - E2E testing comprehensive)
-- ✅ Documentation 
+- ✅ Documentation
 - ⏳ Integration with front-end (planned)
 
 ## Technical Architecture
@@ -75,6 +76,7 @@ The application uses a layered architecture:
 ### Key Components
 
 - **Services**: Core business logic implementation
+
   - `PriceTracker`: Multi-source price data fetching with chain detection
   - `MultiChainProvider`: Aggregates price data for all chains
   - `DexScreenerProvider`: EVM and SVM chain price data via DexScreener API
@@ -89,12 +91,14 @@ The application uses a layered architecture:
   - `SchedulerService`: Portfolio snapshot scheduling and background tasks
 
 - **Middleware**: Request processing and security
+
   - `AuthMiddleware`: API key validation for team endpoints
   - `AdminAuthMiddleware`: API key-based admin authentication
   - `RateLimiterMiddleware`: Request throttling and protection
   - `ErrorHandler`: Consistent error response formatting
 
 - **Controllers**: API endpoint handlers
+
   - `AccountController`: Balance and portfolio information
   - `AdminController`: Admin operations for competition management
   - `CompetitionController`: Competition status and leaderboards
@@ -113,7 +117,7 @@ The application uses a layered architecture:
 ## Technology Stack
 
 - **Backend**: Node.js with TypeScript and Express
-- **Database**: PostgreSQL 
+- **Database**: PostgreSQL
 - **Caching**: In-memory caching with future Redis integration planned
 - **API Security**: Bearer token authentication for API requests
 - **Rate Limiting**: Tiered rate limits based on endpoint sensitivity
@@ -130,35 +134,42 @@ The application uses a layered architecture:
 ### Installation
 
 1. Clone the repository:
+
    ```
    git clone https://github.com/recallnet/trade-sim
    cd trade-sim
    ```
 
 2. Install dependencies:
+
    ```
    npm install
    ```
 
 3. Set up your environment configuration:
+
    ```
    cp .env.example .env
    ```
-   
+
    Open the `.env` file in your editor and configure the following:
+
    - Database connection details
    - Initial token balances for different chains
    - Cross-chain trading settings (enabled/disabled)
    - EVM chains to support
    - Price tracking and portfolio snapshot intervals
-   
+
    This step is critical as it determines how your trading simulator will be configured.
 
 4. Run the automated setup:
+
    ```
    npm run setup:all
    ```
+
    This command will:
+
    - Generate secure random values for security secrets (ROOT_ENCRYPTION_KEY)
    - Initialize the database schema with all necessary tables
    - Build the application
@@ -167,6 +178,7 @@ The application uses a layered architecture:
    - Provide final instructions
 
    Alternatively, you can run the steps separately if you need more control:
+
    ```
    npm run generate:secrets  # Generate security secrets
    npm run db:init           # Initialize the database with full schema
@@ -209,6 +221,7 @@ npm run setup:all
 ```
 
 This command will:
+
 1. Generate all required security secrets
 2. Initialize the database
 3. Build the application
@@ -225,11 +238,13 @@ This is the easiest way to get the system up and running with minimal effort.
 When registering a team or creating a competition, the server **does not** need to be running.
 
 - **Register a new team**:
+
   ```
   npm run register:team
   ```
-  
+
   This script will:
+
   - Prompt for team name, email, and contact person
   - Require a wallet address (0x format)
   - Generate a secure API key
@@ -237,11 +252,13 @@ When registering a team or creating a competition, the server **does not** need 
   - Display the credentials (keep this API key secure)
 
 - **Edit a team**:
+
   ```
   npm run edit:team
   ```
-  
+
   This script allows you to update existing team information:
+
   - Find a team by email
   - Set or update the team's wallet address
   - Add bucket addresses to the team's bucket collection
@@ -249,11 +266,13 @@ When registering a team or creating a competition, the server **does not** need 
   - Validates addresses to ensure proper format (0x followed by 40 hex characters)
 
 - **List all teams**:
+
   ```
   npm run list:teams
   ```
-  
+
   This script will display detailed information about all registered teams, including:
+
   - Team ID
   - Team name
   - Contact information
@@ -261,11 +280,13 @@ When registering a team or creating a competition, the server **does not** need 
   - Creation date
 
 - **Delete a team**:
+
   ```
   npm run delete:team
   ```
-  
+
   This script will:
+
   - Display a list of all registered teams
   - Prompt for the team ID to delete
   - Confirm the deletion
@@ -274,11 +295,13 @@ When registering a team or creating a competition, the server **does not** need 
 #### Competition Management
 
 - **Setup a competition**:
+
   ```
   npm run setup:competition
   ```
-  
+
   This script provides an interactive way to create and start a new trading competition:
+
   - Checks if there's already an active competition and offers to end it
   - Prompts for competition name and description
   - Displays all available teams with detailed information
@@ -287,11 +310,13 @@ When registering a team or creating a competition, the server **does not** need 
   - Shows detailed competition information
 
 - **Check competition status**:
+
   ```
   npm run comp:status
   ```
-  
+
   This script displays comprehensive information about the active competition:
+
   - Competition details (name, description, duration)
   - List of participating teams
   - Current leaderboard with portfolio values and performance metrics
@@ -299,11 +324,13 @@ When registering a team or creating a competition, the server **does not** need 
   - If no active competition exists, shows information about past competitions
 
 - **End a competition**:
+
   ```
   npm run end:competition
   ```
-  
+
   This script helps end the currently active competition:
+
   - Displays active competition details
   - Shows the current standings
   - Confirms before ending the competition
@@ -339,23 +366,27 @@ Authorization: Bearer your-api-key
 ### API Authentication
 
 For enhanced security, the API implements:
+
 - Bearer token authentication with unique API keys for each team
 - API keys in the format `[hexstring]_[hexstring]`
 - Admin-specific API keys for administrative operations
 - Encrypted storage of API keys using AES-256-CBC encryption
 
 This approach ensures:
+
 1. All API requests are properly authenticated
 2. Each team has its own unique API key
 3. API keys are never stored in plaintext in the database
 4. Even if database contents are exposed, the API keys remain protected by the root encryption key
 
 The encryption uses:
+
 - AES-256-CBC encryption algorithm
 - A unique initialization vector (IV) for each encrypted key
 - A root encryption key from environment variables (`ROOT_ENCRYPTION_KEY`)
 
 For production deployments, it's recommended to:
+
 - Use a hardware security module (HSM) or key management service (KMS) for the root encryption key
 - Rotate the root encryption key periodically
 - Implement proper key management procedures
@@ -371,6 +402,7 @@ For teams participating in trading competitions, we provide comprehensive API do
 - **[API Examples](docs/examples/)**: TypeScript code examples demonstrating how to interact with the API.
 
 You can regenerate the documentation at any time using the built-in scripts:
+
 ```bash
 # Generate both OpenAPI JSON and Markdown documentation
 npm run generate-docs
@@ -415,18 +447,18 @@ console.log('ETH Price:', ethPrice);
 
 // Get current price of LINK on Ethereum (WITH chain override - faster)
 const linkPrice = await client.getPrice(
-  '0x514910771af9ca656af840dff83e8264ecf986ca',    // LINK token
-  BlockchainType.EVM,                               // Blockchain type
-  SpecificChain.ETH                                 // Specific chain (Ethereum)
+  '0x514910771af9ca656af840dff83e8264ecf986ca', // LINK token
+  BlockchainType.EVM, // Blockchain type
+  SpecificChain.ETH, // Specific chain (Ethereum)
 );
 console.log('LINK Price (with chain override):', linkPrice);
 console.log('Response time: ~50-100ms (vs 1-3 seconds without override)');
 
 // Get current price of ARB on Arbitrum (WITH chain override - faster)
 const arbPrice = await client.getPrice(
-  '0x912CE59144191C1204E64559FE8253a0e49E6548',    // ARB token
+  '0x912CE59144191C1204E64559FE8253a0e49E6548', // ARB token
   BlockchainType.EVM,
-  SpecificChain.ARBITRUM                           // Specific chain (Arbitrum)
+  SpecificChain.ARBITRUM, // Specific chain (Arbitrum)
 );
 console.log('ARB Price (with chain override):', arbPrice);
 ```
@@ -440,9 +472,9 @@ The chain override feature significantly improves API response times when fetchi
 For EVM tokens, the system needs to determine which specific chain a token exists on (e.g., Ethereum, Polygon, Base). By default, this requires checking multiple chains sequentially, which can take 1-3 seconds.
 
 With chain override, you can specify the exact chain for a token, resulting in:
+
 - **Without chain override**: 1-3 seconds response time (checking multiple chains)
 - **With chain override**: 50-100ms response time (direct API call to specified chain)
-
 
 ### How to Use Chain Override
 
@@ -457,15 +489,16 @@ Or, when using our TypeScript client:
 ```typescript
 // Get price for Chainlink (LINK) token WITH chain override
 const linkPrice = await client.getPrice(
-  '0x514910771af9ca656af840dff83e8264ecf986ca',    // LINK token
-  BlockchainType.EVM,                               // Blockchain type
-  SpecificChain.ETH                                 // Specific chain (Ethereum)
+  '0x514910771af9ca656af840dff83e8264ecf986ca', // LINK token
+  BlockchainType.EVM, // Blockchain type
+  SpecificChain.ETH, // Specific chain (Ethereum)
 );
 ```
 
 ### Supported Chains
 
 The following chains can be specified:
+
 - `eth` - Ethereum Mainnet
 - `polygon` - Polygon Network
 - `bsc` - Binance Smart Chain
@@ -483,10 +516,10 @@ For optimal performance, maintain a mapping of tokens to their specific chains i
 ```typescript
 const TOKEN_CHAINS = {
   // EVM tokens with their specific chains
-  '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2': 'eth',    // WETH on Ethereum
-  '0x514910771af9ca656af840dff83e8264ecf986ca': 'eth',    // LINK on Ethereum
+  '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2': 'eth', // WETH on Ethereum
+  '0x514910771af9ca656af840dff83e8264ecf986ca': 'eth', // LINK on Ethereum
   '0x912CE59144191C1204E64559FE8253a0e49E6548': 'arbitrum', // ARB on Arbitrum
-  '0x532f27101965dd16442E59d40670FaF5eBB142E4': 'base',   // TOSHI on Base
+  '0x532f27101965dd16442E59d40670FaF5eBB142E4': 'base', // TOSHI on Base
 };
 ```
 
@@ -496,96 +529,106 @@ Below is a comprehensive list of all environment variables available in `.env.ex
 
 ### Database Configuration
 
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `POSTGRES_URL` | Optional | None | PostgreSQL connection string in the format `postgresql://username:password@host:port/database?ssl=true` |
-| `DB_HOST` | Required if no URL | `localhost` | Database host when not using `POSTGRES_URL` |
-| `DB_PORT` | Optional | `5432` | Database port when not using `POSTGRES_URL` |
-| `DB_USERNAME` | Required if no URL | `postgres` | Database username when not using `POSTGRES_URL` |
-| `DB_PASSWORD` | Required if no URL | `postgres` | Database password when not using `POSTGRES_URL` |
-| `DB_NAME` | Required if no URL | `solana_trading_simulator` | Database name when not using `POSTGRES_URL` |
-| `DB_SSL` | Optional | `false` | Enable SSL for database connection (`true` or `false`) |
+| Variable          | Required           | Default                    | Description                                                                                             |
+| ----------------- | ------------------ | -------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `POSTGRES_URL`    | Optional           | None                       | PostgreSQL connection string in the format `postgresql://username:password@host:port/database?ssl=true` |
+| `DB_HOST`         | Required if no URL | `localhost`                | Database host when not using `POSTGRES_URL`                                                             |
+| `DB_PORT`         | Optional           | `5432`                     | Database port when not using `POSTGRES_URL`                                                             |
+| `DB_USERNAME`     | Required if no URL | `postgres`                 | Database username when not using `POSTGRES_URL`                                                         |
+| `DB_PASSWORD`     | Required if no URL | `postgres`                 | Database password when not using `POSTGRES_URL`                                                         |
+| `DB_NAME`         | Required if no URL | `solana_trading_simulator` | Database name when not using `POSTGRES_URL`                                                             |
+| `DB_SSL`          | Optional           | `false`                    | Enable SSL for database connection (`true` or `false`)                                                  |
+| `DB_CA_CERT_PATH` | Optional           | None                       | Path to CA certificate for SSL database connection (e.g., `./certs/ca-certificate.crt`)                 |
 
 ### Security Settings
 
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `ROOT_ENCRYPTION_KEY` | Optional | Auto-generated | Root key for API key encryption |
-| `ADMIN_API_KEY` | Optional | Auto-generated | Default admin API key if not created during setup |
+| Variable              | Required | Default        | Description                                       |
+| --------------------- | -------- | -------------- | ------------------------------------------------- |
+| `ROOT_ENCRYPTION_KEY` | Optional | Auto-generated | Root key for API key encryption                   |
+| `ADMIN_API_KEY`       | Optional | Auto-generated | Default admin API key if not created during setup |
 
 ### Server Configuration
 
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `PORT` | Optional | `3000` | Server port number |
-| `NODE_ENV` | Optional | `development` | Environment mode (`development`, `production`, or `test`) |
-| `ENABLE_CORS` | Optional | `true` | Enable Cross-Origin Resource Sharing |
-| `MAX_PAYLOAD_SIZE` | Optional | `1mb` | Maximum request body size |
-| `RATE_LIMIT_WINDOW_MS` | Optional | `60000` | Rate limiting window in milliseconds |
-| `RATE_LIMIT_MAX_REQUESTS` | Optional | `100` | Maximum requests per rate limit window |
+| Variable                  | Required | Default       | Description                                               |
+| ------------------------- | -------- | ------------- | --------------------------------------------------------- |
+| `PORT`                    | Optional | `3000`        | Server port number                                        |
+| `NODE_ENV`                | Optional | `development` | Environment mode (`development`, `production`, or `test`) |
+| `ENABLE_CORS`             | Optional | `true`        | Enable Cross-Origin Resource Sharing                      |
+| `MAX_PAYLOAD_SIZE`        | Optional | `1mb`         | Maximum request body size                                 |
+| `RATE_LIMIT_WINDOW_MS`    | Optional | `60000`       | Rate limiting window in milliseconds                      |
+| `RATE_LIMIT_MAX_REQUESTS` | Optional | `100`         | Maximum requests per rate limit window                    |
 
 ### Chain Configuration
 
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `EVM_CHAINS` | Optional | `eth,polygon,bsc,arbitrum,base,optimism,avalanche,linea` | Comma-separated list of supported EVM chains |
-| `ALLOW_CROSS_CHAIN_TRADING` | Optional | `false` | Enable trading between different chains |
-| `EVM_CHAIN_PRIORITY` | Optional | `eth,polygon,base,arbitrum` | Chain priority for price lookups (first chain checked first) |
-| `ALLOW_MOCK_PRICE_HISTORY` | Optional | `true` in dev, `false` in prod | Allow generation of mock price history data |
+| Variable                    | Required | Default                                                  | Description                                                  |
+| --------------------------- | -------- | -------------------------------------------------------- | ------------------------------------------------------------ |
+| `EVM_CHAINS`                | Optional | `eth,polygon,bsc,arbitrum,base,optimism,avalanche,linea` | Comma-separated list of supported EVM chains                 |
+| `ALLOW_CROSS_CHAIN_TRADING` | Optional | `false`                                                  | Enable trading between different chains                      |
+| `MAX_TRADE_PERCENTAGE`      | Optional | `25`                                                     | Maximum trade size as percentage of portfolio value          |
+| `EVM_CHAIN_PRIORITY`        | Optional | `eth,polygon,base,arbitrum`                              | Chain priority for price lookups (first chain checked first) |
+| `ALLOW_MOCK_PRICE_HISTORY`  | Optional | `true` in dev, `false` in prod                           | Allow generation of mock price history data                  |
+
+### Competition Settings
+
+| Variable                                 | Required | Default | Description                                                                                         |
+| ---------------------------------------- | -------- | ------- | --------------------------------------------------------------------------------------------------- |
+| `DISABLE_PARTICIPANT_LEADERBOARD_ACCESS` | Optional | `false` | When set to `true`, only admins can view the leaderboard while participants are blocked from access |
 
 ### Initial Token Balances
 
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| **Chain-Specific Balances** |
-| `INITIAL_SVM_SOL_BALANCE` | Optional | `0` | Initial SOL balance on Solana |
-| `INITIAL_SVM_USDC_BALANCE` | Optional | `0` | Initial USDC balance on Solana |
-| `INITIAL_SVM_USDT_BALANCE` | Optional | `0` | Initial USDT balance on Solana |
-| `INITIAL_ETH_ETH_BALANCE` | Optional | `0` | Initial ETH balance on Ethereum |
-| `INITIAL_ETH_USDC_BALANCE` | Optional | `0` | Initial USDC balance on Ethereum |
-| `INITIAL_POLYGON_ETH_BALANCE` | Optional | `0` | Initial ETH balance on Polygon |
-| `INITIAL_POLYGON_USDC_BALANCE` | Optional | `0` | Initial USDC balance on Polygon |
-| `INITIAL_BASE_ETH_BALANCE` | Optional | `0` | Initial ETH balance on Base |
-| `INITIAL_BASE_USDC_BALANCE` | Optional | `0` | Initial USDC balance on Base |
+| Variable                       | Required | Default | Description                      |
+| ------------------------------ | -------- | ------- | -------------------------------- |
+| **Chain-Specific Balances**    |
+| `INITIAL_SVM_SOL_BALANCE`      | Optional | `0`     | Initial SOL balance on Solana    |
+| `INITIAL_SVM_USDC_BALANCE`     | Optional | `0`     | Initial USDC balance on Solana   |
+| `INITIAL_SVM_USDT_BALANCE`     | Optional | `0`     | Initial USDT balance on Solana   |
+| `INITIAL_ETH_ETH_BALANCE`      | Optional | `0`     | Initial ETH balance on Ethereum  |
+| `INITIAL_ETH_USDC_BALANCE`     | Optional | `0`     | Initial USDC balance on Ethereum |
+| `INITIAL_POLYGON_ETH_BALANCE`  | Optional | `0`     | Initial ETH balance on Polygon   |
+| `INITIAL_POLYGON_USDC_BALANCE` | Optional | `0`     | Initial USDC balance on Polygon  |
+| `INITIAL_BASE_ETH_BALANCE`     | Optional | `0`     | Initial ETH balance on Base      |
+| `INITIAL_BASE_USDC_BALANCE`    | Optional | `0`     | Initial USDC balance on Base     |
 
 ### Portfolio & Price Tracking
 
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `PORTFOLIO_SNAPSHOT_INTERVAL_MS` | Optional | `120000` (2 minutes) | Interval for taking portfolio snapshots |
-| `PORTFOLIO_PRICE_FRESHNESS_MS` | Optional | `600000` (10 minutes) | Maximum age of price data before refreshing |
-| `PRICE_CACHE_MS` | Optional | `60000` (1 minute) | Duration to cache price data in memory |
-| `PRICE_BACKFILL_DAYS` | Optional | `7` | Number of days to backfill for price history |
-| `PRICE_HISTORY_INTERVAL_MINUTES` | Optional | `30` | Interval between price history data points |
+| Variable                         | Required | Default               | Description                                  |
+| -------------------------------- | -------- | --------------------- | -------------------------------------------- |
+| `PORTFOLIO_SNAPSHOT_INTERVAL_MS` | Optional | `120000` (2 minutes)  | Interval for taking portfolio snapshots      |
+| `PORTFOLIO_PRICE_FRESHNESS_MS`   | Optional | `600000` (10 minutes) | Maximum age of price data before refreshing  |
+| `PRICE_CACHE_MS`                 | Optional | `60000` (1 minute)    | Duration to cache price data in memory       |
+| `PRICE_BACKFILL_DAYS`            | Optional | `7`                   | Number of days to backfill for price history |
+| `PRICE_HISTORY_INTERVAL_MINUTES` | Optional | `30`                  | Interval between price history data points   |
 
 ### External API Integration
 
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `DEXSCREENER_API_URL` | Optional | Default DexScreener URL | DexScreener API endpoint |
-| `NOVES_API_URL` | Optional | Default Noves URL | Noves API endpoint |
-| `JUPITER_API_URL` | Optional | Default Jupiter URL | Jupiter API endpoint |
-| `EXTERNAL_API_TIMEOUT_MS` | Optional | `5000` (5 seconds) | Timeout for external API requests |
-| `FALLBACK_TO_SECONDARY_PROVIDERS` | Optional | `true` | Fall back to secondary price providers if primary fails |
+| Variable                          | Required | Default                 | Description                                             |
+| --------------------------------- | -------- | ----------------------- | ------------------------------------------------------- |
+| `DEXSCREENER_API_URL`             | Optional | Default DexScreener URL | DexScreener API endpoint                                |
+| `NOVES_API_URL`                   | Optional | Default Noves URL       | Noves API endpoint                                      |
+| `JUPITER_API_URL`                 | Optional | Default Jupiter URL     | Jupiter API endpoint                                    |
+| `EXTERNAL_API_TIMEOUT_MS`         | Optional | `5000` (5 seconds)      | Timeout for external API requests                       |
+| `FALLBACK_TO_SECONDARY_PROVIDERS` | Optional | `true`                  | Fall back to secondary price providers if primary fails |
 
 ### Performance Tuning
 
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `MAX_CONCURRENT_REQUESTS` | Optional | `10` | Maximum concurrent external API requests |
-| `ENABLE_QUERY_LOGGING` | Optional | `false` | Enable database query logging |
-| `ENABLE_PERFORMANCE_METRICS` | Optional | `true` | Enable performance metrics collection |
-| `CHAIN_DETECTION_TIMEOUT_MS` | Optional | `3000` (3 seconds) | Timeout for chain detection |
+| Variable                     | Required | Default            | Description                              |
+| ---------------------------- | -------- | ------------------ | ---------------------------------------- |
+| `MAX_CONCURRENT_REQUESTS`    | Optional | `10`               | Maximum concurrent external API requests |
+| `ENABLE_QUERY_LOGGING`       | Optional | `false`            | Enable database query logging            |
+| `ENABLE_PERFORMANCE_METRICS` | Optional | `true`             | Enable performance metrics collection    |
+| `CHAIN_DETECTION_TIMEOUT_MS` | Optional | `3000` (3 seconds) | Timeout for chain detection              |
 
 ### Hierarchy & Precedence
 
 The system follows specific rules for resolving settings when multiple related variables exist:
 
 1. **Initial Balances**: Uses the most specific setting available:
+
    - Chain-specific balances (e.g., `INITIAL_ETH_USDC_BALANCE`)
    - Zero (default)
 
 2. **Database Connection**: Uses the most comprehensive setting available:
+
    - `POSTGRES_URL` connection string
    - Individual parameters (`DB_HOST`, `DB_PORT`, etc.)
    - SSL configuration (`DB_SSL`)
@@ -726,20 +769,66 @@ PRICE_CACHE_MS=60000
 ```
 
 You can adjust these intervals based on your needs:
+
 - For testing environments, you may want to use shorter intervals (e.g., 10,000ms = 10 seconds for snapshots, 30,000ms = 30 seconds for price freshness)
 - For production environments, you might want to use longer intervals to reduce database and API load (e.g., 300,000ms = 5 minutes for snapshots, 1,800,000ms = 30 minutes for price freshness)
 
 The price freshness threshold controls when the system will reuse existing prices from the database instead of fetching new ones, optimizing both performance and accuracy.
 
 Portfolio snapshots are taken:
+
 1. When a competition starts
 2. At regular intervals throughout the competition (controlled by the environment variable)
 3. When a competition ends
 
 Snapshot data is available via the admin API endpoint:
+
 ```
 GET /api/admin/competition/:competitionId/snapshots
 ```
+
+## Leaderboard Access Control
+
+The trading simulator allows administrators to control whether participants can access the competition leaderboard. This feature is configurable in your `.env` file:
+
+### Admin-Only Access Mode
+
+With `DISABLE_PARTICIPANT_LEADERBOARD_ACCESS=true`, the system will:
+
+- Allow only administrators to view the competition leaderboard
+- Return a 403 Forbidden error with a clear message to participants who attempt to access the leaderboard
+- Prevent participants from seeing other teams' performance until the competition is over
+
+This mode is ideal for:
+
+- Blind competitions where teams shouldn't know their ranking during the event
+- Reducing competitive pressure during educational events
+- Preventing teams from copying strategies based on leaderboard performance
+
+### Open Access Mode (Default)
+
+With `DISABLE_PARTICIPANT_LEADERBOARD_ACCESS=false` (the default setting), the system will:
+
+- Allow all participants to freely access the leaderboard
+- Let teams see their current ranking and portfolio performance in real-time
+- Create a more competitive atmosphere with visible rankings
+
+This mode is useful for:
+
+- Traditional competition formats where rankings are public
+- Creating a competitive environment that simulates real trading conditions
+- Events where teams can learn from seeing others' performance
+
+### Implementation
+
+Configure this option in your `.env` file after copying from `.env.example`:
+
+```
+# Set to true to disable participant access to leaderboard (false by default)
+DISABLE_PARTICIPANT_LEADERBOARD_ACCESS=false
+```
+
+When enabled, participants will receive a 403 Forbidden response with the message "Leaderboard access is currently restricted to administrators only" when attempting to access the leaderboard endpoint.
 
 ## Cross-Chain Trading Configuration
 
@@ -748,11 +837,13 @@ The trading simulator supports two modes of operation for cross-chain trading, c
 ### Allowed Cross-Chain Trading
 
 With `ALLOW_CROSS_CHAIN_TRADING=true`, users can:
+
 - Trade between tokens on different blockchain types (e.g., Solana SOL to Ethereum ETH)
 - Execute trades between any supported chains (e.g., Polygon USDC to Base ETH)
 - Maintain a diversified portfolio across multiple blockchains
 
 This mode is ideal for:
+
 - Multi-chain trading competitions
 - Teaching cross-chain trading strategies
 - Simulating real-world DeFi trading environments where bridges enable cross-chain transfers
@@ -760,11 +851,13 @@ This mode is ideal for:
 ### Restricted Same-Chain Trading (Default)
 
 With `ALLOW_CROSS_CHAIN_TRADING=false` (the default setting), the system will:
+
 - Reject trades where the source and destination tokens are on different chains
 - Return an error message indicating that cross-chain trading is disabled
 - Only allow trades between tokens on the same blockchain
 
 This mode is useful for:
+
 - Chain-specific trading competitions
 - Simulating environments without cross-chain bridges
 - Focusing participants on chain-specific trading strategies
@@ -785,6 +878,7 @@ When disabled, the trade validation in the `TradeSimulator` service will verify 
 When executing trades with explicit chain parameters, the system's behavior will depend on the `ALLOW_CROSS_CHAIN_TRADING` setting:
 
 #### With Cross-Chain Trading Allowed (`ALLOW_CROSS_CHAIN_TRADING=true`):
+
 ```javascript
 // Example 1: Cross-chain trade from Solana to Ethereum - ACCEPTED
 {
@@ -821,6 +915,7 @@ When executing trades with explicit chain parameters, the system's behavior will
 ```
 
 #### DEFAULT - With Cross-Chain Trading Disabled (`ALLOW_CROSS_CHAIN_TRADING=false`):
+
 ```javascript
 // This cross-chain trade will be REJECTED with an error
 {
@@ -845,9 +940,9 @@ When executing trades with explicit chain parameters, the system's behavior will
 }
 ```
 
-This approach allows you to control whether trades can cross between different blockchains, while still using explicit chain parameters to avoid chain detection overhead. 
+This approach allows you to control whether trades can cross between different blockchains, while still using explicit chain parameters to avoid chain detection overhead.
 
-### Manual Setup 
+### Manual Setup
 
 If you prefer to set up each component separately, you can follow these steps:
 
@@ -860,6 +955,7 @@ cp .env.example .env
 ```
 
 Then edit the file to configure your environment. Key configuration options include:
+
 - `EVM_CHAINS`: Comma-separated list of supported EVM chains (defaults to eth,polygon,bsc,arbitrum,base,optimism,avalanche,linea)
 - `ALLOW_MOCK_PRICE_HISTORY`: Whether to allow mock price history data generation (defaults to true in development, false in production)
 - `ALLOW_CROSS_CHAIN_TRADING`: Whether to allow trades between different chains (defaults to false for security, set to true to enable cross-chain trading)
@@ -897,6 +993,7 @@ INITIAL_BASE_USDC_BALANCE=3500    # USDC on Base
 **Balance Hierarchy and Overrides**
 
 The system uses the following precedence for balances:
+
 1. Specific chain balances (e.g., `INITIAL_ETH_USDC_BALANCE`)
 2. Zero (default)
 
@@ -911,6 +1008,7 @@ npm run generate:secrets
 ```
 
 This will create the following secrets:
+
 - `ROOT_ENCRYPTION_KEY`: Used for encrypting API keys
 - `ADMIN_API_KEY`: Used for admin authentication (if not already set up)
 

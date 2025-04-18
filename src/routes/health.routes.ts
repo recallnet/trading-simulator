@@ -97,4 +97,4 @@ router.get('/', HealthController.check);
  */
 router.get('/detailed', HealthController.detailed);
 
-export default router; 
+export default router;

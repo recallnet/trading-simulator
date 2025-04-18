@@ -766,4 +766,4 @@ router.post('/teams/:teamId/deactivate', AdminController.deactivateTeam);
  */
 router.post('/teams/:teamId/reactivate', AdminController.reactivateTeam);
 
-export default router; 
+export default router;

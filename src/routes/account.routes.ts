@@ -358,4 +358,4 @@ router.get('/portfolio', AccountController.getPortfolio);
  */
 router.get('/trades', AccountController.getTrades);
 
-export default router; 
+export default router;

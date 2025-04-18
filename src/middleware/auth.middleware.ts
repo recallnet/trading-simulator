@@ -10,20 +10,20 @@ import { extractApiKey } from './auth-helpers';
  */
 export const authMiddleware = (
   teamManager: TeamManager,
-  competitionManager: CompetitionManager
+  competitionManager: CompetitionManager,
 ) => {
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
       console.log(`\n[AuthMiddleware] ========== AUTH REQUEST ==========`);
       console.log(`[AuthMiddleware] Received request to ${req.method} ${req.originalUrl}`);
-      
+
       // Extract API key from Authorization header
       const apiKey = extractApiKey(req);
-      
+
       if (!apiKey) {
         throw new ApiError(401, 'Authentication required. Use Authorization: Bearer YOUR_API_KEY');
       }
-      
+
       // Validate API key
       const teamId = await teamManager.validateApiKey(apiKey);
 
@@ -33,14 +33,14 @@ export const authMiddleware = (
       }
 
       console.log(`[AuthMiddleware] API key validation succeeded - team ID: ${teamId}`);
-      
+
       // Set team ID in request for use in route handlers
       req.teamId = teamId;
 
       // Check if the team is an admin
       const team = await teamManager.getTeam(teamId);
       const isAdmin = team?.isAdmin === true;
-      
+
       if (isAdmin) {
         console.log(`[AuthMiddleware] Team ${teamId} is an admin, granting elevated access`);
         req.isAdmin = true;
@@ -48,16 +48,16 @@ export const authMiddleware = (
 
       // Check if there's an active competition
       const activeCompetition = await competitionManager.getActiveCompetition();
-      
+
       // For trade endpoints, ensure competition is active
       const fullRoutePath = `${req.baseUrl}${req.path}`;
       console.log(`[AuthMiddleware] Full route path: ${fullRoutePath}`);
-      
+
       if (fullRoutePath.includes('/api/trade/execute') && req.method === 'POST') {
         if (!activeCompetition) {
           throw new ApiError(403, 'No active competition');
         }
-        
+
         // Set competition ID in request
         req.competitionId = activeCompetition.id;
         console.log(`[AuthMiddleware] Set competition ID: ${req.competitionId}`);
@@ -65,7 +65,7 @@ export const authMiddleware = (
 
       console.log(`[AuthMiddleware] Authentication successful, proceeding to handler`);
       console.log(`[AuthMiddleware] ========== END AUTH ==========\n`);
-      
+
       next();
     } catch (error) {
       console.log(`[AuthMiddleware] Error in authentication:`, error);
@@ -83,4 +83,4 @@ declare global {
       isAdmin?: boolean;
     }
   }
-} 
+}

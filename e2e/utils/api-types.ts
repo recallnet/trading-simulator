@@ -18,7 +18,7 @@ export interface ErrorResponse {
 // Enum for blockchain types
 export enum BlockchainType {
   EVM = 'evm',
-  SVM = 'svm'
+  SVM = 'svm',
 }
 
 // Enum for specific chains
@@ -34,20 +34,20 @@ export enum SpecificChain {
   ZKSYNC = 'zksync',
   SCROLL = 'scroll',
   MANTLE = 'mantle',
-  SVM = 'svm'
+  SVM = 'svm',
 }
 
 // Competition status
 export enum CompetitionStatus {
   PENDING = 'PENDING',
   ACTIVE = 'ACTIVE',
-  COMPLETED = 'COMPLETED'
+  COMPLETED = 'COMPLETED',
 }
 
 // Portfolio source
 export enum PortfolioSource {
   SNAPSHOT = 'snapshot',
-  LIVE_CALCULATION = 'live-calculation'
+  LIVE_CALCULATION = 'live-calculation',
 }
 
 // Team profile response
@@ -357,7 +357,7 @@ export interface PortfolioSnapshot {
     [tokenAddress: string]: {
       amount: number;
       valueUsd: number;
-    }
+    };
   };
 }
 
@@ -388,4 +388,4 @@ export interface EndCompetitionResponse extends ApiResponse {
     teamId: string;
     value: number;
   }[];
-} 
+}

@@ -167,4 +167,4 @@ priceRoutes.get('/', PriceController.getPrice);
  */
 priceRoutes.get('/token-info', PriceController.getTokenInfo);
 
-export default priceRoutes; 
+export default priceRoutes;

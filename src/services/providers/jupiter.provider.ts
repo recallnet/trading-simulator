@@ -53,9 +53,9 @@ export class JupiterProvider implements PriceSource {
   }
 
   async getPrice(
-    tokenAddress: string, 
+    tokenAddress: string,
     chain: BlockchainType = BlockchainType.SVM,
-    specificChain: SpecificChain = 'svm'
+    specificChain: SpecificChain = 'svm',
   ): Promise<PriceReport | null> {
     try {
       // Jupiter only supports Solana tokens
@@ -66,18 +66,20 @@ export class JupiterProvider implements PriceSource {
       // Check cache first
       const cachedPrice = this.getCachedPrice(tokenAddress);
       if (cachedPrice !== null && cachedPrice.confidence === 'high') {
-        console.log(`[JupiterProvider] Using cached price for ${tokenAddress}: $${cachedPrice.price}`);
+        console.log(
+          `[JupiterProvider] Using cached price for ${tokenAddress}: $${cachedPrice.price}`,
+        );
         return {
           token: tokenAddress,
           price: cachedPrice.price,
           timestamp: new Date(),
           chain: BlockchainType.SVM,
-          specificChain: 'svm'
+          specificChain: 'svm',
         };
       }
 
       console.log(`[JupiterProvider] Getting price for ${tokenAddress}`);
-      
+
       for (let attempt = 1; attempt <= this.MAX_RETRIES; attempt++) {
         try {
           await this.enforceRateLimit();
@@ -86,7 +88,7 @@ export class JupiterProvider implements PriceSource {
           console.log(`[JupiterProvider] Debug: Full URL being used: ${url}`);
 
           console.log(
-            `[JupiterProvider] Attempt ${attempt}/${this.MAX_RETRIES} to fetch price for ${tokenAddress}`
+            `[JupiterProvider] Attempt ${attempt}/${this.MAX_RETRIES} to fetch price for ${tokenAddress}`,
           );
 
           const response = await axios.get(url, {
@@ -119,14 +121,16 @@ export class JupiterProvider implements PriceSource {
           }
 
           this.setCachedPrice(tokenAddress, price, confidence);
-          console.log(`[JupiterProvider] Successfully fetched price for ${tokenAddress}: $${price}`);
-          
+          console.log(
+            `[JupiterProvider] Successfully fetched price for ${tokenAddress}: $${price}`,
+          );
+
           return {
             token: tokenAddress,
             price,
             timestamp: new Date(),
             chain: BlockchainType.SVM,
-            specificChain: 'svm'
+            specificChain: 'svm',
           };
         } catch (error) {
           if (attempt === this.MAX_RETRIES) {
@@ -146,7 +150,10 @@ export class JupiterProvider implements PriceSource {
       }
       return null;
     } catch (error) {
-      console.error(`[JupiterProvider] Error fetching price for ${tokenAddress}:`, error instanceof Error ? error.message : 'Unknown error');
+      console.error(
+        `[JupiterProvider] Error fetching price for ${tokenAddress}:`,
+        error instanceof Error ? error.message : 'Unknown error',
+      );
       return null;
     }
   }
@@ -154,12 +161,12 @@ export class JupiterProvider implements PriceSource {
   async supports(tokenAddress: string, specificChain: SpecificChain = 'svm'): Promise<boolean> {
     try {
       console.log(`[JupiterProvider] Checking support for token: ${tokenAddress}`);
-      
+
       // Jupiter only supports Solana tokens
       if (specificChain !== 'svm') {
         return false;
       }
-      
+
       // First check cache
       if (this.getCachedPrice(tokenAddress) !== null) {
         return true;
@@ -168,8 +175,11 @@ export class JupiterProvider implements PriceSource {
       const price = await this.getPrice(tokenAddress, BlockchainType.SVM, 'svm');
       return price !== null;
     } catch (error) {
-      console.error(`[JupiterProvider] Error checking token support:`, error instanceof Error ? error.message : 'Unknown error');
+      console.error(
+        `[JupiterProvider] Error checking token support:`,
+        error instanceof Error ? error.message : 'Unknown error',
+      );
       return false;
     }
   }
-} 
+}

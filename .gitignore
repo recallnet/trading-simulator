@@ -34,3 +34,8 @@ Thumbs.db
 .vscode/
 *.swp
 *.swo 
+
+# Certificates and sensitive files
+certs/*
+# Keep .gitkeep files to preserve empty directories
+!certs/.gitkeep 

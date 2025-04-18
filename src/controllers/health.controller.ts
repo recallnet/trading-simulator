@@ -17,7 +17,7 @@ export class HealthController {
         status: 'ok',
         timestamp: new Date().toISOString(),
         uptime: process.uptime(),
-        version: process.env.npm_package_version || '1.0.0'
+        version: process.env.npm_package_version || '1.0.0',
       });
     } catch (error) {
       next(error);
@@ -35,7 +35,7 @@ export class HealthController {
       // Since we don't have isHealthy methods on our services yet,
       // we'll just return 'ok' for all services for now
       // In a real implementation, we would check the health of each service
-      
+
       res.status(200).json({
         status: 'ok',
         timestamp: new Date().toISOString(),
@@ -46,11 +46,11 @@ export class HealthController {
           balanceManager: 'ok',
           tradeSimulator: 'ok',
           competitionManager: 'ok',
-          teamManager: 'ok'
-        }
+          teamManager: 'ok',
+        },
       });
     } catch (error) {
       next(error);
     }
   }
-} 
+}

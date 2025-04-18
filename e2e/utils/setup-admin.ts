@@ -14,26 +14,26 @@ const ADMIN_EMAIL = 'admin@test.com';
 
 async function setupAdminAccount() {
   console.log('Setting up admin account for testing...');
-  
+
   try {
     // Initialize the database
     await dbManager.initialize();
-    
+
     // Clean up existing teams/admin accounts
     console.log('Cleaning up existing teams/admin accounts...');
     const pool = dbManager.getPool();
     await pool.query('TRUNCATE teams CASCADE');
-    
+
     // Use the admin setup endpoint to create a new admin account
     const baseUrl = getBaseUrl();
     console.log(`Using API at ${baseUrl} to create admin account...`);
-    
+
     const response = await axios.post(`${baseUrl}/api/admin/setup`, {
       username: ADMIN_USERNAME,
       password: ADMIN_PASSWORD,
-      email: ADMIN_EMAIL
+      email: ADMIN_EMAIL,
     });
-    
+
     if (response.data.success) {
       console.log('Admin account created successfully via API');
       console.log(`Username: ${ADMIN_USERNAME}`);
@@ -62,4 +62,4 @@ setupAdminAccount()
   .catch((error) => {
     console.error('Failed to set up admin account:', error);
     process.exit(1);
-  }); 
+  });
