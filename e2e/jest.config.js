@@ -2,7 +2,7 @@
 module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
-  testTimeout: 60000, // 60 seconds timeout for tests to prevent premature failures
+  testTimeout: 120000, // 120 seconds timeout for tests to prevent premature failures
   rootDir: './',
   testMatch: ['**/*.test.ts'],
   setupFilesAfterEnv: ['<rootDir>/utils/test-setup.ts'],

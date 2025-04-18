@@ -16,8 +16,9 @@ The Multi-Chain Trading Simulator is a standalone server designed to host tradin
 - Competition management with leaderboards
 - Comprehensive API for trading and account management
 - Rate limiting and security features
-- **NEW: Chain Override Feature** - Specify the exact chain for EVM tokens to reduce API response times from seconds to milliseconds
-- **NEW: Cross-Chain Trading Controls** - Configure whether trades between different chains are allowed or restricted
+- Chain Override Feature - Specify the exact chain for EVM tokens to reduce API response times from seconds to milliseconds
+- Cross-Chain Trading Controls - Configure whether trades between different chains are allowed or restricted
+- Leaderboard Access Control - Configure whether participants can access the leaderboard or if it's restricted to administrators only
 
 ## Current Development Status
 
@@ -529,15 +530,16 @@ Below is a comprehensive list of all environment variables available in `.env.ex
 
 ### Database Configuration
 
-| Variable       | Required           | Default                    | Description                                                                                             |
-| -------------- | ------------------ | -------------------------- | ------------------------------------------------------------------------------------------------------- |
-| `POSTGRES_URL` | Optional           | None                       | PostgreSQL connection string in the format `postgresql://username:password@host:port/database?ssl=true` |
-| `DB_HOST`      | Required if no URL | `localhost`                | Database host when not using `POSTGRES_URL`                                                             |
-| `DB_PORT`      | Optional           | `5432`                     | Database port when not using `POSTGRES_URL`                                                             |
-| `DB_USERNAME`  | Required if no URL | `postgres`                 | Database username when not using `POSTGRES_URL`                                                         |
-| `DB_PASSWORD`  | Required if no URL | `postgres`                 | Database password when not using `POSTGRES_URL`                                                         |
-| `DB_NAME`      | Required if no URL | `solana_trading_simulator` | Database name when not using `POSTGRES_URL`                                                             |
-| `DB_SSL`       | Optional           | `false`                    | Enable SSL for database connection (`true` or `false`)                                                  |
+| Variable          | Required           | Default                    | Description                                                                                             |
+| ----------------- | ------------------ | -------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `POSTGRES_URL`    | Optional           | None                       | PostgreSQL connection string in the format `postgresql://username:password@host:port/database?ssl=true` |
+| `DB_HOST`         | Required if no URL | `localhost`                | Database host when not using `POSTGRES_URL`                                                             |
+| `DB_PORT`         | Optional           | `5432`                     | Database port when not using `POSTGRES_URL`                                                             |
+| `DB_USERNAME`     | Required if no URL | `postgres`                 | Database username when not using `POSTGRES_URL`                                                         |
+| `DB_PASSWORD`     | Required if no URL | `postgres`                 | Database password when not using `POSTGRES_URL`                                                         |
+| `DB_NAME`         | Required if no URL | `solana_trading_simulator` | Database name when not using `POSTGRES_URL`                                                             |
+| `DB_SSL`          | Optional           | `false`                    | Enable SSL for database connection (`true` or `false`)                                                  |
+| `DB_CA_CERT_PATH` | Optional           | None                       | Path to CA certificate for SSL database connection (e.g., `./certs/ca-certificate.crt`)                 |
 
 ### Security Settings
 
@@ -566,6 +568,12 @@ Below is a comprehensive list of all environment variables available in `.env.ex
 | `MAX_TRADE_PERCENTAGE`      | Optional | `25`                                                     | Maximum trade size as percentage of portfolio value          |
 | `EVM_CHAIN_PRIORITY`        | Optional | `eth,polygon,base,arbitrum`                              | Chain priority for price lookups (first chain checked first) |
 | `ALLOW_MOCK_PRICE_HISTORY`  | Optional | `true` in dev, `false` in prod                           | Allow generation of mock price history data                  |
+
+### Competition Settings
+
+| Variable                                 | Required | Default | Description                                                                                         |
+| ---------------------------------------- | -------- | ------- | --------------------------------------------------------------------------------------------------- |
+| `DISABLE_PARTICIPANT_LEADERBOARD_ACCESS` | Optional | `false` | When set to `true`, only admins can view the leaderboard while participants are blocked from access |
 
 ### Initial Token Balances
 
@@ -779,6 +787,49 @@ Snapshot data is available via the admin API endpoint:
 ```
 GET /api/admin/competition/:competitionId/snapshots
 ```
+
+## Leaderboard Access Control
+
+The trading simulator allows administrators to control whether participants can access the competition leaderboard. This feature is configurable in your `.env` file:
+
+### Admin-Only Access Mode
+
+With `DISABLE_PARTICIPANT_LEADERBOARD_ACCESS=true`, the system will:
+
+- Allow only administrators to view the competition leaderboard
+- Return a 403 Forbidden error with a clear message to participants who attempt to access the leaderboard
+- Prevent participants from seeing other teams' performance until the competition is over
+
+This mode is ideal for:
+
+- Blind competitions where teams shouldn't know their ranking during the event
+- Reducing competitive pressure during educational events
+- Preventing teams from copying strategies based on leaderboard performance
+
+### Open Access Mode (Default)
+
+With `DISABLE_PARTICIPANT_LEADERBOARD_ACCESS=false` (the default setting), the system will:
+
+- Allow all participants to freely access the leaderboard
+- Let teams see their current ranking and portfolio performance in real-time
+- Create a more competitive atmosphere with visible rankings
+
+This mode is useful for:
+
+- Traditional competition formats where rankings are public
+- Creating a competitive environment that simulates real trading conditions
+- Events where teams can learn from seeing others' performance
+
+### Implementation
+
+Configure this option in your `.env` file after copying from `.env.example`:
+
+```
+# Set to true to disable participant access to leaderboard (false by default)
+DISABLE_PARTICIPANT_LEADERBOARD_ACCESS=false
+```
+
+When enabled, participants will receive a 403 Forbidden response with the message "Leaderboard access is currently restricted to administrators only" when attempting to access the leaderboard endpoint.
 
 ## Cross-Chain Trading Configuration
 

@@ -107,7 +107,7 @@ export abstract class BaseRepository<T> {
         ? await client.query(query, values)
         : await this.db.query(query, values);
 
-      return result.rowCount > 0;
+      return result.rowCount !== null && result.rowCount > 0;
     } catch (error) {
       console.error(`[${this.tableName}Repository] Error in delete:`, error);
       throw error;

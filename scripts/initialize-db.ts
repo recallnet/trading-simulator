@@ -1,81 +1,6 @@
 import { DatabaseConnection } from '../src/database/connection';
 import * as fs from 'fs';
 import * as path from 'path';
-import { Client } from 'pg';
-import { config } from '../src/config';
-
-async function ensureDatabaseExists(): Promise<void> {
-  // For Render PostgreSQL, we need to use the connection string directly if available
-  if (config.database.url) {
-    const client = new Client({
-      connectionString: config.database.url,
-      ssl: true,
-    });
-
-    try {
-      await client.connect();
-      console.log('Connected to Render PostgreSQL using connection string');
-
-      // For managed databases like Render, database creation is typically not allowed
-      // so we'll just check if our database exists
-      const result = await client.query(
-        `SELECT EXISTS(
-          SELECT FROM pg_database WHERE datname = $1
-        );`,
-        [config.database.database],
-      );
-
-      if (!result.rows[0].exists) {
-        console.log(
-          `Database "${config.database.database}" does not exist. Note: On managed services like Render, you typically need to create databases through their dashboard.`,
-        );
-      } else {
-        console.log(`Database "${config.database.database}" exists.`);
-      }
-    } catch (error) {
-      console.error('Error connecting to database:', error);
-      throw error;
-    } finally {
-      await client.end();
-    }
-    return;
-  }
-
-  // Fall back to original approach for local development
-  const client = new Client({
-    host: config.database.host,
-    port: config.database.port,
-    user: config.database.username,
-    password: config.database.password,
-    database: 'postgres', // Connect to default database first
-    ssl: config.database.ssl ? true : undefined,
-  });
-
-  try {
-    await client.connect();
-
-    // Check if our target database exists
-    const result = await client.query(
-      `
-      SELECT EXISTS(
-        SELECT FROM pg_database WHERE datname = $1
-      );
-    `,
-      [config.database.database],
-    );
-
-    if (!result.rows[0].exists) {
-      console.log(`Creating database "${config.database.database}"...`);
-      await client.query(`CREATE DATABASE "${config.database.database}";`);
-      console.log('Database created successfully');
-    }
-  } catch (error) {
-    console.error('Error ensuring database exists:', error);
-    throw error;
-  } finally {
-    await client.end();
-  }
-}
 
 /**
  * Split the SQL initialization file into sections by comments
@@ -115,9 +40,7 @@ function splitSqlIntoSections(sql: string): string[] {
  * Creates tables and indices if they don't exist
  */
 export async function initializeDatabase(): Promise<void> {
-  // First ensure the database exists
-  await ensureDatabaseExists();
-
+  // Get the database connection
   const db = DatabaseConnection.getInstance();
 
   try {

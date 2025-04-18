@@ -452,7 +452,7 @@ export class CompetitionRepository extends BaseRepository<Competition> {
     try {
       const query = `SELECT COUNT(*) FROM competitions`;
       const result = await this.db.query(query);
-      return parseInt(result.rows[0].count, 10);
+      return parseInt(result.rows[0].count as string, 10);
     } catch (error) {
       console.error('[CompetitionRepository] Error counting competitions:', error);
       throw error;

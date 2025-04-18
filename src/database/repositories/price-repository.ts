@@ -96,7 +96,7 @@ export class PriceRepository extends BaseRepository<PriceRecord> {
       `;
 
       const result = await this.db.query(query, [tableName, columnName]);
-      return result.rows[0].column_exists;
+      return result.rows[0].column_exists as boolean;
     } catch (error) {
       console.error(
         `[PriceRepository] Error checking if column ${columnName} exists in table ${tableName}:`,
@@ -271,7 +271,7 @@ export class PriceRepository extends BaseRepository<PriceRecord> {
       const result = await this.db.query(query, values);
       if (!result.rows[0].avg_price) return null;
 
-      return parseFloat(result.rows[0].avg_price);
+      return parseFloat(result.rows[0].avg_price as string);
     } catch (error) {
       console.error(`[PriceRepository] Error getting average price for ${token}:`, error);
       return null;
@@ -328,7 +328,7 @@ export class PriceRepository extends BaseRepository<PriceRecord> {
       const result = await this.db.query(query, values);
       if (result.rows.length === 0) return null;
 
-      const earliestPrice = parseFloat(result.rows[0].price);
+      const earliestPrice = parseFloat(result.rows[0].price as string);
       const latestPrice = latestPriceRecord.price;
 
       // Calculate percentage change
@@ -347,7 +347,7 @@ export class PriceRepository extends BaseRepository<PriceRecord> {
     try {
       const query = `SELECT COUNT(*) FROM prices`;
       const result = await this.db.query(query);
-      return parseInt(result.rows[0].count, 10);
+      return parseInt(result.rows[0].count as string, 10);
     } catch (error) {
       console.error('[PriceRepository] Error counting records:', error);
       throw error;

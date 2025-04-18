@@ -37,12 +37,28 @@ export async function setup() {
   console.log(`Looking for .env.test at: ${envTestPath}`);
   console.log(`.env.test file exists: ${envTestExists}`);
 
+  // Check if leaderboard-access test is being run by examining command line arguments
+  const args = process.argv.slice(2);
+  console.log(JSON.stringify(args), '42 setup');
+  const isLeaderboardTest = args.some(
+    (arg) => arg.includes('leaderboard-access.test') || arg.includes('leaderboard-access'),
+  );
+
   if (envTestExists) {
     // Save original values for debugging
     const originalBaseUsdcBalance = process.env.INITIAL_BASE_USDC_BALANCE;
+    const originalLeaderboardAccess = process.env.DISABLE_PARTICIPANT_LEADERBOARD_ACCESS;
 
-    // Force override with .env.test values
-    const result = config({ path: envTestPath, override: true });
+    // Force override with .env.test values (but don't override leaderboard setting if in leaderboard test)
+    const result = config({
+      path: envTestPath,
+      override: true,
+      // Only use processEnv when running the leaderboard test
+      ...(isLeaderboardTest && {
+        // Preserve our manual setting instead of loading from .env.test
+        ignoreProcessEnv: false, // This tells dotenv to use process.env as the starting point
+      }),
+    });
 
     console.log(`Loaded .env.test file: ${result.parsed ? 'successfully' : 'failed'}`);
     if (result.parsed) {
@@ -54,6 +70,9 @@ export async function setup() {
         `- INITIAL_BASE_USDC_BALANCE: ${process.env.INITIAL_BASE_USDC_BALANCE} (was: ${originalBaseUsdcBalance})`,
       );
       console.log(`- ALLOW_CROSS_CHAIN_TRADING: ${process.env.ALLOW_CROSS_CHAIN_TRADING}`);
+      console.log(
+        `- DISABLE_PARTICIPANT_LEADERBOARD_ACCESS: ${process.env.DISABLE_PARTICIPANT_LEADERBOARD_ACCESS} (was: ${originalLeaderboardAccess})`,
+      );
     }
   } else {
     console.warn('⚠️ WARNING: .env.test file not found! Tests will use .env or default values.');
@@ -67,6 +86,12 @@ export async function setup() {
       const result = config({ path: envMainPath, override: true });
       console.log(`Loaded .env file: ${result.parsed ? 'successfully' : 'failed'}`);
     }
+  }
+  if (isLeaderboardTest) {
+    process.env.DISABLE_PARTICIPANT_LEADERBOARD_ACCESS = 'true';
+    console.log(
+      `DISABLE_PARTICIPANT_LEADERBOARD_ACCESS set to: ${process.env.DISABLE_PARTICIPANT_LEADERBOARD_ACCESS}`,
+    );
   }
 
   // Ensure TEST_MODE is set

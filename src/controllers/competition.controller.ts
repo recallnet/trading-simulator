@@ -138,6 +138,20 @@ export class CompetitionController {
       // Check if user is an admin (added by auth middleware)
       const isAdmin = req.isAdmin === true;
 
+      // Check if non-admin access is disabled via environment variable
+      const participantLeaderboardAccessDisabled = config.leaderboardAccess;
+
+      // If participant access is disabled and user is not an admin, deny access
+      if (participantLeaderboardAccessDisabled && !isAdmin) {
+        console.log(
+          `[CompetitionController] Denying leaderboard access to non-admin team ${teamId} as participant access is disabled`,
+        );
+        throw new ApiError(
+          403,
+          'Leaderboard access is currently restricted to administrators only',
+        );
+      }
+
       // If not an admin, verify team is part of the competition
       if (!isAdmin) {
         const isTeamInCompetition = await repositories.teamRepository.isTeamInCompetition(
