@@ -33,11 +33,11 @@
  * });
  */
 
-import { 
-  ApiResponse, 
-  BlockchainType, 
-  SpecificChain, 
-  BalancesResponse, 
+import {
+  ApiResponse,
+  BlockchainType,
+  SpecificChain,
+  BalancesResponse,
   TradeHistoryResponse,
   PriceResponse,
   TokenInfoResponse,
@@ -47,7 +47,7 @@ import {
   LeaderboardResponse,
   TeamProfileResponse,
   PortfolioResponse,
-  TradeExecutionParams
+  TradeExecutionParams,
 } from '../../e2e/utils/api-types';
 
 // Common token addresses
@@ -405,7 +405,7 @@ export class TradingSimulatorClient {
    * @param profileData Profile data to update
    * @returns A promise that resolves to the updated profile
    */
-  async updateProfile(profileData: { 
+  async updateProfile(profileData: {
     contactPerson?: string;
     metadata?: {
       ref?: {

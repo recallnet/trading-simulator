@@ -659,4 +659,37 @@ export class ApiClient {
       return this.handleApiError(error, 'get team API key');
     }
   }
+
+  /**
+   * Publicly register a new team (no authentication required)
+   * @param name Team name
+   * @param email Team email
+   * @param contactPerson Contact person name
+   * @param walletAddress Optional Ethereum wallet address (random valid address will be generated if not provided)
+   * @param metadata Optional metadata for the team agent
+   */
+  async publicRegisterTeam(
+    name: string,
+    email: string,
+    contactPerson: string,
+    walletAddress?: string,
+    metadata?: TeamMetadata,
+  ): Promise<TeamRegistrationResponse | ErrorResponse> {
+    try {
+      // Generate a random Ethereum address if one isn't provided
+      const address = walletAddress || this.generateRandomEthAddress();
+
+      const response = await this.axiosInstance.post('/api/public/teams/register', {
+        teamName: name,
+        email,
+        contactPerson,
+        walletAddress: address,
+        metadata,
+      });
+
+      return response.data;
+    } catch (error) {
+      return this.handleApiError(error, 'publicly register team');
+    }
+  }
 }

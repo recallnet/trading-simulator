@@ -14,7 +14,7 @@ import {
   TradeResponse,
   TokenInfoResponse,
   TradeHistoryResponse,
-  TradeExecutionParams
+  TradeExecutionParams,
 } from '../../e2e/utils/api-types';
 
 // Use TradeExecutionParams for trade details

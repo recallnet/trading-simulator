@@ -8,7 +8,12 @@ import {
 } from '../utils/test-helpers';
 import axios from 'axios';
 import { getBaseUrl } from '../utils/server';
-import { TeamProfileResponse, AdminTeamsListResponse, TeamMetadata, TeamRegistrationResponse } from '../utils/api-types';
+import {
+  TeamProfileResponse,
+  AdminTeamsListResponse,
+  TeamMetadata,
+  TeamRegistrationResponse,
+} from '../utils/api-types';
 
 describe('Team API', () => {
   // Clean up test state before each test
@@ -106,19 +111,19 @@ describe('Team API', () => {
       ref: {
         name: 'TradingBot',
         version: '1.0.0',
-        url: 'https://github.com/example/trading-bot'
+        url: 'https://github.com/example/trading-bot',
       },
       description: 'An algorithmic trading bot for the competition',
       social: {
         name: 'Trading Team',
         email: 'contact@tradingteam.com',
-        twitter: '@tradingbot'
-      }
+        twitter: '@tradingbot',
+      },
     };
 
     // Update team profile with metadata
     const updateResponse = await teamClient.updateProfile({
-      metadata
+      metadata,
     });
 
     expect(updateResponse.success).toBe(true);
@@ -210,14 +215,14 @@ describe('Team API', () => {
       ref: {
         name: 'ProfileTestBot',
         version: '1.5.0',
-        url: 'https://github.com/example/profile-test-bot'
+        url: 'https://github.com/example/profile-test-bot',
       },
       description: 'A bot for testing profile retrieval',
       social: {
         name: 'Profile Testing Team',
         email: 'profile@testingteam.com',
-        twitter: '@profilebot'
-      }
+        twitter: '@profilebot',
+      },
     };
 
     // Register a team with metadata
@@ -228,21 +233,21 @@ describe('Team API', () => {
     // Register team with metadata
     const registerResponse = await client.registerTeam(
       teamName,
-      email, 
+      email,
       contactPerson,
       undefined,
-      metadata
+      metadata,
     );
     expect(registerResponse.success).toBe(true);
-    
+
     // Create a client for the new team
     const registrationResponse = registerResponse as TeamRegistrationResponse;
     const teamClient = client.createTeamClient(registrationResponse.team.apiKey);
-    
+
     // Get the team profile
     const profileResponse = await teamClient.getProfile();
     const teamProfile = profileResponse as TeamProfileResponse;
-    
+
     // Verify all profile fields including metadata
     expect(teamProfile.success).toBe(true);
     expect(teamProfile.team.id).toBeDefined();
