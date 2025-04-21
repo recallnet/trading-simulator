@@ -26,6 +26,7 @@ import {
   PortfolioResponse,
   TeamApiKeyResponse,
 } from './api-types';
+import { getBaseUrl } from './server';
 
 /**
  * API client for testing the Solana Trading Simulator
@@ -45,7 +46,7 @@ export class ApiClient {
    * @param apiKey API key for authentication
    * @param baseUrl Optional custom base URL
    */
-  constructor(apiKey?: string, baseUrl: string = 'http://localhost:3001') {
+  constructor(apiKey?: string, baseUrl: string = getBaseUrl()) {
     this.apiKey = apiKey;
     this.baseUrl = baseUrl;
 
