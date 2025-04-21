@@ -33,24 +33,22 @@
  * });
  */
 
-// Define blockchain types
-export enum BlockchainType {
-  SVM = 'svm', // Solana Virtual Machine
-  EVM = 'evm', // Ethereum Virtual Machine
-}
-
-// Define specific EVM chains
-export enum SpecificChain {
-  ETH = 'eth',
-  POLYGON = 'polygon',
-  BSC = 'bsc',
-  ARBITRUM = 'arbitrum',
-  BASE = 'base',
-  OPTIMISM = 'optimism',
-  AVALANCHE = 'avalanche',
-  LINEA = 'linea',
-  SVM = 'svm',
-}
+import {
+  ApiResponse,
+  BlockchainType,
+  SpecificChain,
+  BalancesResponse,
+  TradeHistoryResponse,
+  PriceResponse,
+  TokenInfoResponse,
+  TradeResponse,
+  QuoteResponse,
+  CompetitionStatusResponse,
+  LeaderboardResponse,
+  TeamProfileResponse,
+  PortfolioResponse,
+  TradeExecutionParams,
+} from '../../e2e/utils/api-types';
 
 // Common token addresses
 export const COMMON_TOKENS = {
@@ -82,151 +80,6 @@ export const TOKEN_CHAINS: Record<string, SpecificChain> = {
   [COMMON_TOKENS.SVM.SOL]: SpecificChain.SVM,
   [COMMON_TOKENS.SVM.USDC]: SpecificChain.SVM,
 };
-
-// API Response Interfaces
-export interface ApiResponse {
-  success: boolean;
-}
-
-export interface BalancesResponse extends ApiResponse {
-  teamId: string;
-  balances: Array<{
-    token: string;
-    amount: number;
-    chain: BlockchainType;
-    specificChain: SpecificChain | null;
-  }>;
-}
-
-export interface TradeHistoryResponse extends ApiResponse {
-  teamId: string;
-  trades: Array<{
-    id: string;
-    teamId: string;
-    competitionId: string;
-    fromToken: string;
-    toToken: string;
-    fromAmount: number;
-    toAmount: number;
-    price: number;
-    success: boolean;
-    error?: string;
-    timestamp: string;
-    fromChain: BlockchainType;
-    toChain: BlockchainType;
-    fromSpecificChain?: SpecificChain;
-    toSpecificChain?: SpecificChain;
-  }>;
-}
-
-export interface PriceResponse extends ApiResponse {
-  price: number;
-  token: string;
-  chain: BlockchainType;
-  specificChain?: SpecificChain;
-}
-
-export interface TokenInfoResponse extends PriceResponse {
-  name: string;
-  symbol: string;
-  decimals: number;
-}
-
-export interface TradeResponse extends ApiResponse {
-  transaction: {
-    id: string;
-    teamId: string;
-    competitionId: string;
-    fromToken: string;
-    toToken: string;
-    fromAmount: number;
-    toAmount: number;
-    price: number;
-    success: boolean;
-    timestamp: string;
-    fromChain: BlockchainType;
-    toChain: BlockchainType;
-    fromSpecificChain?: SpecificChain;
-    toSpecificChain?: SpecificChain;
-  };
-}
-
-export interface QuoteResponse extends ApiResponse {
-  fromToken: string;
-  toToken: string;
-  fromAmount: number;
-  toAmount: number;
-  exchangeRate: number;
-  slippage: number;
-  prices: {
-    fromToken: number;
-    toToken: number;
-  };
-  chains: {
-    fromChain: BlockchainType;
-    toChain: BlockchainType;
-  };
-}
-
-export interface CompetitionStatusResponse extends ApiResponse {
-  active: boolean;
-  competition?: {
-    id: string;
-    name: string;
-    description: string | null;
-    startDate: string;
-    endDate: string | null;
-    status: 'PENDING' | 'ACTIVE' | 'COMPLETED';
-    createdAt: string;
-    updatedAt: string;
-  };
-  message?: string;
-}
-
-export interface LeaderboardResponse extends ApiResponse {
-  competition: {
-    id: string;
-    name: string;
-    description: string | null;
-    startDate: string;
-    endDate: string | null;
-    status: 'PENDING' | 'ACTIVE' | 'COMPLETED';
-    createdAt: string;
-    updatedAt: string;
-  };
-  leaderboard: Array<{
-    rank: number;
-    teamId: string;
-    teamName: string;
-    portfolioValue: number;
-  }>;
-}
-
-export interface ProfileResponse extends ApiResponse {
-  team: {
-    id: string;
-    name: string;
-    email: string;
-    contactPerson: string;
-    createdAt: string;
-    updatedAt: string;
-  };
-}
-
-export interface PortfolioResponse extends ApiResponse {
-  teamId: string;
-  totalValue: number;
-  tokens: Array<{
-    token: string;
-    amount: number;
-    price: number;
-    value: number;
-    chain: BlockchainType;
-    specificChain: SpecificChain | null;
-  }>;
-  snapshotTime: string;
-  source: string;
-}
 
 export class TradingSimulatorClient {
   private apiKey: string;
@@ -466,16 +319,7 @@ export class TradingSimulatorClient {
    *   toSpecificChain: SpecificChain.BASE
    * });
    */
-  async executeTrade(params: {
-    fromToken: string;
-    toToken: string;
-    amount: string;
-    slippageTolerance?: string;
-    fromChain?: BlockchainType;
-    toChain?: BlockchainType;
-    fromSpecificChain?: SpecificChain;
-    toSpecificChain?: SpecificChain;
-  }): Promise<TradeResponse> {
+  async executeTrade(params: TradeExecutionParams): Promise<TradeResponse> {
     // Create the request payload
     const payload: any = {
       fromToken: params.fromToken,
@@ -509,15 +353,7 @@ export class TradingSimulatorClient {
    * @param params Trade quote parameters
    * @returns A promise resolving to the quote response
    */
-  async getQuote(params: {
-    fromToken: string;
-    toToken: string;
-    amount: string;
-    fromChain?: BlockchainType;
-    toChain?: BlockchainType;
-    fromSpecificChain?: SpecificChain;
-    toSpecificChain?: SpecificChain;
-  }): Promise<QuoteResponse> {
+  async getQuote(params: TradeExecutionParams): Promise<QuoteResponse> {
     // Build the query string
     let query = `?fromToken=${encodeURIComponent(params.fromToken)}&toToken=${encodeURIComponent(params.toToken)}&amount=${encodeURIComponent(params.amount)}`;
 
@@ -526,6 +362,7 @@ export class TradingSimulatorClient {
     if (params.toChain) query += `&toChain=${params.toChain}`;
     if (params.fromSpecificChain) query += `&fromSpecificChain=${params.fromSpecificChain}`;
     if (params.toSpecificChain) query += `&toSpecificChain=${params.toSpecificChain}`;
+    if (params.slippageTolerance) query += `&slippageTolerance=${params.slippageTolerance}`;
 
     return this.request<QuoteResponse>('GET', `/api/trade/quote${query}`);
   }
@@ -558,8 +395,8 @@ export class TradingSimulatorClient {
    *
    * @returns A promise that resolves to the team profile
    */
-  async getProfile(): Promise<ProfileResponse> {
-    return this.request<ProfileResponse>('GET', '/api/account/profile');
+  async getProfile(): Promise<TeamProfileResponse> {
+    return this.request<TeamProfileResponse>('GET', '/api/account/profile');
   }
 
   /**
@@ -568,8 +405,23 @@ export class TradingSimulatorClient {
    * @param profileData Profile data to update
    * @returns A promise that resolves to the updated profile
    */
-  async updateProfile(profileData: { contactPerson?: string }): Promise<ProfileResponse> {
-    return this.request<ProfileResponse>('PUT', '/api/account/profile', profileData);
+  async updateProfile(profileData: {
+    contactPerson?: string;
+    metadata?: {
+      ref?: {
+        name?: string;
+        version?: string;
+        url?: string;
+      };
+      description?: string;
+      social?: {
+        name?: string;
+        email?: string;
+        twitter?: string;
+      };
+    };
+  }): Promise<TeamProfileResponse> {
+    return this.request<TeamProfileResponse>('PUT', '/api/account/profile', profileData);
   }
 
   /**

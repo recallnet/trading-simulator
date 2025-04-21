@@ -21,11 +21,11 @@ export class TeamRepository extends BaseRepository<Team> {
     try {
       const query = `
         INSERT INTO teams (
-          id, name, email, contact_person, api_key, wallet_address, is_admin, 
+          id, name, email, contact_person, api_key, wallet_address, bucket_addresses, metadata, is_admin, 
           active, deactivation_reason, deactivation_date, 
           created_at, updated_at
         ) VALUES (
-          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12
+          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14
         ) RETURNING *
       `;
 
@@ -36,6 +36,8 @@ export class TeamRepository extends BaseRepository<Team> {
         team.contactPerson,
         team.apiKey,
         team.walletAddress,
+        team.bucket_addresses || null,
+        team.metadata ? JSON.stringify(team.metadata) : null,
         team.isAdmin || false,
         team.active !== undefined ? team.active : false,
         team.deactivationReason || null,
@@ -95,12 +97,14 @@ export class TeamRepository extends BaseRepository<Team> {
           contact_person = $3,
           api_key = $4,
           wallet_address = $5,
-          is_admin = $6,
-          active = $7,
-          deactivation_reason = $8,
-          deactivation_date = $9,
-          updated_at = $10
-        WHERE id = $11
+          bucket_addresses = $6,
+          metadata = $7,
+          is_admin = $8,
+          active = $9,
+          deactivation_reason = $10,
+          deactivation_date = $11,
+          updated_at = $12
+        WHERE id = $13
         RETURNING *
       `;
 
@@ -110,6 +114,8 @@ export class TeamRepository extends BaseRepository<Team> {
         team.contactPerson,
         team.apiKey,
         team.walletAddress,
+        team.bucket_addresses || null,
+        team.metadata ? JSON.stringify(team.metadata) : null,
         team.isAdmin || false,
         team.active !== undefined ? team.active : false,
         team.deactivationReason || null,
@@ -302,6 +308,8 @@ export class TeamRepository extends BaseRepository<Team> {
       contactPerson: data.contactPerson as string,
       apiKey: data.apiKey as string,
       walletAddress: data.walletAddress as string,
+      bucket_addresses: data.bucketAddresses as string[] | undefined,
+      metadata: data.metadata ? data.metadata : undefined,
       isAdmin: data.isAdmin ? Boolean(data.isAdmin) : false,
       active: data.active !== undefined ? Boolean(data.active) : false,
       deactivationReason: data.deactivationReason as string | undefined,

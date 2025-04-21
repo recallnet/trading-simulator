@@ -15,6 +15,7 @@ import * as competitionRoutes from './routes/competition.routes';
 import * as adminRoutes from './routes/admin.routes';
 import * as healthRoutes from './routes/health.routes';
 import * as docsRoutes from './routes/docs.routes';
+import * as publicRoutes from './routes/public.routes';
 
 // Create Express app
 const app = express();
@@ -43,9 +44,10 @@ app.use('/api/competition', competitionRoutes.default);
 app.use('/api/admin', adminRoutes.default);
 app.use('/api/health', healthRoutes.default);
 app.use('/api/docs', docsRoutes.default);
+app.use('/api/public', publicRoutes.default);
 
 // Legacy health check endpoint for backward compatibility
-app.get('/health', (req, res) => {
+app.get('/health', (_req, res) => {
   res.status(200).json({
     status: 'ok',
     timestamp: new Date().toISOString(),
@@ -54,7 +56,7 @@ app.get('/health', (req, res) => {
 });
 
 // Root endpoint redirects to API documentation
-app.get('/', (req, res) => {
+app.get('/', (_req, res) => {
   res.redirect('/api/docs');
 });
 

@@ -33,6 +33,7 @@ export class AccountController {
           name: team.name,
           email: team.email,
           contactPerson: team.contactPerson,
+          metadata: team.metadata,
           createdAt: team.createdAt,
           updatedAt: team.updatedAt,
         },
@@ -51,7 +52,7 @@ export class AccountController {
   static async updateProfile(req: Request, res: Response, next: NextFunction) {
     try {
       const teamId = req.teamId as string;
-      const { contactPerson } = req.body;
+      const { contactPerson, metadata } = req.body;
 
       // Get the team
       const team = await repositories.teamRepository.findById(teamId);
@@ -63,6 +64,11 @@ export class AccountController {
       // Update contact person
       if (contactPerson !== undefined) {
         team.contactPerson = contactPerson;
+      }
+
+      // Update metadata if provided
+      if (metadata !== undefined) {
+        team.metadata = metadata;
       }
 
       // Save the updated team
@@ -77,6 +83,7 @@ export class AccountController {
           name: updatedTeam.name,
           email: updatedTeam.email,
           contactPerson: updatedTeam.contactPerson,
+          metadata: updatedTeam.metadata,
           createdAt: updatedTeam.createdAt,
           updatedAt: updatedTeam.updatedAt,
         },

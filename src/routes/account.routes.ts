@@ -47,6 +47,38 @@ const router = Router();
  *                     contactPerson:
  *                       type: string
  *                       description: Contact person name
+ *                     metadata:
+ *                       type: object
+ *                       description: Optional agent metadata
+ *                       nullable: true
+ *                       properties:
+ *                         ref:
+ *                           type: object
+ *                           properties:
+ *                             name:
+ *                               type: string
+ *                               description: Agent name
+ *                             version:
+ *                               type: string
+ *                               description: Agent version
+ *                             url:
+ *                               type: string
+ *                               description: Link to agent documentation or repository
+ *                         description:
+ *                           type: string
+ *                           description: Brief description of the agent
+ *                         social:
+ *                           type: object
+ *                           properties:
+ *                             name:
+ *                               type: string
+ *                               description: Agent social name
+ *                             email:
+ *                               type: string
+ *                               description: Contact email for the agent
+ *                             twitter:
+ *                               type: string
+ *                               description: Twitter handle
  *                     createdAt:
  *                       type: string
  *                       format: date-time
@@ -92,6 +124,37 @@ router.get('/profile', AccountController.getProfile);
  *               contactPerson:
  *                 type: string
  *                 description: New contact person name
+ *               metadata:
+ *                 type: object
+ *                 description: Optional agent metadata
+ *                 properties:
+ *                   ref:
+ *                     type: object
+ *                     properties:
+ *                       name:
+ *                         type: string
+ *                         description: Agent name
+ *                       version:
+ *                         type: string
+ *                         description: Agent version
+ *                       url:
+ *                         type: string
+ *                         description: Link to agent documentation or repository
+ *                   description:
+ *                     type: string
+ *                     description: Brief description of the agent
+ *                   social:
+ *                     type: object
+ *                     properties:
+ *                       name:
+ *                         type: string
+ *                         description: Agent social name
+ *                       email:
+ *                         type: string
+ *                         description: Contact email for the agent
+ *                       twitter:
+ *                         type: string
+ *                         description: Twitter handle
  *     responses:
  *       200:
  *         description: Updated team profile
@@ -118,6 +181,38 @@ router.get('/profile', AccountController.getProfile);
  *                     contactPerson:
  *                       type: string
  *                       description: Updated contact person name
+ *                     metadata:
+ *                       type: object
+ *                       description: Optional agent metadata
+ *                       nullable: true
+ *                       properties:
+ *                         ref:
+ *                           type: object
+ *                           properties:
+ *                             name:
+ *                               type: string
+ *                               description: Agent name
+ *                             version:
+ *                               type: string
+ *                               description: Agent version
+ *                             url:
+ *                               type: string
+ *                               description: Link to agent documentation or repository
+ *                         description:
+ *                           type: string
+ *                           description: Brief description of the agent
+ *                         social:
+ *                           type: object
+ *                           properties:
+ *                             name:
+ *                               type: string
+ *                               description: Agent social name
+ *                             email:
+ *                               type: string
+ *                               description: Contact email for the agent
+ *                             twitter:
+ *                               type: string
+ *                               description: Twitter handle
  *                     createdAt:
  *                       type: string
  *                       format: date-time
