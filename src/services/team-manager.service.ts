@@ -469,6 +469,40 @@ export class TeamManager {
   }
 
   /**
+   * Update a team's information
+   * @param team The team object with updated fields
+   * @returns The updated team or null if team not found
+   */
+  async updateTeam(team: Team): Promise<Team | null> {
+    try {
+      console.log(`[TeamManager] Updating team: ${team.id} (${team.name})`);
+
+      // Check if team exists
+      const existingTeam = await repositories.teamRepository.findById(team.id);
+      if (!existingTeam) {
+        console.log(`[TeamManager] Team not found for update: ${team.id}`);
+        return null;
+      }
+
+      // Always set updated timestamp
+      team.updatedAt = new Date();
+
+      // Save to database
+      const updatedTeam = await repositories.teamRepository.update(team);
+      if (!updatedTeam) {
+        console.log(`[TeamManager] Failed to update team: ${team.id}`);
+        return null;
+      }
+
+      console.log(`[TeamManager] Successfully updated team: ${updatedTeam.name} (${team.id})`);
+      return updatedTeam;
+    } catch (error) {
+      console.error(`[TeamManager] Error updating team ${team.id}:`, error);
+      throw new Error(`Failed to update team: ${error instanceof Error ? error.message : error}`);
+    }
+  }
+
+  /**
    * Get all inactive teams
    * @returns Array of inactive teams
    */

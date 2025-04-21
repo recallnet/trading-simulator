@@ -334,4 +334,86 @@ describe('Team API', () => {
     const secondPriceData = secondPriceResponse as PriceResponse;
     expect(secondPriceData.price).toBeGreaterThan(0);
   });
+
+  test('team profile updates maintain cache consistency', async () => {
+    // Setup admin client
+    const adminClient = createTestClient();
+    const adminLoginSuccess = await adminClient.loginAsAdmin(adminApiKey);
+    expect(adminLoginSuccess).toBe(true);
+
+    // Step 1: Register a team
+    const teamName = `Cache Test Team ${Date.now()}`;
+    const { client: teamClient, team } = await registerTeamAndGetClient(adminClient, teamName);
+    expect(team).toBeDefined();
+    expect(team.id).toBeDefined();
+
+    // Step 2: Create and start a competition with the team
+    const compName = `Cache Test Competition ${Date.now()}`;
+    const createCompResult = await adminClient.createCompetition(
+      compName,
+      'Competition to test cache consistency',
+    );
+    expect(createCompResult.success).toBe(true);
+    const createCompResponse = createCompResult as CreateCompetitionResponse;
+    const competitionId = createCompResponse.competition.id;
+
+    // Start the competition with our team
+    const startCompResult = await adminClient.startExistingCompetition(competitionId, [team.id]);
+    expect(startCompResult.success).toBe(true);
+
+    // Step 3: Verify initial API functionality
+    const initialProfileResponse = await teamClient.getProfile();
+    expect(initialProfileResponse.success).toBe(true);
+
+    // Step 4: Update the team's profile multiple times in rapid succession
+    // This tests that cache consistency is maintained during updates
+    const metadata = {
+      description: 'Testing cache consistency',
+      version: '1.0',
+    };
+
+    // Update 1: Set metadata
+    const updateResponse1 = await teamClient.updateProfile({ metadata });
+    expect(updateResponse1.success).toBe(true);
+
+    // Immediately verify API still works
+    const priceResponse1 = await teamClient.getPrice('0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2');
+    expect(priceResponse1.success).toBe(true);
+
+    // Update 2: Change contact person
+    const newContactPerson = `Cache Test Contact ${Date.now()}`;
+    const updateResponse2 = await teamClient.updateProfile({ contactPerson: newContactPerson });
+    expect(updateResponse2.success).toBe(true);
+
+    // Immediately verify API still works
+    const priceResponse2 = await teamClient.getPrice('0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48'); // USDC token
+    expect(priceResponse2.success).toBe(true);
+
+    // Update 3: Change both metadata and contact person
+    const newMetadata = {
+      ...metadata,
+      version: '1.1',
+      notes: 'Updated during test',
+    };
+    const updateResponse3 = await teamClient.updateProfile({
+      contactPerson: `${newContactPerson} Updated`,
+      metadata: newMetadata,
+    });
+    expect(updateResponse3.success).toBe(true);
+
+    // Step 5: Verify final profile state
+    const finalProfileResponse = await teamClient.getProfile();
+    expect(finalProfileResponse.success).toBe(true);
+    expect((finalProfileResponse as TeamProfileResponse).team.contactPerson).toBe(
+      `${newContactPerson} Updated`,
+    );
+    expect((finalProfileResponse as TeamProfileResponse).team.metadata).toEqual(newMetadata);
+
+    // Step 6: Make multiple API calls to verify authentication still works
+    // This confirms the apiKeyCache remains consistent
+    for (let i = 0; i < 3; i++) {
+      const verifyResponse = await teamClient.getBalance();
+      expect(verifyResponse.success).toBe(true);
+    }
+  });
 });
