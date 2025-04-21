@@ -13,6 +13,8 @@ import {
   AdminTeamsListResponse,
   TeamMetadata,
   TeamRegistrationResponse,
+  CreateCompetitionResponse,
+  PriceResponse,
 } from '../utils/api-types';
 
 describe('Team API', () => {
@@ -257,5 +259,79 @@ describe('Team API', () => {
     expect(teamProfile.team.metadata).toEqual(metadata);
     expect(teamProfile.team.createdAt).toBeDefined();
     expect(teamProfile.team.updatedAt).toBeDefined();
+  });
+
+  test('team can continue using API between competitions after inactiveTeamsCache fix', async () => {
+    // Setup admin client
+    const adminClient = createTestClient();
+    const adminLoginSuccess = await adminClient.loginAsAdmin(adminApiKey);
+    expect(adminLoginSuccess).toBe(true);
+
+    // Step 1: Register a team
+    const teamName = `Test Team ${Date.now()}`;
+    const { client: teamClient, team } = await registerTeamAndGetClient(adminClient, teamName);
+    expect(team).toBeDefined();
+    expect(team.id).toBeDefined();
+
+    // Step 2: Create and start first competition with the team
+    const firstCompName = `Competition 1 ${Date.now()}`;
+    const createCompResult = await adminClient.createCompetition(
+      firstCompName,
+      'First test competition',
+    );
+    expect(createCompResult.success).toBe(true);
+    const createCompResponse = createCompResult as CreateCompetitionResponse;
+    const firstCompetitionId = createCompResponse.competition.id;
+
+    // Start the first competition with our team
+    const startCompResult = await adminClient.startExistingCompetition(firstCompetitionId, [
+      team.id,
+    ]);
+    expect(startCompResult.success).toBe(true);
+
+    // Verify team can use API during first competition
+    const firstProfileResponse = await teamClient.getProfile();
+    expect(firstProfileResponse.success).toBe(true);
+
+    // Get a token price to confirm API functionality
+    const firstPriceResponse = await teamClient.getPrice(
+      '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
+    ); // WETH token
+    expect(firstPriceResponse.success).toBe(true);
+    const firstPriceData = firstPriceResponse as PriceResponse;
+    expect(firstPriceData.price).toBeGreaterThan(0);
+
+    // Step 3: End the first competition
+    const endCompResult = await adminClient.endCompetition(firstCompetitionId);
+    expect(endCompResult.success).toBe(true);
+
+    // Step 4: Create and start a second competition with the same team
+    const secondCompName = `Competition 2 ${Date.now()}`;
+    const createCompResult2 = await adminClient.createCompetition(
+      secondCompName,
+      'Second test competition',
+    );
+    expect(createCompResult2.success).toBe(true);
+    const createCompResponse2 = createCompResult2 as CreateCompetitionResponse;
+    const secondCompetitionId = createCompResponse2.competition.id;
+
+    // Start the second competition with the same team
+    const startCompResult2 = await adminClient.startExistingCompetition(secondCompetitionId, [
+      team.id,
+    ]);
+    expect(startCompResult2.success).toBe(true);
+
+    // Step 5: Verify team can still use API after being added to second competition
+    // This validates our fix for the inactiveTeamsCache issue
+    const secondProfileResponse = await teamClient.getProfile();
+    expect(secondProfileResponse.success).toBe(true);
+
+    // Get a token price to confirm API functionality is working after being re-added
+    const secondPriceResponse = await teamClient.getPrice(
+      '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
+    ); // WETH token
+    expect(secondPriceResponse.success).toBe(true);
+    const secondPriceData = secondPriceResponse as PriceResponse;
+    expect(secondPriceData.price).toBeGreaterThan(0);
   });
 });
