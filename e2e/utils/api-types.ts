@@ -50,6 +50,21 @@ export enum PortfolioSource {
   LIVE_CALCULATION = 'live-calculation',
 }
 
+// Team metadata structure
+export interface TeamMetadata {
+  ref?: {
+    name?: string;
+    version?: string;
+    url?: string;
+  };
+  description?: string;
+  social?: {
+    name?: string;
+    email?: string;
+    twitter?: string;
+  };
+}
+
 // Team profile response
 export interface TeamProfileResponse extends ApiResponse {
   team: {
@@ -57,6 +72,7 @@ export interface TeamProfileResponse extends ApiResponse {
     name: string;
     email: string;
     contactPerson: string;
+    metadata?: TeamMetadata;
     createdAt: string;
     updatedAt: string;
   };
@@ -266,6 +282,7 @@ export interface TeamRegistrationResponse extends ApiResponse {
     name: string;
     email: string;
     contactPerson: string;
+    metadata?: TeamMetadata;
     apiKey: string;
     walletAddress: string;
     isAdmin: boolean;

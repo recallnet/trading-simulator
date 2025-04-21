@@ -12,6 +12,7 @@ import {
   ApiResponse,
   ErrorResponse,
   TeamRegistrationResponse,
+  TeamProfileResponse,
 } from '../utils/api-types';
 
 describe('Admin API', () => {
@@ -79,6 +80,61 @@ describe('Admin API', () => {
     expect(result.team.email).toBe(teamEmail);
     expect(result.team.contactPerson).toBe(contactPerson);
     expect(result.team.apiKey).toBeDefined();
+  });
+
+  test('should register a team with metadata via admin API', async () => {
+    // Setup admin client with the API key
+    const adminClient = createTestClient();
+    await adminClient.loginAsAdmin(adminApiKey);
+
+    // Register a new team with metadata
+    const teamName = `Metadata Team ${Date.now()}`;
+    const teamEmail = `metadata-team-${Date.now()}@test.com`;
+    const contactPerson = 'Meta Data';
+    
+    // Define the metadata for the team
+    const metadata = {
+      ref: {
+        name: 'AdminBot',
+        version: '2.0.0',
+        url: 'https://github.com/example/admin-bot'
+      },
+      description: 'A trading bot created by the admin',
+      social: {
+        name: 'Admin Trading Team',
+        email: 'admin@tradingteam.com',
+        twitter: '@adminbot'
+      }
+    };
+
+    // Register the team with metadata
+    const result = await adminClient.registerTeam(
+      teamName,
+      teamEmail,
+      contactPerson,
+      undefined, // Auto-generate wallet address since not explicitly provided
+      metadata    // Pass the metadata
+    );
+
+    // Assert registration success using type assertion
+    expect(result.success).toBe(true);
+    
+    // Safely check team properties with type assertion
+    const registrationResponse = result as TeamRegistrationResponse;
+    expect(registrationResponse.team).toBeDefined();
+    expect(registrationResponse.team.name).toBe(teamName);
+    expect(registrationResponse.team.email).toBe(teamEmail);
+    expect(registrationResponse.team.contactPerson).toBe(contactPerson);
+    expect(registrationResponse.team.apiKey).toBeDefined();
+    
+    // Now get the team's profile to verify the metadata was saved
+    const teamClient = adminClient.createTeamClient(registrationResponse.team.apiKey);
+    const profileResponse = await teamClient.getProfile();
+    
+    // Safely check profile properties with type assertion
+    const teamProfile = profileResponse as TeamProfileResponse;
+    expect(teamProfile.success).toBe(true);
+    expect(teamProfile.team.metadata).toEqual(metadata);
   });
 
   test('should not allow team registration without admin auth', async () => {

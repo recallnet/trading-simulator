@@ -1,22 +1,13 @@
+import { TradingSimulatorClient, COMMON_TOKENS } from './api-client';
 import {
-  TradingSimulatorClient,
   BlockchainType,
   SpecificChain,
-  COMMON_TOKENS,
   TradeResponse,
-} from './api-client';
+  TradeExecutionParams
+} from '../../e2e/utils/api-types';
 
-// Define the TradeDetails interface based on the api-client.ts parameters
-interface TradeDetails {
-  fromToken: string;
-  toToken: string;
-  amount: string;
-  slippageTolerance?: string;
-  fromChain?: BlockchainType;
-  toChain?: BlockchainType;
-  fromSpecificChain?: SpecificChain;
-  toSpecificChain?: SpecificChain;
-}
+// Use TradeExecutionParams for trade details
+type TradeDetails = TradeExecutionParams;
 
 /**
  * Example: Execute a Trade

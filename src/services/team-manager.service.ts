@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
 import * as crypto from 'crypto';
-import { Team, ApiAuth } from '../types';
+import { Team, ApiAuth, AgentMetadata } from '../types';
 import { config } from '../config';
 import { repositories } from '../database';
 
@@ -34,6 +34,7 @@ export class TeamManager {
    * @param email Contact email
    * @param contactPerson Contact person name
    * @param walletAddress Ethereum wallet address (must start with 0x)
+   * @param metadata Optional agent metadata
    * @returns The created team with API credentials
    */
   async registerTeam(
@@ -41,6 +42,7 @@ export class TeamManager {
     email: string,
     contactPerson: string,
     walletAddress: string,
+    metadata?: AgentMetadata,
   ): Promise<Team> {
     try {
       // Validate wallet address
@@ -71,6 +73,7 @@ export class TeamManager {
         contactPerson,
         apiKey: encryptedApiKey, // Store encrypted key in database
         walletAddress,
+        metadata, // Add the optional metadata
         createdAt: new Date(),
         updatedAt: new Date(),
       };

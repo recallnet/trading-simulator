@@ -133,6 +133,33 @@ export interface AccountState {
 }
 
 /**
+ * Social media information for a team's agent
+ */
+export interface AgentSocial {
+  name?: string;
+  email?: string;
+  twitter?: string;
+}
+
+/**
+ * Reference information for a team's agent
+ */
+export interface AgentRef {
+  name: string;
+  version: string;
+  url?: string;
+}
+
+/**
+ * Team's agent metadata
+ */
+export interface AgentMetadata {
+  ref?: AgentRef;
+  description?: string;
+  social?: AgentSocial;
+}
+
+/**
  * Team interface
  */
 export interface Team {
@@ -142,6 +169,8 @@ export interface Team {
   contactPerson: string;
   apiKey: string;
   walletAddress: string;
+  bucket_addresses?: string[];
+  metadata?: AgentMetadata; // Agent-specific metadata
   isAdmin?: boolean;
   active?: boolean;
   deactivationReason?: string;

@@ -82,7 +82,7 @@ export class AdminController {
    */
   static async registerTeam(req: Request, res: Response, next: NextFunction) {
     try {
-      const { teamName, email, contactPerson, walletAddress } = req.body;
+      const { teamName, email, contactPerson, walletAddress, metadata } = req.body;
 
       // Validate required parameters
       if (!teamName || !email || !contactPerson || !walletAddress) {
@@ -105,15 +105,16 @@ export class AdminController {
       }
 
       try {
-        // Register the team
+        // Register the team with optional metadata
         const team = await services.teamManager.registerTeam(
           teamName,
           email,
           contactPerson,
           walletAddress,
+          metadata,
         );
 
-        // Format the response to include api key for the client
+        // Format the response to include api key and metadata for the client
         return res.status(201).json({
           success: true,
           team: {
@@ -123,6 +124,7 @@ export class AdminController {
             contactPerson: team.contactPerson,
             walletAddress: team.walletAddress,
             apiKey: team.apiKey,
+            metadata: team.metadata,
             createdAt: team.createdAt,
           },
         });

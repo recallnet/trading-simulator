@@ -25,6 +25,7 @@ import {
   QuoteResponse,
   PortfolioResponse,
   TeamApiKeyResponse,
+  TeamMetadata,
 } from './api-types';
 
 /**
@@ -175,17 +176,19 @@ export class ApiClient {
   }
 
   /**
-   * Register a new team
+   * Register a new team (admin only)
    * @param name Team name
    * @param email Team email
    * @param contactPerson Contact person name
    * @param walletAddress Optional Ethereum wallet address (random valid address will be generated if not provided)
+   * @param metadata Optional metadata for the team agent
    */
   async registerTeam(
     name: string,
     email: string,
     contactPerson: string,
     walletAddress?: string,
+    metadata?: TeamMetadata,
   ): Promise<TeamRegistrationResponse | ErrorResponse> {
     try {
       // Generate a random Ethereum address if one isn't provided
@@ -196,6 +199,7 @@ export class ApiClient {
         email,
         contactPerson,
         walletAddress: address,
+        metadata,
       });
 
       return response.data;
@@ -285,7 +289,10 @@ export class ApiClient {
   /**
    * Update team profile
    */
-  async updateProfile(profileData: any): Promise<TeamProfileResponse | ErrorResponse> {
+  async updateProfile(profileData: {
+    contactPerson?: string;
+    metadata?: TeamMetadata;
+  }): Promise<TeamProfileResponse | ErrorResponse> {
     try {
       const response = await this.axiosInstance.put('/api/account/profile', profileData);
       return response.data;

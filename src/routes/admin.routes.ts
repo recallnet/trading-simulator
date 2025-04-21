@@ -119,6 +119,22 @@ router.use(adminAuthMiddleware(services.teamManager));
  *                 type: string
  *                 description: Ethereum wallet address (must start with 0x)
  *                 example: 0x1234567890123456789012345678901234567890
+ *               metadata:
+ *                 type: object
+ *                 description: Optional metadata about the team's agent
+ *                 example: {
+ *                     "ref": {
+ *                       "name": "ksobot",
+ *                       "version": "1.0.0",
+ *                       "url": "github.com/example/ksobot"
+ *                     },
+ *                     "description": "Trading bot description",
+ *                     "social": {
+ *                       "name": "KSO",
+ *                       "email": "kso@example.com",
+ *                       "twitter": "hey_kso"
+ *                     }
+ *                   }
  *     responses:
  *       201:
  *         description: Team registered successfully
@@ -152,6 +168,9 @@ router.use(adminAuthMiddleware(services.teamManager));
  *                       type: string
  *                       description: API key for the team to use with Bearer authentication. Admin should securely provide this to the team.
  *                       example: abc123def456_ghi789jkl012
+ *                     metadata:
+ *                       type: object
+ *                       description: Optional agent metadata if provided
  *                     createdAt:
  *                       type: string
  *                       format: date-time
