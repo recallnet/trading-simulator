@@ -256,7 +256,7 @@ When registering a team or creating a competition, the server **does not** need 
 - **Self-register a team using the public API**:
 
   Teams can self-register using the public API endpoint `/api/public/teams/register` without requiring admin involvement. They need to provide:
-  
+
   ```json
   {
     "teamName": "Team Name",

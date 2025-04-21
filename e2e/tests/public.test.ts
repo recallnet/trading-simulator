@@ -1,9 +1,10 @@
+import { cleanupTestState, createTestClient, generateRandomString } from '../utils/test-helpers';
 import {
-  cleanupTestState,
-  createTestClient,
-  generateRandomString,
-} from '../utils/test-helpers';
-import { TeamMetadata, TeamProfileResponse, TeamRegistrationResponse, ErrorResponse } from '../utils/api-types';
+  TeamMetadata,
+  TeamProfileResponse,
+  TeamRegistrationResponse,
+  ErrorResponse,
+} from '../utils/api-types';
 
 /**
  * Generate a valid Ethereum address
@@ -42,20 +43,20 @@ describe('Public API', () => {
       teamName,
       email,
       contactPerson,
-      walletAddress
+      walletAddress,
     );
 
     // Verify response
     expect(registerResponse.success).toBe(true);
-    
+
     // Type guard to ensure we have a successful registration response
     if (!registerResponse.success) {
       throw new Error('Registration failed: ' + (registerResponse as ErrorResponse).error);
     }
-    
+
     // Cast to proper type
     const response = registerResponse as TeamRegistrationResponse;
-    
+
     // Check team data
     expect(response.team).toBeDefined();
     expect(response.team.id).toBeDefined();
@@ -64,18 +65,18 @@ describe('Public API', () => {
     expect(response.team.contactPerson).toBe(contactPerson);
     expect(response.team.walletAddress).toBe(walletAddress);
     expect(response.team.apiKey).toBeDefined();
-    
+
     // Verify team can authenticate with the received API key
     const teamClient = client.createTeamClient(response.team.apiKey);
     const profileResponse = await teamClient.getProfile();
-    
+
     expect(profileResponse.success).toBe(true);
-    
+
     // Type guard for the profile response
     if (!profileResponse.success) {
       throw new Error('Profile fetch failed: ' + (profileResponse as ErrorResponse).error);
     }
-    
+
     const teamProfile = profileResponse as TeamProfileResponse;
     expect(teamProfile.team).toBeDefined();
     expect(teamProfile.team.id).toBe(response.team.id);
@@ -113,20 +114,20 @@ describe('Public API', () => {
       email,
       contactPerson,
       walletAddress,
-      metadata
+      metadata,
     );
 
     // Verify response
     expect(registerResponse.success).toBe(true);
-    
+
     // Type guard to ensure we have a successful registration response
     if (!registerResponse.success) {
       throw new Error('Registration failed: ' + (registerResponse as ErrorResponse).error);
     }
-    
+
     // Cast to proper type
     const response = registerResponse as TeamRegistrationResponse;
-    
+
     // Check team data including metadata
     expect(response.team).toBeDefined();
     expect(response.team.id).toBeDefined();
@@ -136,18 +137,18 @@ describe('Public API', () => {
     expect(response.team.walletAddress).toBe(walletAddress);
     expect(response.team.apiKey).toBeDefined();
     expect(response.team.metadata).toEqual(metadata);
-    
+
     // Verify team can authenticate and get the metadata
     const teamClient = client.createTeamClient(response.team.apiKey);
     const profileResponse = await teamClient.getProfile();
-    
+
     expect(profileResponse.success).toBe(true);
-    
+
     // Type guard for the profile response
     if (!profileResponse.success) {
       throw new Error('Profile fetch failed: ' + (profileResponse as ErrorResponse).error);
     }
-    
+
     const teamProfile = profileResponse as TeamProfileResponse;
     expect(teamProfile.team).toBeDefined();
     expect(teamProfile.team.id).toBe(response.team.id);
@@ -163,35 +164,35 @@ describe('Public API', () => {
     const teamName1 = `Team One ${generateRandomString(8)}`;
     const teamName2 = `Team Two ${generateRandomString(8)}`;
     const contactPerson = `Contact ${generateRandomString(8)}`;
-    
+
     // Register first team with valid wallet address
     const firstRegisterResponse = await client.publicRegisterTeam(
       teamName1,
       email,
       contactPerson,
-      generateValidEthAddress()
+      generateValidEthAddress(),
     );
-    
+
     expect(firstRegisterResponse.success).toBe(true);
-    
+
     // Try to register second team with same email but different wallet address
     const secondRegisterResponse = await client.publicRegisterTeam(
       teamName2,
       email,
       contactPerson,
-      generateValidEthAddress()
+      generateValidEthAddress(),
     );
-    
+
     // Should fail with a 409 conflict
     expect(secondRegisterResponse.success).toBe(false);
-    
+
     // Make sure this is an error response before accessing error properties
     if (secondRegisterResponse.success) {
       throw new Error('Expected registration to fail, but it succeeded');
     }
-    
+
     const errorResponse = secondRegisterResponse as ErrorResponse;
     expect(errorResponse.status).toBe(409);
     expect(errorResponse.error).toContain('already exists');
   });
-}); 
+});
