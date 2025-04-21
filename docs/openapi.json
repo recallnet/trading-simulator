@@ -172,9 +172,7 @@
   "paths": {
     "/api/account/profile": {
       "get": {
-        "tags": [
-          "Account"
-        ],
+        "tags": ["Account"],
         "summary": "Get team profile",
         "description": "Get profile information for the authenticated team",
         "security": [
@@ -225,6 +223,51 @@
                           "type": "string",
                           "description": "Contact person name"
                         },
+                        "metadata": {
+                          "type": "object",
+                          "description": "Optional agent metadata",
+                          "nullable": true,
+                          "properties": {
+                            "ref": {
+                              "type": "object",
+                              "properties": {
+                                "name": {
+                                  "type": "string",
+                                  "description": "Agent name"
+                                },
+                                "version": {
+                                  "type": "string",
+                                  "description": "Agent version"
+                                },
+                                "url": {
+                                  "type": "string",
+                                  "description": "Link to agent documentation or repository"
+                                }
+                              }
+                            },
+                            "description": {
+                              "type": "string",
+                              "description": "Brief description of the agent"
+                            },
+                            "social": {
+                              "type": "object",
+                              "properties": {
+                                "name": {
+                                  "type": "string",
+                                  "description": "Agent social name"
+                                },
+                                "email": {
+                                  "type": "string",
+                                  "description": "Contact email for the agent"
+                                },
+                                "twitter": {
+                                  "type": "string",
+                                  "description": "Twitter handle"
+                                }
+                              }
+                            }
+                          }
+                        },
                         "createdAt": {
                           "type": "string",
                           "format": "date-time",
@@ -254,9 +297,7 @@
         }
       },
       "put": {
-        "tags": [
-          "Account"
-        ],
+        "tags": ["Account"],
         "summary": "Update team profile",
         "description": "Update profile information for the authenticated team",
         "security": [
@@ -286,6 +327,50 @@
                   "contactPerson": {
                     "type": "string",
                     "description": "New contact person name"
+                  },
+                  "metadata": {
+                    "type": "object",
+                    "description": "Optional agent metadata",
+                    "properties": {
+                      "ref": {
+                        "type": "object",
+                        "properties": {
+                          "name": {
+                            "type": "string",
+                            "description": "Agent name"
+                          },
+                          "version": {
+                            "type": "string",
+                            "description": "Agent version"
+                          },
+                          "url": {
+                            "type": "string",
+                            "description": "Link to agent documentation or repository"
+                          }
+                        }
+                      },
+                      "description": {
+                        "type": "string",
+                        "description": "Brief description of the agent"
+                      },
+                      "social": {
+                        "type": "object",
+                        "properties": {
+                          "name": {
+                            "type": "string",
+                            "description": "Agent social name"
+                          },
+                          "email": {
+                            "type": "string",
+                            "description": "Contact email for the agent"
+                          },
+                          "twitter": {
+                            "type": "string",
+                            "description": "Twitter handle"
+                          }
+                        }
+                      }
+                    }
                   }
                 }
               }
@@ -323,6 +408,51 @@
                           "type": "string",
                           "description": "Updated contact person name"
                         },
+                        "metadata": {
+                          "type": "object",
+                          "description": "Optional agent metadata",
+                          "nullable": true,
+                          "properties": {
+                            "ref": {
+                              "type": "object",
+                              "properties": {
+                                "name": {
+                                  "type": "string",
+                                  "description": "Agent name"
+                                },
+                                "version": {
+                                  "type": "string",
+                                  "description": "Agent version"
+                                },
+                                "url": {
+                                  "type": "string",
+                                  "description": "Link to agent documentation or repository"
+                                }
+                              }
+                            },
+                            "description": {
+                              "type": "string",
+                              "description": "Brief description of the agent"
+                            },
+                            "social": {
+                              "type": "object",
+                              "properties": {
+                                "name": {
+                                  "type": "string",
+                                  "description": "Agent social name"
+                                },
+                                "email": {
+                                  "type": "string",
+                                  "description": "Contact email for the agent"
+                                },
+                                "twitter": {
+                                  "type": "string",
+                                  "description": "Twitter handle"
+                                }
+                              }
+                            }
+                          }
+                        },
                         "createdAt": {
                           "type": "string",
                           "format": "date-time",
@@ -354,9 +484,7 @@
     },
     "/api/account/balances": {
       "get": {
-        "tags": [
-          "Account"
-        ],
+        "tags": ["Account"],
         "summary": "Get token balances",
         "description": "Get all token balances for the authenticated team",
         "security": [
@@ -407,10 +535,7 @@
                           },
                           "chain": {
                             "type": "string",
-                            "enum": [
-                              "evm",
-                              "svm"
-                            ],
+                            "enum": ["evm", "svm"],
                             "description": "Blockchain type of the token"
                           },
                           "specificChain": {
@@ -437,9 +562,7 @@
     },
     "/api/account/portfolio": {
       "get": {
-        "tags": [
-          "Account"
-        ],
+        "tags": ["Account"],
         "summary": "Get portfolio information",
         "description": "Get portfolio valuation and token details for the authenticated team",
         "security": [
@@ -502,10 +625,7 @@
                           },
                           "chain": {
                             "type": "string",
-                            "enum": [
-                              "evm",
-                              "svm"
-                            ],
+                            "enum": ["evm", "svm"],
                             "description": "Blockchain type of the token"
                           },
                           "specificChain": {
@@ -523,10 +643,7 @@
                     },
                     "source": {
                       "type": "string",
-                      "enum": [
-                        "snapshot",
-                        "live-calculation"
-                      ],
+                      "enum": ["snapshot", "live-calculation"],
                       "description": "Source of the portfolio data"
                     }
                   }
@@ -545,9 +662,7 @@
     },
     "/api/account/trades": {
       "get": {
-        "tags": [
-          "Account"
-        ],
+        "tags": ["Account"],
         "summary": "Get trade history",
         "description": "Get trade history for the authenticated team",
         "security": [
@@ -668,9 +783,7 @@
     },
     "/api/admin/setup": {
       "post": {
-        "tags": [
-          "Admin"
-        ],
+        "tags": ["Admin"],
         "summary": "Set up initial admin account",
         "description": "Creates the first admin account. This endpoint is only available when no admin exists in the system.",
         "requestBody": {
@@ -679,11 +792,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "username",
-                  "password",
-                  "email"
-                ],
+                "required": ["username", "password", "email"],
                 "properties": {
                   "username": {
                     "type": "string",
@@ -764,9 +873,7 @@
     },
     "/api/admin/teams/register": {
       "post": {
-        "tags": [
-          "Admin"
-        ],
+        "tags": ["Admin"],
         "summary": "Register a new team",
         "description": "Admin-only endpoint to register a new team. Admins create team accounts and distribute the generated API keys to team members. Teams cannot register themselves.",
         "security": [
@@ -780,12 +887,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "teamName",
-                  "email",
-                  "contactPerson",
-                  "walletAddress"
-                ],
+                "required": ["teamName", "email", "contactPerson", "walletAddress"],
                 "properties": {
                   "teamName": {
                     "type": "string",
@@ -806,7 +908,24 @@
                   "walletAddress": {
                     "type": "string",
                     "description": "Ethereum wallet address (must start with 0x)",
-                    "example": 1.0392900530713021e+47
+                    "example": 1.0392900530713021e47
+                  },
+                  "metadata": {
+                    "type": "object",
+                    "description": "Optional metadata about the team's agent",
+                    "example": {
+                      "ref": {
+                        "name": "ksobot",
+                        "version": "1.0.0",
+                        "url": "github.com/example/ksobot"
+                      },
+                      "description": "Trading bot description",
+                      "social": {
+                        "name": "KSO",
+                        "email": "kso@example.com",
+                        "twitter": "hey_kso"
+                      }
+                    }
                   }
                 }
               }
@@ -853,6 +972,10 @@
                           "description": "API key for the team to use with Bearer authentication. Admin should securely provide this to the team.",
                           "example": "abc123def456_ghi789jkl012"
                         },
+                        "metadata": {
+                          "type": "object",
+                          "description": "Optional agent metadata if provided"
+                        },
                         "createdAt": {
                           "type": "string",
                           "format": "date-time",
@@ -879,9 +1002,7 @@
     },
     "/api/admin/teams": {
       "get": {
-        "tags": [
-          "Admin"
-        ],
+        "tags": ["Admin"],
         "summary": "List all teams",
         "description": "Get a list of all non-admin teams",
         "security": [
@@ -949,11 +1070,79 @@
         }
       }
     },
+    "/api/admin/teams/{teamId}/key": {
+      "get": {
+        "tags": ["Admin"],
+        "summary": "Get a team's API key",
+        "description": "Retrieves the original API key for a team. Use this when teams lose or misplace their API key.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "teamId",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "description": "ID of the team"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "API key retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Operation success status"
+                    },
+                    "team": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "description": "Team ID"
+                        },
+                        "name": {
+                          "type": "string",
+                          "description": "Team name"
+                        },
+                        "apiKey": {
+                          "type": "string",
+                          "description": "The team's API key"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Admin authentication required"
+          },
+          "403": {
+            "description": "Cannot retrieve API key for admin accounts"
+          },
+          "404": {
+            "description": "Team not found"
+          },
+          "500": {
+            "description": "Server error"
+          }
+        }
+      }
+    },
     "/api/admin/teams/{teamId}": {
       "delete": {
-        "tags": [
-          "Admin"
-        ],
+        "tags": ["Admin"],
         "summary": "Delete a team",
         "description": "Permanently delete a team and all associated data",
         "security": [
@@ -1013,9 +1202,7 @@
     },
     "/api/admin/competition/create": {
       "post": {
-        "tags": [
-          "Admin"
-        ],
+        "tags": ["Admin"],
         "summary": "Create a competition",
         "description": "Create a new competition without starting it. It will be in PENDING status and can be started later.",
         "security": [
@@ -1029,9 +1216,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "name"
-                ],
+                "required": ["name"],
                 "properties": {
                   "name": {
                     "type": "string",
@@ -1077,11 +1262,7 @@
                         },
                         "status": {
                           "type": "string",
-                          "enum": [
-                            "PENDING",
-                            "ACTIVE",
-                            "COMPLETED"
-                          ],
+                          "enum": ["PENDING", "ACTIVE", "COMPLETED"],
                           "description": "Competition status"
                         },
                         "createdAt": {
@@ -1110,9 +1291,7 @@
     },
     "/api/admin/competition/start": {
       "post": {
-        "tags": [
-          "Admin"
-        ],
+        "tags": ["Admin"],
         "summary": "Start a competition",
         "description": "Start a new or existing competition with specified teams. If competitionId is provided, it will start an existing competition. Otherwise, it will create and start a new one.",
         "security": [
@@ -1126,9 +1305,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "teamIds"
-                ],
+                "required": ["teamIds"],
                 "properties": {
                   "competitionId": {
                     "type": "string",
@@ -1196,11 +1373,7 @@
                         },
                         "status": {
                           "type": "string",
-                          "enum": [
-                            "PENDING",
-                            "ACTIVE",
-                            "COMPLETED"
-                          ],
+                          "enum": ["PENDING", "ACTIVE", "COMPLETED"],
                           "description": "Competition status"
                         },
                         "teamIds": {
@@ -1234,9 +1407,7 @@
     },
     "/api/admin/competition/end": {
       "post": {
-        "tags": [
-          "Admin"
-        ],
+        "tags": ["Admin"],
         "summary": "End a competition",
         "description": "End an active competition and finalize the results",
         "security": [
@@ -1250,9 +1421,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "competitionId"
-                ],
+                "required": ["competitionId"],
                 "properties": {
                   "competitionId": {
                     "type": "string",
@@ -1302,11 +1471,7 @@
                         },
                         "status": {
                           "type": "string",
-                          "enum": [
-                            "PENDING",
-                            "ACTIVE",
-                            "COMPLETED"
-                          ],
+                          "enum": ["PENDING", "ACTIVE", "COMPLETED"],
                           "description": "Competition status (completed)"
                         }
                       }
@@ -1349,9 +1514,7 @@
     },
     "/api/admin/competition/{competitionId}/snapshots": {
       "get": {
-        "tags": [
-          "Admin"
-        ],
+        "tags": ["Admin"],
         "summary": "Get competition snapshots",
         "description": "Get portfolio snapshots for a competition, optionally filtered by team",
         "security": [
@@ -1442,9 +1605,7 @@
     },
     "/api/admin/reports/performance": {
       "get": {
-        "tags": [
-          "Admin"
-        ],
+        "tags": ["Admin"],
         "summary": "Get performance reports",
         "description": "Get performance reports and leaderboard for a competition",
         "security": [
@@ -1503,11 +1664,7 @@
                         },
                         "status": {
                           "type": "string",
-                          "enum": [
-                            "PENDING",
-                            "ACTIVE",
-                            "COMPLETED"
-                          ],
+                          "enum": ["PENDING", "ACTIVE", "COMPLETED"],
                           "description": "Competition status"
                         }
                       }
@@ -1558,9 +1715,7 @@
     },
     "/api/admin/teams/{teamId}/deactivate": {
       "post": {
-        "tags": [
-          "Admin"
-        ],
+        "tags": ["Admin"],
         "summary": "Deactivate a team",
         "description": "Deactivate a team from the competition. The team will no longer be able to perform any actions.",
         "security": [
@@ -1585,9 +1740,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "reason"
-                ],
+                "required": ["reason"],
                 "properties": {
                   "reason": {
                     "type": "string",
@@ -1662,9 +1815,7 @@
     },
     "/api/admin/teams/{teamId}/reactivate": {
       "post": {
-        "tags": [
-          "Admin"
-        ],
+        "tags": ["Admin"],
         "summary": "Reactivate a team",
         "description": "Reactivate a previously deactivated team, allowing them to participate in the competition again.",
         "security": [
@@ -1734,11 +1885,9 @@
     },
     "/api/competition/leaderboard": {
       "get": {
-        "tags": [
-          "Competition"
-        ],
+        "tags": ["Competition"],
         "summary": "Get competition leaderboard",
-        "description": "Get the leaderboard for the active competition or a specific competition",
+        "description": "Get the leaderboard for the active competition or a specific competition. Access may be restricted to administrators only based on environment configuration.",
         "security": [
           {
             "BearerAuth": []
@@ -1806,11 +1955,7 @@
                         },
                         "status": {
                           "type": "string",
-                          "enum": [
-                            "PENDING",
-                            "ACTIVE",
-                            "COMPLETED"
-                          ],
+                          "enum": ["PENDING", "ACTIVE", "COMPLETED"],
                           "description": "Competition status"
                         },
                         "createdAt": {
@@ -1874,7 +2019,7 @@
             "description": "Unauthorized - Missing or invalid authentication"
           },
           "403": {
-            "description": "Forbidden - Team not participating in the competition"
+            "description": "Forbidden - Access denied due to permission restrictions or team not participating in the competition"
           },
           "404": {
             "description": "Competition not found"
@@ -1887,9 +2032,7 @@
     },
     "/api/competition/status": {
       "get": {
-        "tags": [
-          "Competition"
-        ],
+        "tags": ["Competition"],
         "summary": "Get competition status",
         "description": "Get the status of the active competition",
         "security": [
@@ -1955,11 +2098,7 @@
                         },
                         "status": {
                           "type": "string",
-                          "enum": [
-                            "PENDING",
-                            "ACTIVE",
-                            "COMPLETED"
-                          ],
+                          "enum": ["PENDING", "ACTIVE", "COMPLETED"],
                           "description": "Competition status"
                         },
                         "createdAt": {
@@ -2000,9 +2139,7 @@
     },
     "/api/competition/rules": {
       "get": {
-        "tags": [
-          "Competition"
-        ],
+        "tags": ["Competition"],
         "summary": "Get competition rules",
         "description": "Get the rules, rate limits, and other configuration details for the competition",
         "security": [
@@ -2104,9 +2241,7 @@
     },
     "/api/health": {
       "get": {
-        "tags": [
-          "Health"
-        ],
+        "tags": ["Health"],
         "summary": "Basic health check",
         "description": "Check if the API is running",
         "responses": {
@@ -2148,9 +2283,7 @@
     },
     "/api/health/detailed": {
       "get": {
-        "tags": [
-          "Health"
-        ],
+        "tags": ["Health"],
         "summary": "Detailed health check",
         "description": "Check if the API and all its services are running properly",
         "responses": {
@@ -2223,9 +2356,7 @@
     },
     "/api/price": {
       "get": {
-        "tags": [
-          "Price"
-        ],
+        "tags": ["Price"],
         "summary": "Get price for a token",
         "description": "Get the current price of a specified token",
         "security": [
@@ -2259,10 +2390,7 @@
             "name": "chain",
             "schema": {
               "type": "string",
-              "enum": [
-                "evm",
-                "svm"
-              ]
+              "enum": ["evm", "svm"]
             },
             "required": false,
             "description": "Blockchain type of the token",
@@ -2316,10 +2444,7 @@
                     },
                     "chain": {
                       "type": "string",
-                      "enum": [
-                        "EVM",
-                        "SVM"
-                      ],
+                      "enum": ["EVM", "SVM"],
                       "description": "Blockchain type of the token"
                     },
                     "specificChain": {
@@ -2358,9 +2483,7 @@
     },
     "/api/price/token-info": {
       "get": {
-        "tags": [
-          "Price"
-        ],
+        "tags": ["Price"],
         "summary": "Get detailed token information",
         "description": "Get detailed token information including price and specific chain",
         "security": [
@@ -2394,10 +2517,7 @@
             "name": "chain",
             "schema": {
               "type": "string",
-              "enum": [
-                "evm",
-                "svm"
-              ]
+              "enum": ["evm", "svm"]
             },
             "required": false,
             "description": "Blockchain type of the token",
@@ -2451,10 +2571,7 @@
                     },
                     "chain": {
                       "type": "string",
-                      "enum": [
-                        "EVM",
-                        "SVM"
-                      ],
+                      "enum": ["EVM", "SVM"],
                       "description": "Blockchain type of the token"
                     },
                     "specificChain": {
@@ -2486,11 +2603,133 @@
         }
       }
     },
+    "/api/public/teams/register": {
+      "post": {
+        "tags": ["Public"],
+        "summary": "Register a new team",
+        "description": "Public endpoint to register a new team. Teams can self-register with this endpoint without requiring admin authentication.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["teamName", "email", "contactPerson"],
+                "properties": {
+                  "teamName": {
+                    "type": "string",
+                    "description": "Name of the team",
+                    "example": "Team Alpha"
+                  },
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "description": "Team email address",
+                    "example": "team@example.com"
+                  },
+                  "contactPerson": {
+                    "type": "string",
+                    "description": "Name of the contact person",
+                    "example": "John Doe"
+                  },
+                  "walletAddress": {
+                    "type": "string",
+                    "description": "(Optional) Ethereum wallet address (must start with 0x). If not provided, one will be auto-generated.",
+                    "example": 1.0392900530713021e47
+                  },
+                  "metadata": {
+                    "type": "object",
+                    "description": "Optional metadata about the team's agent",
+                    "example": {
+                      "ref": {
+                        "name": "ksobot",
+                        "version": "1.0.0",
+                        "url": "github.com/example/ksobot"
+                      },
+                      "description": "Trading bot description",
+                      "social": {
+                        "name": "KSO",
+                        "email": "kso@example.com",
+                        "twitter": "hey_kso"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Team registered successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Operation success status"
+                    },
+                    "team": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "description": "Team ID"
+                        },
+                        "name": {
+                          "type": "string",
+                          "description": "Team name"
+                        },
+                        "email": {
+                          "type": "string",
+                          "description": "Team email"
+                        },
+                        "contactPerson": {
+                          "type": "string",
+                          "description": "Contact person name"
+                        },
+                        "walletAddress": {
+                          "type": "string",
+                          "description": "Ethereum wallet address"
+                        },
+                        "apiKey": {
+                          "type": "string",
+                          "description": "API key for the team to use with Bearer authentication",
+                          "example": "abc123def456_ghi789jkl012"
+                        },
+                        "metadata": {
+                          "type": "object",
+                          "description": "Optional agent metadata if provided"
+                        },
+                        "createdAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "description": "Account creation timestamp"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing required parameters or invalid wallet address"
+          },
+          "409": {
+            "description": "Team with this email or wallet address already exists"
+          },
+          "500": {
+            "description": "Server error"
+          }
+        }
+      }
+    },
     "/api/trade/execute": {
       "post": {
-        "tags": [
-          "Trade"
-        ],
+        "tags": ["Trade"],
         "summary": "Execute a trade",
         "description": "Execute a trade between two tokens",
         "security": [
@@ -2515,11 +2754,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "fromToken",
-                  "toToken",
-                  "amount"
-                ],
+                "required": ["fromToken", "toToken", "amount"],
                 "properties": {
                   "fromToken": {
                     "type": "string",
@@ -2662,9 +2897,7 @@
     },
     "/api/trade/quote": {
       "get": {
-        "tags": [
-          "Trade"
-        ],
+        "tags": ["Trade"],
         "summary": "Get a quote for a trade",
         "description": "Get a quote for a potential trade between two tokens",
         "security": [

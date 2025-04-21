@@ -17,7 +17,7 @@ export class DocsController {
       docExpansion: 'none',
       filter: true,
       showRequestDuration: true,
-    }
+    },
   };
 
   /**
@@ -25,12 +25,12 @@ export class DocsController {
    * This is a placeholder method for route configuration - the actual UI is handled by swagger-ui-express
    */
   static getApiDocs = swaggerUi.setup(swaggerSpec, DocsController.swaggerUiOptions);
-  
+
   /**
    * Middleware for serving swagger-ui assets
    */
   static serveAssets = swaggerUi.serve;
-  
+
   /**
    * @param req Express request
    * @param res Express response
@@ -44,4 +44,4 @@ export class DocsController {
       next(error);
     }
   }
-} 
+}

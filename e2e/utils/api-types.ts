@@ -18,7 +18,7 @@ export interface ErrorResponse {
 // Enum for blockchain types
 export enum BlockchainType {
   EVM = 'evm',
-  SVM = 'svm'
+  SVM = 'svm',
 }
 
 // Enum for specific chains
@@ -34,20 +34,35 @@ export enum SpecificChain {
   ZKSYNC = 'zksync',
   SCROLL = 'scroll',
   MANTLE = 'mantle',
-  SVM = 'svm'
+  SVM = 'svm',
 }
 
 // Competition status
 export enum CompetitionStatus {
   PENDING = 'PENDING',
   ACTIVE = 'ACTIVE',
-  COMPLETED = 'COMPLETED'
+  COMPLETED = 'COMPLETED',
 }
 
 // Portfolio source
 export enum PortfolioSource {
   SNAPSHOT = 'snapshot',
-  LIVE_CALCULATION = 'live-calculation'
+  LIVE_CALCULATION = 'live-calculation',
+}
+
+// Team metadata structure
+export interface TeamMetadata {
+  ref?: {
+    name?: string;
+    version?: string;
+    url?: string;
+  };
+  description?: string;
+  social?: {
+    name?: string;
+    email?: string;
+    twitter?: string;
+  };
 }
 
 // Team profile response
@@ -57,6 +72,7 @@ export interface TeamProfileResponse extends ApiResponse {
     name: string;
     email: string;
     contactPerson: string;
+    metadata?: TeamMetadata;
     createdAt: string;
     updatedAt: string;
   };
@@ -266,6 +282,7 @@ export interface TeamRegistrationResponse extends ApiResponse {
     name: string;
     email: string;
     contactPerson: string;
+    metadata?: TeamMetadata;
     apiKey: string;
     walletAddress: string;
     isAdmin: boolean;
@@ -346,7 +363,7 @@ export interface DetailedHealthCheckResponse extends ApiResponse {
   };
 }
 
-// Portfolio snapshot type
+// Portfolio snapshot
 export interface PortfolioSnapshot {
   id: string;
   teamId: string;
@@ -357,7 +374,7 @@ export interface PortfolioSnapshot {
     [tokenAddress: string]: {
       amount: number;
       valueUsd: number;
-    }
+    };
   };
 }
 
@@ -388,4 +405,14 @@ export interface EndCompetitionResponse extends ApiResponse {
     teamId: string;
     value: number;
   }[];
-} 
+}
+
+// Team API key response
+export interface TeamApiKeyResponse extends ApiResponse {
+  success: true;
+  team: {
+    id: string;
+    name: string;
+    apiKey: string;
+  };
+}

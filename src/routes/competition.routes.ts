@@ -10,7 +10,7 @@ const router = Router();
  *     tags:
  *       - Competition
  *     summary: Get competition leaderboard
- *     description: Get the leaderboard for the active competition or a specific competition
+ *     description: Get the leaderboard for the active competition or a specific competition. Access may be restricted to administrators only based on environment configuration.
  *     security:
  *       - BearerAuth: []
  *     parameters:
@@ -91,7 +91,7 @@ const router = Router();
  *                         description: Current portfolio value in USD
  *                       active:
  *                         type: boolean
- *                         description: Whether the team is active 
+ *                         description: Whether the team is active
  *                       deactivationReason:
  *                         type: string
  *                         nullable: true
@@ -104,7 +104,7 @@ const router = Router();
  *       401:
  *         description: Unauthorized - Missing or invalid authentication
  *       403:
- *         description: Forbidden - Team not participating in the competition
+ *         description: Forbidden - Access denied due to permission restrictions or team not participating in the competition
  *       404:
  *         description: Competition not found
  *       500:
@@ -267,4 +267,4 @@ router.get('/status', CompetitionController.getStatus);
  */
 router.get('/rules', CompetitionController.getRules);
 
-export default router; 
+export default router;

@@ -15,6 +15,7 @@ import * as competitionRoutes from './routes/competition.routes';
 import * as adminRoutes from './routes/admin.routes';
 import * as healthRoutes from './routes/health.routes';
 import * as docsRoutes from './routes/docs.routes';
+import * as publicRoutes from './routes/public.routes';
 
 // Create Express app
 const app = express();
@@ -43,18 +44,19 @@ app.use('/api/competition', competitionRoutes.default);
 app.use('/api/admin', adminRoutes.default);
 app.use('/api/health', healthRoutes.default);
 app.use('/api/docs', docsRoutes.default);
+app.use('/api/public', publicRoutes.default);
 
 // Legacy health check endpoint for backward compatibility
-app.get('/health', (req, res) => {
-  res.status(200).json({ 
-    status: 'ok', 
+app.get('/health', (_req, res) => {
+  res.status(200).json({
+    status: 'ok',
     timestamp: new Date().toISOString(),
-    version: '1.0.0'
+    version: '1.0.0',
   });
 });
 
 // Root endpoint redirects to API documentation
-app.get('/', (req, res) => {
+app.get('/', (_req, res) => {
   res.redirect('/api/docs');
 });
 
@@ -65,14 +67,14 @@ app.use(errorHandler);
 const startServer = async () => {
   const PORT = config.server.port;
   let databaseInitialized = false;
-  
+
   try {
     // Initialize database
     console.log('Checking database connection...');
     await initializeDatabase();
     console.log('Database connection and schema verification completed');
     databaseInitialized = true;
-    
+
     // Start snapshot scheduler
     services.scheduler.startSnapshotScheduler();
     console.log('Portfolio snapshot scheduler started');
@@ -81,14 +83,14 @@ const startServer = async () => {
     if (process.env.NODE_ENV === 'production') {
       console.warn(
         'WARNING: Starting server without successful database initialization. ' +
-        'Some functionality may be limited until database connection is restored.'
+          'Some functionality may be limited until database connection is restored.',
       );
     } else {
       console.error('Failed to start server due to database initialization error. Exiting...');
       process.exit(1);
     }
   }
-  
+
   // Start HTTP server
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`\n========================================`);
@@ -103,4 +105,4 @@ const startServer = async () => {
 // Start the server
 startServer();
 
-export default app; 
+export default app;

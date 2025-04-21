@@ -1,25 +1,7 @@
----
-title: Trading Simulator API v1.0.0
-language_tabs:
-  - javascript: JavaScript
-language_clients:
-  - javascript: ""
-toc_footers: []
-includes: []
-search: true
-highlight_theme: darkula
-headingLevel: 2
-
----
-
-<!-- Generator: Widdershins v4.0.1 -->
-
-<h1 id="trading-simulator-api">Trading Simulator API v1.0.0</h1>
-
-> Scroll down for code samples, example requests and responses. Select a language for code samples from the tabs above or the mobile navigation menu.
+# Trading Simulator API
 
 API for the Trading Simulator - a platform for simulated cryptocurrency trading competitions
-      
+
 ## Authentication Guide
 
 This API uses Bearer token authentication. All protected endpoints require the following header:
@@ -45,2554 +27,891 @@ const fetchData = async () => {
   const apiKey = 'abc123def456_ghi789jkl012';
   const response = await fetch('https://api.example.com/api/account/balances', {
     headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json'
-    }
+      Authorization: `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
   });
-  
+
   return await response.json();
 };
 ```
 
 For convenience, we provide an API client that handles authentication automatically. See `docs/examples/api-client.ts`.
-      
 
-Base URLs:
+## Version: 1.0.0
 
-* <a href="http://localhost:3000">http://localhost:3000</a>
+**Contact information:**  
+API Support  
+support@example.com
 
-* <a href="https://api.example.com">https://api.example.com</a>
+**License:** [ISC License](https://opensource.org/licenses/ISC)
 
-Email: <a href="mailto:support@example.com">API Support</a> 
-License: <a href="https://opensource.org/licenses/ISC">ISC License</a>
+### /api/account/profile
 
-# Authentication
+#### GET
 
-- HTTP Authentication, scheme: bearer API key provided in the Authorization header using Bearer token authentication
+##### Summary:
 
-<h1 id="trading-simulator-api-account">Account</h1>
+Get team profile
 
-Account management endpoints
-
-## Get team profile
-
-> Code samples
-
-```javascript
-
-const headers = {
-  'Accept':'application/json',
-  'Authorization':'Bearer abc123def456_ghi789jkl012'
-};
-
-fetch('http://localhost:3000/api/account/profile',
-{
-  method: 'GET',
-
-  headers: headers
-})
-.then(function(res) {
-    return res.json();
-}).then(function(body) {
-    console.log(body);
-});
-
-```
-
-`GET /api/account/profile`
+##### Description:
 
 Get profile information for the authenticated team
 
-<h3 id="get-team-profile-parameters">Parameters</h3>
+##### Parameters
 
-|Name|In|Type|Required|Description|
-|---|---|---|---|---|
-|Authorization|header|string|true|Bearer token for authentication (format "Bearer YOUR_API_KEY")|
+| Name          | Located in | Description                                                    | Required | Schema |
+| ------------- | ---------- | -------------------------------------------------------------- | -------- | ------ |
+| Authorization | header     | Bearer token for authentication (format "Bearer YOUR_API_KEY") | Yes      | string |
 
-> Example responses
+##### Responses
 
-> 200 Response
+| Code | Description                                      |
+| ---- | ------------------------------------------------ |
+| 200  | Team profile                                     |
+| 401  | Unauthorized - Missing or invalid authentication |
+| 404  | Team not found                                   |
+| 500  | Server error                                     |
 
-```json
-{
-  "success": true,
-  "team": {
-    "id": "string",
-    "name": "string",
-    "email": "string",
-    "contactPerson": "string",
-    "createdAt": "2019-08-24T14:15:22Z",
-    "updatedAt": "2019-08-24T14:15:22Z"
-  }
-}
-```
+##### Security
 
-<h3 id="get-team-profile-responses">Responses</h3>
+| Security Schema | Scopes |
+| --------------- | ------ |
+| BearerAuth      |        |
 
-|Status|Meaning|Description|Schema|
-|---|---|---|---|
-|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|Team profile|Inline|
-|401|[Unauthorized](https://tools.ietf.org/html/rfc7235#section-3.1)|Unauthorized - Missing or invalid authentication|None|
-|404|[Not Found](https://tools.ietf.org/html/rfc7231#section-6.5.4)|Team not found|None|
-|500|[Internal Server Error](https://tools.ietf.org/html/rfc7231#section-6.6.1)|Server error|None|
+#### PUT
 
-<h3 id="get-team-profile-responseschema">Response Schema</h3>
+##### Summary:
 
-Status Code **200**
+Update team profile
 
-|Name|Type|Required|Restrictions|Description|
-|---|---|---|---|---|
-|» success|boolean|false|none|Operation success status|
-|» team|object|false|none|none|
-|»» id|string|false|none|Team ID|
-|»» name|string|false|none|Team name|
-|»» email|string|false|none|Team email|
-|»» contactPerson|string|false|none|Contact person name|
-|»» createdAt|string(date-time)|false|none|Team creation timestamp|
-|»» updatedAt|string(date-time)|false|none|Team last update timestamp|
-
-<aside class="warning">
-To perform this operation, you must be authenticated by means of one of the following methods:
-BearerAuth
-</aside>
-
-## Update team profile
-
-> Code samples
-
-```javascript
-const inputBody = '{
-  "contactPerson": "string"
-}';
-const headers = {
-  'Content-Type':'application/json',
-  'Accept':'application/json',
-  'Authorization':'Bearer abc123def456_ghi789jkl012'
-};
-
-fetch('http://localhost:3000/api/account/profile',
-{
-  method: 'PUT',
-  body: inputBody,
-  headers: headers
-})
-.then(function(res) {
-    return res.json();
-}).then(function(body) {
-    console.log(body);
-});
-
-```
-
-`PUT /api/account/profile`
+##### Description:
 
 Update profile information for the authenticated team
 
-> Body parameter
+##### Parameters
 
-```json
-{
-  "contactPerson": "string"
-}
-```
+| Name          | Located in | Description                                                    | Required | Schema |
+| ------------- | ---------- | -------------------------------------------------------------- | -------- | ------ |
+| Authorization | header     | Bearer token for authentication (format "Bearer YOUR_API_KEY") | Yes      | string |
 
-<h3 id="update-team-profile-parameters">Parameters</h3>
+##### Responses
 
-|Name|In|Type|Required|Description|
-|---|---|---|---|---|
-|Authorization|header|string|true|Bearer token for authentication (format "Bearer YOUR_API_KEY")|
-|body|body|object|true|none|
-|» contactPerson|body|string|false|New contact person name|
+| Code | Description                                      |
+| ---- | ------------------------------------------------ |
+| 200  | Updated team profile                             |
+| 401  | Unauthorized - Missing or invalid authentication |
+| 404  | Team not found                                   |
+| 500  | Server error                                     |
 
-> Example responses
+##### Security
 
-> 200 Response
+| Security Schema | Scopes |
+| --------------- | ------ |
+| BearerAuth      |        |
 
-```json
-{
-  "success": true,
-  "team": {
-    "id": "string",
-    "name": "string",
-    "email": "string",
-    "contactPerson": "string",
-    "createdAt": "2019-08-24T14:15:22Z",
-    "updatedAt": "2019-08-24T14:15:22Z"
-  }
-}
-```
+### /api/account/balances
 
-<h3 id="update-team-profile-responses">Responses</h3>
+#### GET
 
-|Status|Meaning|Description|Schema|
-|---|---|---|---|
-|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|Updated team profile|Inline|
-|401|[Unauthorized](https://tools.ietf.org/html/rfc7235#section-3.1)|Unauthorized - Missing or invalid authentication|None|
-|404|[Not Found](https://tools.ietf.org/html/rfc7231#section-6.5.4)|Team not found|None|
-|500|[Internal Server Error](https://tools.ietf.org/html/rfc7231#section-6.6.1)|Server error|None|
+##### Summary:
 
-<h3 id="update-team-profile-responseschema">Response Schema</h3>
+Get token balances
 
-Status Code **200**
-
-|Name|Type|Required|Restrictions|Description|
-|---|---|---|---|---|
-|» success|boolean|false|none|Operation success status|
-|» team|object|false|none|none|
-|»» id|string|false|none|Team ID|
-|»» name|string|false|none|Team name|
-|»» email|string|false|none|Team email|
-|»» contactPerson|string|false|none|Updated contact person name|
-|»» createdAt|string(date-time)|false|none|Team creation timestamp|
-|»» updatedAt|string(date-time)|false|none|Team update timestamp|
-
-<aside class="warning">
-To perform this operation, you must be authenticated by means of one of the following methods:
-BearerAuth
-</aside>
-
-## Get token balances
-
-> Code samples
-
-```javascript
-
-const headers = {
-  'Accept':'application/json',
-  'Authorization':'Bearer abc123def456_ghi789jkl012'
-};
-
-fetch('http://localhost:3000/api/account/balances',
-{
-  method: 'GET',
-
-  headers: headers
-})
-.then(function(res) {
-    return res.json();
-}).then(function(body) {
-    console.log(body);
-});
-
-```
-
-`GET /api/account/balances`
+##### Description:
 
 Get all token balances for the authenticated team
 
-<h3 id="get-token-balances-parameters">Parameters</h3>
+##### Parameters
 
-|Name|In|Type|Required|Description|
-|---|---|---|---|---|
-|Authorization|header|string|true|Bearer token for authentication (format "Bearer YOUR_API_KEY")|
+| Name          | Located in | Description                                                    | Required | Schema |
+| ------------- | ---------- | -------------------------------------------------------------- | -------- | ------ |
+| Authorization | header     | Bearer token for authentication (format "Bearer YOUR_API_KEY") | Yes      | string |
 
-> Example responses
+##### Responses
 
-> 200 Response
+| Code | Description                                      |
+| ---- | ------------------------------------------------ |
+| 200  | Team token balances                              |
+| 401  | Unauthorized - Missing or invalid authentication |
+| 500  | Server error                                     |
 
-```json
-{
-  "success": true,
-  "teamId": "string",
-  "balances": [
-    {
-      "token": "string",
-      "amount": 0,
-      "chain": "evm",
-      "specificChain": "string"
-    }
-  ]
-}
-```
+##### Security
 
-<h3 id="get-token-balances-responses">Responses</h3>
+| Security Schema | Scopes |
+| --------------- | ------ |
+| BearerAuth      |        |
 
-|Status|Meaning|Description|Schema|
-|---|---|---|---|
-|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|Team token balances|Inline|
-|401|[Unauthorized](https://tools.ietf.org/html/rfc7235#section-3.1)|Unauthorized - Missing or invalid authentication|None|
-|500|[Internal Server Error](https://tools.ietf.org/html/rfc7231#section-6.6.1)|Server error|None|
+### /api/account/portfolio
 
-<h3 id="get-token-balances-responseschema">Response Schema</h3>
+#### GET
 
-Status Code **200**
+##### Summary:
 
-|Name|Type|Required|Restrictions|Description|
-|---|---|---|---|---|
-|» success|boolean|false|none|Operation success status|
-|» teamId|string|false|none|Team ID|
-|» balances|[object]|false|none|none|
-|»» token|string|false|none|Token address|
-|»» amount|number|false|none|Token balance amount|
-|»» chain|string|false|none|Blockchain type of the token|
-|»» specificChain|string¦null|false|none|Specific chain for EVM tokens|
+Get portfolio information
 
-#### Enumerated Values
-
-|Property|Value|
-|---|---|
-|chain|evm|
-|chain|svm|
-
-<aside class="warning">
-To perform this operation, you must be authenticated by means of one of the following methods:
-BearerAuth
-</aside>
-
-## Get portfolio information
-
-> Code samples
-
-```javascript
-
-const headers = {
-  'Accept':'application/json',
-  'Authorization':'Bearer abc123def456_ghi789jkl012'
-};
-
-fetch('http://localhost:3000/api/account/portfolio',
-{
-  method: 'GET',
-
-  headers: headers
-})
-.then(function(res) {
-    return res.json();
-}).then(function(body) {
-    console.log(body);
-});
-
-```
-
-`GET /api/account/portfolio`
+##### Description:
 
 Get portfolio valuation and token details for the authenticated team
 
-<h3 id="get-portfolio-information-parameters">Parameters</h3>
+##### Parameters
 
-|Name|In|Type|Required|Description|
-|---|---|---|---|---|
-|Authorization|header|string|true|Bearer token for authentication (format "Bearer YOUR_API_KEY")|
+| Name          | Located in | Description                                                    | Required | Schema |
+| ------------- | ---------- | -------------------------------------------------------------- | -------- | ------ |
+| Authorization | header     | Bearer token for authentication (format "Bearer YOUR_API_KEY") | Yes      | string |
 
-> Example responses
+##### Responses
 
-> 200 Response
+| Code | Description                                      |
+| ---- | ------------------------------------------------ |
+| 200  | Team portfolio information                       |
+| 401  | Unauthorized - Missing or invalid authentication |
+| 500  | Server error                                     |
 
-```json
-{
-  "success": true,
-  "teamId": "string",
-  "totalValue": 0,
-  "tokens": [
-    {
-      "token": "string",
-      "amount": 0,
-      "price": 0,
-      "value": 0,
-      "chain": "evm",
-      "specificChain": "string"
-    }
-  ],
-  "snapshotTime": "2019-08-24T14:15:22Z",
-  "source": "snapshot"
-}
-```
+##### Security
 
-<h3 id="get-portfolio-information-responses">Responses</h3>
+| Security Schema | Scopes |
+| --------------- | ------ |
+| BearerAuth      |        |
 
-|Status|Meaning|Description|Schema|
-|---|---|---|---|
-|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|Team portfolio information|Inline|
-|401|[Unauthorized](https://tools.ietf.org/html/rfc7235#section-3.1)|Unauthorized - Missing or invalid authentication|None|
-|500|[Internal Server Error](https://tools.ietf.org/html/rfc7231#section-6.6.1)|Server error|None|
+### /api/account/trades
 
-<h3 id="get-portfolio-information-responseschema">Response Schema</h3>
+#### GET
 
-Status Code **200**
+##### Summary:
 
-|Name|Type|Required|Restrictions|Description|
-|---|---|---|---|---|
-|» success|boolean|false|none|Operation success status|
-|» teamId|string|false|none|Team ID|
-|» totalValue|number|false|none|Total portfolio value in USD|
-|» tokens|[object]|false|none|none|
-|»» token|string|false|none|Token address|
-|»» amount|number|false|none|Token balance amount|
-|»» price|number|false|none|Current token price in USD|
-|»» value|number|false|none|Total value of token holdings in USD|
-|»» chain|string|false|none|Blockchain type of the token|
-|»» specificChain|string¦null|false|none|Specific chain for EVM tokens|
-|» snapshotTime|string(date-time)|false|none|Time of the snapshot (if source is 'snapshot')|
-|» source|string|false|none|Source of the portfolio data|
+Get trade history
 
-#### Enumerated Values
-
-|Property|Value|
-|---|---|
-|chain|evm|
-|chain|svm|
-|source|snapshot|
-|source|live-calculation|
-
-<aside class="warning">
-To perform this operation, you must be authenticated by means of one of the following methods:
-BearerAuth
-</aside>
-
-## Get trade history
-
-> Code samples
-
-```javascript
-
-const headers = {
-  'Accept':'application/json',
-  'Authorization':'Bearer abc123def456_ghi789jkl012'
-};
-
-fetch('http://localhost:3000/api/account/trades',
-{
-  method: 'GET',
-
-  headers: headers
-})
-.then(function(res) {
-    return res.json();
-}).then(function(body) {
-    console.log(body);
-});
-
-```
-
-`GET /api/account/trades`
+##### Description:
 
 Get trade history for the authenticated team
 
-<h3 id="get-trade-history-parameters">Parameters</h3>
+##### Parameters
 
-|Name|In|Type|Required|Description|
-|---|---|---|---|---|
-|Authorization|header|string|true|Bearer token for authentication (format "Bearer YOUR_API_KEY")|
+| Name          | Located in | Description                                                    | Required | Schema |
+| ------------- | ---------- | -------------------------------------------------------------- | -------- | ------ |
+| Authorization | header     | Bearer token for authentication (format "Bearer YOUR_API_KEY") | Yes      | string |
 
-> Example responses
+##### Responses
 
-> 200 Response
+| Code | Description                                      |
+| ---- | ------------------------------------------------ |
+| 200  | Team trade history                               |
+| 401  | Unauthorized - Missing or invalid authentication |
+| 500  | Server error                                     |
 
-```json
-{
-  "success": true,
-  "teamId": "string",
-  "trades": [
-    {
-      "id": "string",
-      "teamId": "string",
-      "competitionId": "string",
-      "fromToken": "string",
-      "toToken": "string",
-      "fromAmount": 0,
-      "toAmount": 0,
-      "price": 0,
-      "success": true,
-      "error": "string",
-      "timestamp": "2019-08-24T14:15:22Z",
-      "fromChain": "string",
-      "toChain": "string",
-      "fromSpecificChain": "string",
-      "toSpecificChain": "string"
-    }
-  ]
-}
-```
+##### Security
 
-<h3 id="get-trade-history-responses">Responses</h3>
+| Security Schema | Scopes |
+| --------------- | ------ |
+| BearerAuth      |        |
 
-|Status|Meaning|Description|Schema|
-|---|---|---|---|
-|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|Team trade history|Inline|
-|401|[Unauthorized](https://tools.ietf.org/html/rfc7235#section-3.1)|Unauthorized - Missing or invalid authentication|None|
-|500|[Internal Server Error](https://tools.ietf.org/html/rfc7231#section-6.6.1)|Server error|None|
+### /api/admin/setup
 
-<h3 id="get-trade-history-responseschema">Response Schema</h3>
+#### POST
 
-Status Code **200**
+##### Summary:
 
-|Name|Type|Required|Restrictions|Description|
-|---|---|---|---|---|
-|» success|boolean|false|none|Operation success status|
-|» teamId|string|false|none|Team ID|
-|» trades|[object]|false|none|none|
-|»» id|string|false|none|Unique trade ID|
-|»» teamId|string|false|none|Team ID that executed the trade|
-|»» competitionId|string|false|none|ID of the competition this trade is part of|
-|»» fromToken|string|false|none|Token address that was sold|
-|»» toToken|string|false|none|Token address that was bought|
-|»» fromAmount|number|false|none|Amount of fromToken that was sold|
-|»» toAmount|number|false|none|Amount of toToken that was received|
-|»» price|number|false|none|Price at which the trade was executed|
-|»» success|boolean|false|none|Whether the trade was successfully completed|
-|»» error|string|false|none|Error message if the trade failed|
-|»» timestamp|string(date-time)|false|none|Timestamp of when the trade was executed|
-|»» fromChain|string|false|none|Blockchain type of the source token|
-|»» toChain|string|false|none|Blockchain type of the destination token|
-|»» fromSpecificChain|string|false|none|Specific chain for the source token|
-|»» toSpecificChain|string|false|none|Specific chain for the destination token|
+Set up initial admin account
 
-<aside class="warning">
-To perform this operation, you must be authenticated by means of one of the following methods:
-BearerAuth
-</aside>
-
-<h1 id="trading-simulator-api-trade">Trade</h1>
-
-Trading endpoints
-
-## Execute a trade
-
-> Code samples
-
-```javascript
-const inputBody = '{
-  "fromToken": "So11111111111111111111111111111111111111112",
-  "toToken": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
-  "amount": "1.5",
-  "slippageTolerance": "0.5",
-  "fromChain": "svm",
-  "fromSpecificChain": "mainnet",
-  "toChain": "svm",
-  "toSpecificChain": "mainnet"
-}';
-const headers = {
-  'Content-Type':'application/json',
-  'Accept':'application/json',
-  'Authorization':'string'
-};
-
-fetch('http://localhost:3000/api/trade/execute',
-{
-  method: 'POST',
-  body: inputBody,
-  headers: headers
-})
-.then(function(res) {
-    return res.json();
-}).then(function(body) {
-    console.log(body);
-});
-
-```
-
-`POST /api/trade/execute`
-
-Execute a trade between two tokens
-
-> Body parameter
-
-```json
-{
-  "fromToken": "So11111111111111111111111111111111111111112",
-  "toToken": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
-  "amount": "1.5",
-  "slippageTolerance": "0.5",
-  "fromChain": "svm",
-  "fromSpecificChain": "mainnet",
-  "toChain": "svm",
-  "toSpecificChain": "mainnet"
-}
-```
-
-<h3 id="execute-a-trade-parameters">Parameters</h3>
-
-|Name|In|Type|Required|Description|
-|---|---|---|---|---|
-|Authorization|header|string|true|Bearer token for authentication (format "Bearer YOUR_API_KEY")|
-|body|body|object|true|none|
-|» fromToken|body|string|true|Token address to sell|
-|» toToken|body|string|true|Token address to buy|
-|» amount|body|string|true|Amount of fromToken to trade|
-|» slippageTolerance|body|string|false|Optional slippage tolerance in percentage|
-|» fromChain|body|string|false|Optional - Blockchain type for fromToken|
-|» fromSpecificChain|body|string|false|Optional - Specific chain for fromToken|
-|» toChain|body|string|false|Optional - Blockchain type for toToken|
-|» toSpecificChain|body|string|false|Optional - Specific chain for toToken|
-
-> Example responses
-
-> 200 Response
-
-```json
-{
-  "success": true,
-  "transaction": {
-    "id": "string",
-    "teamId": "string",
-    "competitionId": "string",
-    "fromToken": "string",
-    "toToken": "string",
-    "fromAmount": 0,
-    "toAmount": 0,
-    "price": 0,
-    "success": true,
-    "timestamp": "2019-08-24T14:15:22Z",
-    "fromChain": "string",
-    "toChain": "string",
-    "fromSpecificChain": "string",
-    "toSpecificChain": "string"
-  }
-}
-```
-
-<h3 id="execute-a-trade-responses">Responses</h3>
-
-|Status|Meaning|Description|Schema|
-|---|---|---|---|
-|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|Trade executed successfully|Inline|
-|400|[Bad Request](https://tools.ietf.org/html/rfc7231#section-6.5.1)|Invalid input parameters|None|
-|401|[Unauthorized](https://tools.ietf.org/html/rfc7235#section-3.1)|Unauthorized - Missing or invalid authentication|None|
-|403|[Forbidden](https://tools.ietf.org/html/rfc7231#section-6.5.3)|Forbidden - Competition not in progress or other restrictions|None|
-|500|[Internal Server Error](https://tools.ietf.org/html/rfc7231#section-6.6.1)|Server error|None|
-
-<h3 id="execute-a-trade-responseschema">Response Schema</h3>
-
-Status Code **200**
-
-|Name|Type|Required|Restrictions|Description|
-|---|---|---|---|---|
-|» success|boolean|false|none|Whether the trade was successfully executed|
-|» transaction|object|false|none|none|
-|»» id|string|false|none|Unique trade ID|
-|»» teamId|string|false|none|Team ID that executed the trade|
-|»» competitionId|string|false|none|ID of the competition this trade is part of|
-|»» fromToken|string|false|none|Token address that was sold|
-|»» toToken|string|false|none|Token address that was bought|
-|»» fromAmount|number|false|none|Amount of fromToken that was sold|
-|»» toAmount|number|false|none|Amount of toToken that was received|
-|»» price|number|false|none|Price at which the trade was executed|
-|»» success|boolean|false|none|Whether the trade was successfully completed|
-|»» timestamp|string(date-time)|false|none|Timestamp of when the trade was executed|
-|»» fromChain|string|false|none|Blockchain type of the source token|
-|»» toChain|string|false|none|Blockchain type of the destination token|
-|»» fromSpecificChain|string|false|none|Specific chain for the source token|
-|»» toSpecificChain|string|false|none|Specific chain for the destination token|
-
-<aside class="warning">
-To perform this operation, you must be authenticated by means of one of the following methods:
-BearerAuth
-</aside>
-
-## Get a quote for a trade
-
-> Code samples
-
-```javascript
-
-const headers = {
-  'Accept':'application/json',
-  'Authorization':'string'
-};
-
-fetch('http://localhost:3000/api/trade/quote?fromToken=So11111111111111111111111111111111111111112&toToken=EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v&amount=1.5',
-{
-  method: 'GET',
-
-  headers: headers
-})
-.then(function(res) {
-    return res.json();
-}).then(function(body) {
-    console.log(body);
-});
-
-```
-
-`GET /api/trade/quote`
-
-Get a quote for a potential trade between two tokens
-
-<h3 id="get-a-quote-for-a-trade-parameters">Parameters</h3>
-
-|Name|In|Type|Required|Description|
-|---|---|---|---|---|
-|Authorization|header|string|true|Bearer token for authentication (format "Bearer YOUR_API_KEY")|
-|fromToken|query|string|true|Token address to sell|
-|toToken|query|string|true|Token address to buy|
-|amount|query|string|true|Amount of fromToken to get quote for|
-|fromChain|query|string|false|Optional blockchain type for fromToken|
-|fromSpecificChain|query|string|false|Optional specific chain for fromToken|
-|toChain|query|string|false|Optional blockchain type for toToken|
-|toSpecificChain|query|string|false|Optional specific chain for toToken|
-
-> Example responses
-
-> 200 Response
-
-```json
-{
-  "fromToken": "string",
-  "toToken": "string",
-  "fromAmount": 0,
-  "toAmount": 0,
-  "exchangeRate": 0,
-  "slippage": 0,
-  "prices": {
-    "fromToken": 0,
-    "toToken": 0
-  },
-  "chains": {
-    "fromChain": "string",
-    "toChain": "string"
-  }
-}
-```
-
-<h3 id="get-a-quote-for-a-trade-responses">Responses</h3>
-
-|Status|Meaning|Description|Schema|
-|---|---|---|---|
-|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|Quote generated successfully|Inline|
-|400|[Bad Request](https://tools.ietf.org/html/rfc7231#section-6.5.1)|Invalid input parameters|None|
-|401|[Unauthorized](https://tools.ietf.org/html/rfc7235#section-3.1)|Unauthorized - Missing or invalid authentication|None|
-|500|[Internal Server Error](https://tools.ietf.org/html/rfc7231#section-6.6.1)|Server error|None|
-
-<h3 id="get-a-quote-for-a-trade-responseschema">Response Schema</h3>
-
-Status Code **200**
-
-|Name|Type|Required|Restrictions|Description|
-|---|---|---|---|---|
-|» fromToken|string|false|none|Token address being sold|
-|» toToken|string|false|none|Token address being bought|
-|» fromAmount|number|false|none|Amount of fromToken to be sold|
-|» toAmount|number|false|none|Estimated amount of toToken to be received|
-|» exchangeRate|number|false|none|Exchange rate between the tokens (toAmount / fromAmount)|
-|» slippage|number|false|none|Applied slippage percentage for this trade size|
-|» prices|object|false|none|none|
-|»» fromToken|number|false|none|Price of the source token in USD|
-|»» toToken|number|false|none|Price of the destination token in USD|
-|» chains|object|false|none|none|
-|»» fromChain|string|false|none|Blockchain type of the source token|
-|»» toChain|string|false|none|Blockchain type of the destination token|
-
-<aside class="warning">
-To perform this operation, you must be authenticated by means of one of the following methods:
-BearerAuth
-</aside>
-
-<h1 id="trading-simulator-api-price">Price</h1>
-
-Price information endpoints
-
-## Get price for a token
-
-> Code samples
-
-```javascript
-
-const headers = {
-  'Accept':'application/json',
-  'Authorization':'Bearer abc123def456_ghi789jkl012'
-};
-
-fetch('http://localhost:3000/api/price?token=So11111111111111111111111111111111111111112',
-{
-  method: 'GET',
-
-  headers: headers
-})
-.then(function(res) {
-    return res.json();
-}).then(function(body) {
-    console.log(body);
-});
-
-```
-
-`GET /api/price`
-
-Get the current price of a specified token
-
-<h3 id="get-price-for-a-token-parameters">Parameters</h3>
-
-|Name|In|Type|Required|Description|
-|---|---|---|---|---|
-|Authorization|header|string|true|Bearer token for authentication (format "Bearer YOUR_API_KEY")|
-|token|query|string|true|Token address|
-|chain|query|string|false|Blockchain type of the token|
-|specificChain|query|string|false|Specific chain for EVM tokens|
-
-#### Enumerated Values
-
-|Parameter|Value|
-|---|---|
-|chain|evm|
-|chain|svm|
-|specificChain|eth|
-|specificChain|polygon|
-|specificChain|bsc|
-|specificChain|arbitrum|
-|specificChain|optimism|
-|specificChain|avalanche|
-|specificChain|base|
-|specificChain|linea|
-|specificChain|zksync|
-|specificChain|scroll|
-|specificChain|mantle|
-|specificChain|svm|
-
-> Example responses
-
-> 200 Response
-
-```json
-{
-  "success": true,
-  "price": 0,
-  "token": "string",
-  "chain": "EVM",
-  "specificChain": "string",
-  "timestamp": "2019-08-24T14:15:22Z"
-}
-```
-
-<h3 id="get-price-for-a-token-responses">Responses</h3>
-
-|Status|Meaning|Description|Schema|
-|---|---|---|---|
-|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|Token price information|Inline|
-|400|[Bad Request](https://tools.ietf.org/html/rfc7231#section-6.5.1)|Invalid request parameters|[Error](#schemaerror)|
-|401|[Unauthorized](https://tools.ietf.org/html/rfc7235#section-3.1)|Unauthorized - Missing or invalid authentication|None|
-|500|[Internal Server Error](https://tools.ietf.org/html/rfc7231#section-6.6.1)|Server error|None|
-
-<h3 id="get-price-for-a-token-responseschema">Response Schema</h3>
-
-Status Code **200**
-
-|Name|Type|Required|Restrictions|Description|
-|---|---|---|---|---|
-|» success|boolean|false|none|Whether the price was successfully retrieved|
-|» price|number¦null|false|none|Current price of the token in USD|
-|» token|string|false|none|Token address|
-|» chain|string|false|none|Blockchain type of the token|
-|» specificChain|string¦null|false|none|Specific chain for EVM tokens|
-|» timestamp|string(date-time)|false|none|Timestamp when the price was fetched|
-
-#### Enumerated Values
-
-|Property|Value|
-|---|---|
-|chain|EVM|
-|chain|SVM|
-
-<aside class="warning">
-To perform this operation, you must be authenticated by means of one of the following methods:
-BearerAuth
-</aside>
-
-## Get detailed token information
-
-> Code samples
-
-```javascript
-
-const headers = {
-  'Accept':'application/json',
-  'Authorization':'Bearer abc123def456_ghi789jkl012'
-};
-
-fetch('http://localhost:3000/api/price/token-info?token=So11111111111111111111111111111111111111112',
-{
-  method: 'GET',
-
-  headers: headers
-})
-.then(function(res) {
-    return res.json();
-}).then(function(body) {
-    console.log(body);
-});
-
-```
-
-`GET /api/price/token-info`
-
-Get detailed token information including price and specific chain
-
-<h3 id="get-detailed-token-information-parameters">Parameters</h3>
-
-|Name|In|Type|Required|Description|
-|---|---|---|---|---|
-|Authorization|header|string|true|Bearer token for authentication (format "Bearer YOUR_API_KEY")|
-|token|query|string|true|Token address|
-|chain|query|string|false|Blockchain type of the token|
-|specificChain|query|string|false|Specific chain for EVM tokens|
-
-#### Enumerated Values
-
-|Parameter|Value|
-|---|---|
-|chain|evm|
-|chain|svm|
-|specificChain|eth|
-|specificChain|polygon|
-|specificChain|bsc|
-|specificChain|arbitrum|
-|specificChain|optimism|
-|specificChain|avalanche|
-|specificChain|base|
-|specificChain|linea|
-|specificChain|zksync|
-|specificChain|scroll|
-|specificChain|mantle|
-|specificChain|svm|
-
-> Example responses
-
-> 200 Response
-
-```json
-{
-  "success": true,
-  "price": 0,
-  "token": "string",
-  "chain": "EVM",
-  "specificChain": "string"
-}
-```
-
-<h3 id="get-detailed-token-information-responses">Responses</h3>
-
-|Status|Meaning|Description|Schema|
-|---|---|---|---|
-|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|Token information|Inline|
-|400|[Bad Request](https://tools.ietf.org/html/rfc7231#section-6.5.1)|Invalid request parameters|[Error](#schemaerror)|
-|401|[Unauthorized](https://tools.ietf.org/html/rfc7235#section-3.1)|Unauthorized - Missing or invalid authentication|None|
-|500|[Internal Server Error](https://tools.ietf.org/html/rfc7231#section-6.6.1)|Server error|None|
-
-<h3 id="get-detailed-token-information-responseschema">Response Schema</h3>
-
-Status Code **200**
-
-|Name|Type|Required|Restrictions|Description|
-|---|---|---|---|---|
-|» success|boolean|false|none|Whether the token information was successfully retrieved|
-|» price|number¦null|false|none|Current price of the token in USD|
-|» token|string|false|none|Token address|
-|» chain|string|false|none|Blockchain type of the token|
-|» specificChain|string¦null|false|none|Specific chain for EVM tokens|
-
-#### Enumerated Values
-
-|Property|Value|
-|---|---|
-|chain|EVM|
-|chain|SVM|
-
-<aside class="warning">
-To perform this operation, you must be authenticated by means of one of the following methods:
-BearerAuth
-</aside>
-
-<h1 id="trading-simulator-api-competition">Competition</h1>
-
-Competition endpoints
-
-## Get competition leaderboard
-
-> Code samples
-
-```javascript
-
-const headers = {
-  'Accept':'application/json',
-  'Authorization':'Bearer abc123def456_ghi789jkl012'
-};
-
-fetch('http://localhost:3000/api/competition/leaderboard',
-{
-  method: 'GET',
-
-  headers: headers
-})
-.then(function(res) {
-    return res.json();
-}).then(function(body) {
-    console.log(body);
-});
-
-```
-
-`GET /api/competition/leaderboard`
-
-Get the leaderboard for the active competition or a specific competition
-
-<h3 id="get-competition-leaderboard-parameters">Parameters</h3>
-
-|Name|In|Type|Required|Description|
-|---|---|---|---|---|
-|Authorization|header|string|true|Bearer token for authentication (format "Bearer YOUR_API_KEY")|
-|competitionId|query|string|false|Optional competition ID (if not provided, the active competition is used)|
-
-> Example responses
-
-> 200 Response
-
-```json
-{
-  "success": true,
-  "competition": {
-    "id": "string",
-    "name": "string",
-    "description": "string",
-    "startDate": "2019-08-24T14:15:22Z",
-    "endDate": "2019-08-24T14:15:22Z",
-    "status": "PENDING",
-    "createdAt": "2019-08-24T14:15:22Z",
-    "updatedAt": "2019-08-24T14:15:22Z"
-  },
-  "leaderboard": [
-    {
-      "rank": 0,
-      "teamId": "string",
-      "teamName": "string",
-      "portfolioValue": 0,
-      "active": true,
-      "deactivationReason": "string"
-    }
-  ],
-  "hasInactiveTeams": true
-}
-```
-
-<h3 id="get-competition-leaderboard-responses">Responses</h3>
-
-|Status|Meaning|Description|Schema|
-|---|---|---|---|
-|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|Competition leaderboard|Inline|
-|400|[Bad Request](https://tools.ietf.org/html/rfc7231#section-6.5.1)|Bad request - No active competition and no competitionId provided|None|
-|401|[Unauthorized](https://tools.ietf.org/html/rfc7235#section-3.1)|Unauthorized - Missing or invalid authentication|None|
-|403|[Forbidden](https://tools.ietf.org/html/rfc7231#section-6.5.3)|Forbidden - Team not participating in the competition|None|
-|404|[Not Found](https://tools.ietf.org/html/rfc7231#section-6.5.4)|Competition not found|None|
-|500|[Internal Server Error](https://tools.ietf.org/html/rfc7231#section-6.6.1)|Server error|None|
-
-<h3 id="get-competition-leaderboard-responseschema">Response Schema</h3>
-
-Status Code **200**
-
-|Name|Type|Required|Restrictions|Description|
-|---|---|---|---|---|
-|» success|boolean|false|none|Operation success status|
-|» competition|object|false|none|none|
-|»» id|string|false|none|Competition ID|
-|»» name|string|false|none|Competition name|
-|»» description|string¦null|false|none|Competition description|
-|»» startDate|string(date-time)|false|none|Competition start date|
-|»» endDate|string(date-time)¦null|false|none|Competition end date|
-|»» status|string|false|none|Competition status|
-|»» createdAt|string(date-time)|false|none|When the competition was created|
-|»» updatedAt|string(date-time)|false|none|When the competition was last updated|
-|» leaderboard|[object]|false|none|none|
-|»» rank|integer|false|none|Team rank on the leaderboard|
-|»» teamId|string|false|none|Team ID|
-|»» teamName|string|false|none|Team name|
-|»» portfolioValue|number|false|none|Current portfolio value in USD|
-|»» active|boolean|false|none|Whether the team is active|
-|»» deactivationReason|string¦null|false|none|Reason for deactivation if applicable|
-|» hasInactiveTeams|boolean|false|none|Indicates if any teams are inactive|
-
-#### Enumerated Values
-
-|Property|Value|
-|---|---|
-|status|PENDING|
-|status|ACTIVE|
-|status|COMPLETED|
-
-<aside class="warning">
-To perform this operation, you must be authenticated by means of one of the following methods:
-BearerAuth
-</aside>
-
-## Get competition status
-
-> Code samples
-
-```javascript
-
-const headers = {
-  'Accept':'application/json',
-  'Authorization':'Bearer abc123def456_ghi789jkl012'
-};
-
-fetch('http://localhost:3000/api/competition/status',
-{
-  method: 'GET',
-
-  headers: headers
-})
-.then(function(res) {
-    return res.json();
-}).then(function(body) {
-    console.log(body);
-});
-
-```
-
-`GET /api/competition/status`
-
-Get the status of the active competition
-
-<h3 id="get-competition-status-parameters">Parameters</h3>
-
-|Name|In|Type|Required|Description|
-|---|---|---|---|---|
-|Authorization|header|string|true|Bearer token for authentication (format "Bearer YOUR_API_KEY")|
-
-> Example responses
-
-> 200 Response
-
-```json
-{
-  "success": true,
-  "active": true,
-  "competition": {
-    "id": "string",
-    "name": "string",
-    "description": "string",
-    "startDate": "2019-08-24T14:15:22Z",
-    "endDate": "2019-08-24T14:15:22Z",
-    "status": "PENDING",
-    "createdAt": "2019-08-24T14:15:22Z",
-    "updatedAt": "2019-08-24T14:15:22Z"
-  },
-  "message": "string",
-  "participating": true
-}
-```
-
-<h3 id="get-competition-status-responses">Responses</h3>
-
-|Status|Meaning|Description|Schema|
-|---|---|---|---|
-|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|Competition status|Inline|
-|401|[Unauthorized](https://tools.ietf.org/html/rfc7235#section-3.1)|Unauthorized - Missing or invalid authentication|None|
-|500|[Internal Server Error](https://tools.ietf.org/html/rfc7231#section-6.6.1)|Server error|None|
-
-<h3 id="get-competition-status-responseschema">Response Schema</h3>
-
-Status Code **200**
-
-|Name|Type|Required|Restrictions|Description|
-|---|---|---|---|---|
-|» success|boolean|false|none|Operation success status|
-|» active|boolean|false|none|Whether there is an active competition|
-|» competition|object¦null|false|none|none|
-|»» id|string|false|none|Competition ID|
-|»» name|string|false|none|Competition name|
-|»» description|string¦null|false|none|Competition description|
-|»» startDate|string(date-time)|false|none|Competition start date|
-|»» endDate|string(date-time)¦null|false|none|Competition end date|
-|»» status|string|false|none|Competition status|
-|»» createdAt|string(date-time)|false|none|When the competition was created|
-|»» updatedAt|string(date-time)|false|none|When the competition was last updated|
-|» message|string¦null|false|none|Additional information about the competition status|
-|» participating|boolean¦null|false|none|Whether the authenticated team is participating in the competition|
-
-#### Enumerated Values
-
-|Property|Value|
-|---|---|
-|status|PENDING|
-|status|ACTIVE|
-|status|COMPLETED|
-
-<aside class="warning">
-To perform this operation, you must be authenticated by means of one of the following methods:
-BearerAuth
-</aside>
-
-## Get competition rules
-
-> Code samples
-
-```javascript
-
-const headers = {
-  'Accept':'application/json',
-  'Authorization':'Bearer abc123def456_ghi789jkl012'
-};
-
-fetch('http://localhost:3000/api/competition/rules',
-{
-  method: 'GET',
-
-  headers: headers
-})
-.then(function(res) {
-    return res.json();
-}).then(function(body) {
-    console.log(body);
-});
-
-```
-
-`GET /api/competition/rules`
-
-Get the rules, rate limits, and other configuration details for the competition
-
-<h3 id="get-competition-rules-parameters">Parameters</h3>
-
-|Name|In|Type|Required|Description|
-|---|---|---|---|---|
-|Authorization|header|string|true|Bearer token for authentication (format "Bearer YOUR_API_KEY")|
-
-> Example responses
-
-> 200 Response
-
-```json
-{
-  "success": true,
-  "rules": {
-    "tradingRules": [
-      "string"
-    ],
-    "rateLimits": [
-      "string"
-    ],
-    "availableChains": {
-      "svm": true,
-      "evm": [
-        "string"
-      ]
-    },
-    "slippageFormula": "string",
-    "portfolioSnapshots": {
-      "interval": "string"
-    }
-  }
-}
-```
-
-<h3 id="get-competition-rules-responses">Responses</h3>
-
-|Status|Meaning|Description|Schema|
-|---|---|---|---|
-|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|Competition rules retrieved successfully|Inline|
-|400|[Bad Request](https://tools.ietf.org/html/rfc7231#section-6.5.1)|Bad request - No active competition|None|
-|401|[Unauthorized](https://tools.ietf.org/html/rfc7235#section-3.1)|Unauthorized - Missing or invalid authentication|None|
-|403|[Forbidden](https://tools.ietf.org/html/rfc7231#section-6.5.3)|Forbidden - Team not participating in the competition|None|
-|500|[Internal Server Error](https://tools.ietf.org/html/rfc7231#section-6.6.1)|Server error|None|
-
-<h3 id="get-competition-rules-responseschema">Response Schema</h3>
-
-Status Code **200**
-
-|Name|Type|Required|Restrictions|Description|
-|---|---|---|---|---|
-|» success|boolean|false|none|Operation success status|
-|» rules|object|false|none|none|
-|»» tradingRules|[string]|false|none|List of trading rules for the competition|
-|»» rateLimits|[string]|false|none|Rate limits for API endpoints|
-|»» availableChains|object|false|none|none|
-|»»» svm|boolean|false|none|Whether Solana (SVM) is available|
-|»»» evm|[string]|false|none|List of available EVM chains|
-|»» slippageFormula|string|false|none|Formula used for calculating slippage|
-|»» portfolioSnapshots|object|false|none|none|
-|»»» interval|string|false|none|Interval between portfolio snapshots|
-
-<aside class="warning">
-To perform this operation, you must be authenticated by means of one of the following methods:
-BearerAuth
-</aside>
-
-<h1 id="trading-simulator-api-admin">Admin</h1>
-
-Admin endpoints
-
-## Set up initial admin account
-
-> Code samples
-
-```javascript
-const inputBody = '{
-  "username": "admin",
-  "password": "password123",
-  "email": "admin@example.com"
-}';
-const headers = {
-  'Content-Type':'application/json',
-  'Accept':'application/json'
-};
-
-fetch('http://localhost:3000/api/admin/setup',
-{
-  method: 'POST',
-  body: inputBody,
-  headers: headers
-})
-.then(function(res) {
-    return res.json();
-}).then(function(body) {
-    console.log(body);
-});
-
-```
-
-`POST /api/admin/setup`
+##### Description:
 
 Creates the first admin account. This endpoint is only available when no admin exists in the system.
 
-> Body parameter
+##### Responses
 
-```json
-{
-  "username": "admin",
-  "password": "password123",
-  "email": "admin@example.com"
-}
-```
+| Code | Description                                               |
+| ---- | --------------------------------------------------------- |
+| 201  | Admin account created successfully                        |
+| 400  | Missing required parameters or password too short         |
+| 403  | Admin setup not allowed - an admin account already exists |
+| 500  | Server error                                              |
 
-<h3 id="set-up-initial-admin-account-parameters">Parameters</h3>
+### /api/admin/teams/register
 
-|Name|In|Type|Required|Description|
-|---|---|---|---|---|
-|body|body|object|true|none|
-|» username|body|string|true|Admin username|
-|» password|body|string(password)|true|Admin password (minimum 8 characters)|
-|» email|body|string(email)|true|Admin email address|
+#### POST
 
-> Example responses
+##### Summary:
 
-> 201 Response
+Register a new team
 
-```json
-{
-  "success": true,
-  "message": "string",
-  "admin": {
-    "id": "string",
-    "username": "string",
-    "email": "string",
-    "createdAt": "2019-08-24T14:15:22Z"
-  }
-}
-```
-
-<h3 id="set-up-initial-admin-account-responses">Responses</h3>
-
-|Status|Meaning|Description|Schema|
-|---|---|---|---|
-|201|[Created](https://tools.ietf.org/html/rfc7231#section-6.3.2)|Admin account created successfully|Inline|
-|400|[Bad Request](https://tools.ietf.org/html/rfc7231#section-6.5.1)|Missing required parameters or password too short|None|
-|403|[Forbidden](https://tools.ietf.org/html/rfc7231#section-6.5.3)|Admin setup not allowed - an admin account already exists|None|
-|500|[Internal Server Error](https://tools.ietf.org/html/rfc7231#section-6.6.1)|Server error|None|
-
-<h3 id="set-up-initial-admin-account-responseschema">Response Schema</h3>
-
-Status Code **201**
-
-|Name|Type|Required|Restrictions|Description|
-|---|---|---|---|---|
-|» success|boolean|false|none|Operation success status|
-|» message|string|false|none|Success message|
-|» admin|object|false|none|none|
-|»» id|string|false|none|Admin ID|
-|»» username|string|false|none|Admin username|
-|»» email|string|false|none|Admin email|
-|»» createdAt|string(date-time)|false|none|Account creation timestamp|
-
-<aside class="success">
-This operation does not require authentication
-</aside>
-
-## Register a new team
-
-> Code samples
-
-```javascript
-const inputBody = '{
-  "teamName": "Team Alpha",
-  "email": "team@example.com",
-  "contactPerson": "John Doe",
-  "walletAddress": 1.0392900530713021e+47
-}';
-const headers = {
-  'Content-Type':'application/json',
-  'Accept':'application/json',
-  'Authorization':'Bearer {access-token}'
-};
-
-fetch('http://localhost:3000/api/admin/teams/register',
-{
-  method: 'POST',
-  body: inputBody,
-  headers: headers
-})
-.then(function(res) {
-    return res.json();
-}).then(function(body) {
-    console.log(body);
-});
-
-```
-
-`POST /api/admin/teams/register`
+##### Description:
 
 Admin-only endpoint to register a new team. Admins create team accounts and distribute the generated API keys to team members. Teams cannot register themselves.
 
-> Body parameter
+##### Responses
 
-```json
-{
-  "teamName": "Team Alpha",
-  "email": "team@example.com",
-  "contactPerson": "John Doe",
-  "walletAddress": 1.0392900530713021e+47
-}
-```
+| Code | Description                                           |
+| ---- | ----------------------------------------------------- |
+| 201  | Team registered successfully                          |
+| 400  | Missing required parameters or invalid wallet address |
+| 409  | Team with this email or wallet address already exists |
+| 500  | Server error                                          |
 
-<h3 id="register-a-new-team-parameters">Parameters</h3>
+##### Security
 
-|Name|In|Type|Required|Description|
-|---|---|---|---|---|
-|body|body|object|true|none|
-|» teamName|body|string|true|Name of the team|
-|» email|body|string(email)|true|Team email address|
-|» contactPerson|body|string|true|Name of the contact person|
-|» walletAddress|body|string|true|Ethereum wallet address (must start with 0x)|
+| Security Schema | Scopes |
+| --------------- | ------ |
+| BearerAuth      |        |
 
-> Example responses
+### /api/admin/teams
 
-> 201 Response
+#### GET
 
-```json
-{
-  "success": true,
-  "team": {
-    "id": "string",
-    "name": "string",
-    "email": "string",
-    "contactPerson": "string",
-    "walletAddress": "string",
-    "apiKey": "abc123def456_ghi789jkl012",
-    "createdAt": "2019-08-24T14:15:22Z"
-  }
-}
-```
+##### Summary:
 
-<h3 id="register-a-new-team-responses">Responses</h3>
+List all teams
 
-|Status|Meaning|Description|Schema|
-|---|---|---|---|
-|201|[Created](https://tools.ietf.org/html/rfc7231#section-6.3.2)|Team registered successfully|Inline|
-|400|[Bad Request](https://tools.ietf.org/html/rfc7231#section-6.5.1)|Missing required parameters or invalid wallet address|None|
-|409|[Conflict](https://tools.ietf.org/html/rfc7231#section-6.5.8)|Team with this email or wallet address already exists|None|
-|500|[Internal Server Error](https://tools.ietf.org/html/rfc7231#section-6.6.1)|Server error|None|
-
-<h3 id="register-a-new-team-responseschema">Response Schema</h3>
-
-Status Code **201**
-
-|Name|Type|Required|Restrictions|Description|
-|---|---|---|---|---|
-|» success|boolean|false|none|Operation success status|
-|» team|object|false|none|none|
-|»» id|string|false|none|Team ID|
-|»» name|string|false|none|Team name|
-|»» email|string|false|none|Team email|
-|»» contactPerson|string|false|none|Contact person name|
-|»» walletAddress|string|false|none|Ethereum wallet address|
-|»» apiKey|string|false|none|API key for the team to use with Bearer authentication. Admin should securely provide this to the team.|
-|»» createdAt|string(date-time)|false|none|Account creation timestamp|
-
-<aside class="warning">
-To perform this operation, you must be authenticated by means of one of the following methods:
-BearerAuth
-</aside>
-
-## List all teams
-
-> Code samples
-
-```javascript
-
-const headers = {
-  'Accept':'application/json',
-  'Authorization':'Bearer {access-token}'
-};
-
-fetch('http://localhost:3000/api/admin/teams',
-{
-  method: 'GET',
-
-  headers: headers
-})
-.then(function(res) {
-    return res.json();
-}).then(function(body) {
-    console.log(body);
-});
-
-```
-
-`GET /api/admin/teams`
+##### Description:
 
 Get a list of all non-admin teams
 
-> Example responses
+##### Responses
 
-> 200 Response
+| Code | Description                                  |
+| ---- | -------------------------------------------- |
+| 200  | List of teams                                |
+| 401  | Unauthorized - Admin authentication required |
+| 500  | Server error                                 |
 
-```json
-{
-  "success": true,
-  "teams": [
-    {
-      "id": "string",
-      "name": "string",
-      "email": "string",
-      "contactPerson": "string",
-      "createdAt": "2019-08-24T14:15:22Z",
-      "updatedAt": "2019-08-24T14:15:22Z"
-    }
-  ]
-}
-```
+##### Security
 
-<h3 id="list-all-teams-responses">Responses</h3>
+| Security Schema | Scopes |
+| --------------- | ------ |
+| BearerAuth      |        |
 
-|Status|Meaning|Description|Schema|
-|---|---|---|---|
-|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|List of teams|Inline|
-|401|[Unauthorized](https://tools.ietf.org/html/rfc7235#section-3.1)|Unauthorized - Admin authentication required|None|
-|500|[Internal Server Error](https://tools.ietf.org/html/rfc7231#section-6.6.1)|Server error|None|
+### /api/admin/teams/{teamId}/key
 
-<h3 id="list-all-teams-responseschema">Response Schema</h3>
+#### GET
 
-Status Code **200**
+##### Summary:
 
-|Name|Type|Required|Restrictions|Description|
-|---|---|---|---|---|
-|» success|boolean|false|none|Operation success status|
-|» teams|[object]|false|none|none|
-|»» id|string|false|none|Team ID|
-|»» name|string|false|none|Team name|
-|»» email|string|false|none|Team email|
-|»» contactPerson|string|false|none|Contact person name|
-|»» createdAt|string(date-time)|false|none|Account creation timestamp|
-|»» updatedAt|string(date-time)|false|none|Account update timestamp|
+Get a team's API key
 
-<aside class="warning">
-To perform this operation, you must be authenticated by means of one of the following methods:
-BearerAuth
-</aside>
+##### Description:
 
-## Delete a team
+Retrieves the original API key for a team. Use this when teams lose or misplace their API key.
 
-> Code samples
+##### Parameters
 
-```javascript
+| Name   | Located in | Description    | Required | Schema |
+| ------ | ---------- | -------------- | -------- | ------ |
+| teamId | path       | ID of the team | Yes      | string |
 
-const headers = {
-  'Accept':'application/json',
-  'Authorization':'Bearer {access-token}'
-};
+##### Responses
 
-fetch('http://localhost:3000/api/admin/teams/{teamId}',
-{
-  method: 'DELETE',
+| Code | Description                                  |
+| ---- | -------------------------------------------- |
+| 200  | API key retrieved successfully               |
+| 401  | Unauthorized - Admin authentication required |
+| 403  | Cannot retrieve API key for admin accounts   |
+| 404  | Team not found                               |
+| 500  | Server error                                 |
 
-  headers: headers
-})
-.then(function(res) {
-    return res.json();
-}).then(function(body) {
-    console.log(body);
-});
+##### Security
 
-```
+| Security Schema | Scopes |
+| --------------- | ------ |
+| BearerAuth      |        |
 
-`DELETE /api/admin/teams/{teamId}`
+### /api/admin/teams/{teamId}
+
+#### DELETE
+
+##### Summary:
+
+Delete a team
+
+##### Description:
 
 Permanently delete a team and all associated data
 
-<h3 id="delete-a-team-parameters">Parameters</h3>
+##### Parameters
 
-|Name|In|Type|Required|Description|
-|---|---|---|---|---|
-|teamId|path|string|true|ID of the team to delete|
+| Name   | Located in | Description              | Required | Schema |
+| ------ | ---------- | ------------------------ | -------- | ------ |
+| teamId | path       | ID of the team to delete | Yes      | string |
 
-> Example responses
+##### Responses
 
-> 200 Response
+| Code | Description                                  |
+| ---- | -------------------------------------------- |
+| 200  | Team deleted successfully                    |
+| 400  | Team ID is required                          |
+| 401  | Unauthorized - Admin authentication required |
+| 403  | Cannot delete admin accounts                 |
+| 404  | Team not found                               |
+| 500  | Server error                                 |
 
-```json
-{
-  "success": true,
-  "message": "string"
-}
-```
+##### Security
 
-<h3 id="delete-a-team-responses">Responses</h3>
+| Security Schema | Scopes |
+| --------------- | ------ |
+| BearerAuth      |        |
 
-|Status|Meaning|Description|Schema|
-|---|---|---|---|
-|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|Team deleted successfully|Inline|
-|400|[Bad Request](https://tools.ietf.org/html/rfc7231#section-6.5.1)|Team ID is required|None|
-|401|[Unauthorized](https://tools.ietf.org/html/rfc7235#section-3.1)|Unauthorized - Admin authentication required|None|
-|403|[Forbidden](https://tools.ietf.org/html/rfc7231#section-6.5.3)|Cannot delete admin accounts|None|
-|404|[Not Found](https://tools.ietf.org/html/rfc7231#section-6.5.4)|Team not found|None|
-|500|[Internal Server Error](https://tools.ietf.org/html/rfc7231#section-6.6.1)|Server error|None|
+### /api/admin/competition/create
 
-<h3 id="delete-a-team-responseschema">Response Schema</h3>
+#### POST
 
-Status Code **200**
+##### Summary:
 
-|Name|Type|Required|Restrictions|Description|
-|---|---|---|---|---|
-|» success|boolean|false|none|Operation success status|
-|» message|string|false|none|Success message|
+Create a competition
 
-<aside class="warning">
-To perform this operation, you must be authenticated by means of one of the following methods:
-BearerAuth
-</aside>
-
-## Create a competition
-
-> Code samples
-
-```javascript
-const inputBody = '{
-  "name": "Spring 2023 Trading Competition",
-  "description": "A trading competition for the spring semester"
-}';
-const headers = {
-  'Content-Type':'application/json',
-  'Accept':'application/json',
-  'Authorization':'Bearer {access-token}'
-};
-
-fetch('http://localhost:3000/api/admin/competition/create',
-{
-  method: 'POST',
-  body: inputBody,
-  headers: headers
-})
-.then(function(res) {
-    return res.json();
-}).then(function(body) {
-    console.log(body);
-});
-
-```
-
-`POST /api/admin/competition/create`
+##### Description:
 
 Create a new competition without starting it. It will be in PENDING status and can be started later.
 
-> Body parameter
+##### Responses
 
-```json
-{
-  "name": "Spring 2023 Trading Competition",
-  "description": "A trading competition for the spring semester"
-}
-```
+| Code | Description                                  |
+| ---- | -------------------------------------------- |
+| 201  | Competition created successfully             |
+| 400  | Missing required parameters                  |
+| 401  | Unauthorized - Admin authentication required |
+| 500  | Server error                                 |
 
-<h3 id="create-a-competition-parameters">Parameters</h3>
+##### Security
 
-|Name|In|Type|Required|Description|
-|---|---|---|---|---|
-|body|body|object|true|none|
-|» name|body|string|true|Competition name|
-|» description|body|string|false|Competition description|
+| Security Schema | Scopes |
+| --------------- | ------ |
+| BearerAuth      |        |
 
-> Example responses
+### /api/admin/competition/start
 
-> 201 Response
+#### POST
 
-```json
-{
-  "success": true,
-  "competition": {
-    "id": "string",
-    "name": "string",
-    "description": "string",
-    "status": "PENDING",
-    "createdAt": "2019-08-24T14:15:22Z"
-  }
-}
-```
+##### Summary:
 
-<h3 id="create-a-competition-responses">Responses</h3>
+Start a competition
 
-|Status|Meaning|Description|Schema|
-|---|---|---|---|
-|201|[Created](https://tools.ietf.org/html/rfc7231#section-6.3.2)|Competition created successfully|Inline|
-|400|[Bad Request](https://tools.ietf.org/html/rfc7231#section-6.5.1)|Missing required parameters|None|
-|401|[Unauthorized](https://tools.ietf.org/html/rfc7235#section-3.1)|Unauthorized - Admin authentication required|None|
-|500|[Internal Server Error](https://tools.ietf.org/html/rfc7231#section-6.6.1)|Server error|None|
-
-<h3 id="create-a-competition-responseschema">Response Schema</h3>
-
-Status Code **201**
-
-|Name|Type|Required|Restrictions|Description|
-|---|---|---|---|---|
-|» success|boolean|false|none|Operation success status|
-|» competition|object|false|none|none|
-|»» id|string|false|none|Competition ID|
-|»» name|string|false|none|Competition name|
-|»» description|string|false|none|Competition description|
-|»» status|string|false|none|Competition status|
-|»» createdAt|string(date-time)|false|none|Competition creation date|
-
-#### Enumerated Values
-
-|Property|Value|
-|---|---|
-|status|PENDING|
-|status|ACTIVE|
-|status|COMPLETED|
-
-<aside class="warning">
-To perform this operation, you must be authenticated by means of one of the following methods:
-BearerAuth
-</aside>
-
-## Start a competition
-
-> Code samples
-
-```javascript
-const inputBody = '{
-  "competitionId": "string",
-  "name": "Spring 2023 Trading Competition",
-  "description": "A trading competition for the spring semester",
-  "teamIds": [
-    "string"
-  ]
-}';
-const headers = {
-  'Content-Type':'application/json',
-  'Accept':'application/json',
-  'Authorization':'Bearer {access-token}'
-};
-
-fetch('http://localhost:3000/api/admin/competition/start',
-{
-  method: 'POST',
-  body: inputBody,
-  headers: headers
-})
-.then(function(res) {
-    return res.json();
-}).then(function(body) {
-    console.log(body);
-});
-
-```
-
-`POST /api/admin/competition/start`
+##### Description:
 
 Start a new or existing competition with specified teams. If competitionId is provided, it will start an existing competition. Otherwise, it will create and start a new one.
 
-> Body parameter
+##### Responses
 
-```json
-{
-  "competitionId": "string",
-  "name": "Spring 2023 Trading Competition",
-  "description": "A trading competition for the spring semester",
-  "teamIds": [
-    "string"
-  ]
-}
-```
+| Code | Description                                    |
+| ---- | ---------------------------------------------- |
+| 200  | Competition started successfully               |
+| 400  | Missing required parameters                    |
+| 401  | Unauthorized - Admin authentication required   |
+| 404  | Competition not found when using competitionId |
+| 500  | Server error                                   |
 
-<h3 id="start-a-competition-parameters">Parameters</h3>
+##### Security
 
-|Name|In|Type|Required|Description|
-|---|---|---|---|---|
-|body|body|object|true|none|
-|» competitionId|body|string|false|ID of an existing competition to start. If not provided, a new competition will be created.|
-|» name|body|string|false|Competition name (required when creating a new competition)|
-|» description|body|string|false|Competition description (used when creating a new competition)|
-|» teamIds|body|[string]|true|Array of team IDs to include in the competition|
+| Security Schema | Scopes |
+| --------------- | ------ |
+| BearerAuth      |        |
 
-> Example responses
+### /api/admin/competition/end
 
-> 200 Response
+#### POST
 
-```json
-{
-  "success": true,
-  "competition": {
-    "id": "string",
-    "name": "string",
-    "description": "string",
-    "startDate": "2019-08-24T14:15:22Z",
-    "endDate": "2019-08-24T14:15:22Z",
-    "status": "PENDING",
-    "teamIds": [
-      "string"
-    ]
-  }
-}
-```
+##### Summary:
 
-<h3 id="start-a-competition-responses">Responses</h3>
+End a competition
 
-|Status|Meaning|Description|Schema|
-|---|---|---|---|
-|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|Competition started successfully|Inline|
-|400|[Bad Request](https://tools.ietf.org/html/rfc7231#section-6.5.1)|Missing required parameters|None|
-|401|[Unauthorized](https://tools.ietf.org/html/rfc7235#section-3.1)|Unauthorized - Admin authentication required|None|
-|404|[Not Found](https://tools.ietf.org/html/rfc7231#section-6.5.4)|Competition not found when using competitionId|None|
-|500|[Internal Server Error](https://tools.ietf.org/html/rfc7231#section-6.6.1)|Server error|None|
-
-<h3 id="start-a-competition-responseschema">Response Schema</h3>
-
-Status Code **200**
-
-|Name|Type|Required|Restrictions|Description|
-|---|---|---|---|---|
-|» success|boolean|false|none|Operation success status|
-|» competition|object|false|none|none|
-|»» id|string|false|none|Competition ID|
-|»» name|string|false|none|Competition name|
-|»» description|string|false|none|Competition description|
-|»» startDate|string(date-time)|false|none|Competition start date|
-|»» endDate|string(date-time)¦null|false|none|Competition end date (null if not ended)|
-|»» status|string|false|none|Competition status|
-|»» teamIds|[string]|false|none|Team IDs participating in the competition|
-
-#### Enumerated Values
-
-|Property|Value|
-|---|---|
-|status|PENDING|
-|status|ACTIVE|
-|status|COMPLETED|
-
-<aside class="warning">
-To perform this operation, you must be authenticated by means of one of the following methods:
-BearerAuth
-</aside>
-
-## End a competition
-
-> Code samples
-
-```javascript
-const inputBody = '{
-  "competitionId": "string"
-}';
-const headers = {
-  'Content-Type':'application/json',
-  'Accept':'application/json',
-  'Authorization':'Bearer {access-token}'
-};
-
-fetch('http://localhost:3000/api/admin/competition/end',
-{
-  method: 'POST',
-  body: inputBody,
-  headers: headers
-})
-.then(function(res) {
-    return res.json();
-}).then(function(body) {
-    console.log(body);
-});
-
-```
-
-`POST /api/admin/competition/end`
+##### Description:
 
 End an active competition and finalize the results
 
-> Body parameter
+##### Responses
 
-```json
-{
-  "competitionId": "string"
-}
-```
+| Code | Description                                  |
+| ---- | -------------------------------------------- |
+| 200  | Competition ended successfully               |
+| 400  | Missing competitionId parameter              |
+| 401  | Unauthorized - Admin authentication required |
+| 404  | Competition not found                        |
+| 500  | Server error                                 |
 
-<h3 id="end-a-competition-parameters">Parameters</h3>
+##### Security
 
-|Name|In|Type|Required|Description|
-|---|---|---|---|---|
-|body|body|object|true|none|
-|» competitionId|body|string|true|ID of the competition to end|
+| Security Schema | Scopes |
+| --------------- | ------ |
+| BearerAuth      |        |
 
-> Example responses
+### /api/admin/competition/{competitionId}/snapshots
 
-> 200 Response
+#### GET
 
-```json
-{
-  "success": true,
-  "competition": {
-    "id": "string",
-    "name": "string",
-    "description": "string",
-    "startDate": "2019-08-24T14:15:22Z",
-    "endDate": "2019-08-24T14:15:22Z",
-    "status": "PENDING"
-  },
-  "leaderboard": [
-    {
-      "teamId": "string",
-      "value": 0
-    }
-  ]
-}
-```
+##### Summary:
 
-<h3 id="end-a-competition-responses">Responses</h3>
+Get competition snapshots
 
-|Status|Meaning|Description|Schema|
-|---|---|---|---|
-|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|Competition ended successfully|Inline|
-|400|[Bad Request](https://tools.ietf.org/html/rfc7231#section-6.5.1)|Missing competitionId parameter|None|
-|401|[Unauthorized](https://tools.ietf.org/html/rfc7235#section-3.1)|Unauthorized - Admin authentication required|None|
-|404|[Not Found](https://tools.ietf.org/html/rfc7231#section-6.5.4)|Competition not found|None|
-|500|[Internal Server Error](https://tools.ietf.org/html/rfc7231#section-6.6.1)|Server error|None|
-
-<h3 id="end-a-competition-responseschema">Response Schema</h3>
-
-Status Code **200**
-
-|Name|Type|Required|Restrictions|Description|
-|---|---|---|---|---|
-|» success|boolean|false|none|Operation success status|
-|» competition|object|false|none|none|
-|»» id|string|false|none|Competition ID|
-|»» name|string|false|none|Competition name|
-|»» description|string|false|none|Competition description|
-|»» startDate|string(date-time)|false|none|Competition start date|
-|»» endDate|string(date-time)|false|none|Competition end date|
-|»» status|string|false|none|Competition status (completed)|
-|» leaderboard|[object]|false|none|none|
-|»» teamId|string|false|none|Team ID|
-|»» value|number|false|none|Final portfolio value|
-
-#### Enumerated Values
-
-|Property|Value|
-|---|---|
-|status|PENDING|
-|status|ACTIVE|
-|status|COMPLETED|
-
-<aside class="warning">
-To perform this operation, you must be authenticated by means of one of the following methods:
-BearerAuth
-</aside>
-
-## Get competition snapshots
-
-> Code samples
-
-```javascript
-
-const headers = {
-  'Accept':'application/json',
-  'Authorization':'Bearer {access-token}'
-};
-
-fetch('http://localhost:3000/api/admin/competition/{competitionId}/snapshots',
-{
-  method: 'GET',
-
-  headers: headers
-})
-.then(function(res) {
-    return res.json();
-}).then(function(body) {
-    console.log(body);
-});
-
-```
-
-`GET /api/admin/competition/{competitionId}/snapshots`
+##### Description:
 
 Get portfolio snapshots for a competition, optionally filtered by team
 
-<h3 id="get-competition-snapshots-parameters">Parameters</h3>
+##### Parameters
 
-|Name|In|Type|Required|Description|
-|---|---|---|---|---|
-|competitionId|path|string|true|ID of the competition|
-|teamId|query|string|false|Optional team ID to filter snapshots|
+| Name          | Located in | Description                          | Required | Schema |
+| ------------- | ---------- | ------------------------------------ | -------- | ------ |
+| competitionId | path       | ID of the competition                | Yes      | string |
+| teamId        | query      | Optional team ID to filter snapshots | No       | string |
 
-> Example responses
+##### Responses
 
-> 200 Response
+| Code | Description                                      |
+| ---- | ------------------------------------------------ |
+| 200  | Competition snapshots                            |
+| 400  | Missing competitionId or team not in competition |
+| 401  | Unauthorized - Admin authentication required     |
+| 404  | Competition or team not found                    |
+| 500  | Server error                                     |
 
-```json
-{
-  "success": true,
-  "snapshots": [
-    {
-      "id": "string",
-      "competitionId": "string",
-      "teamId": "string",
-      "totalValue": 0,
-      "timestamp": "2019-08-24T14:15:22Z"
-    }
-  ]
-}
-```
+##### Security
 
-<h3 id="get-competition-snapshots-responses">Responses</h3>
+| Security Schema | Scopes |
+| --------------- | ------ |
+| BearerAuth      |        |
 
-|Status|Meaning|Description|Schema|
-|---|---|---|---|
-|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|Competition snapshots|Inline|
-|400|[Bad Request](https://tools.ietf.org/html/rfc7231#section-6.5.1)|Missing competitionId or team not in competition|None|
-|401|[Unauthorized](https://tools.ietf.org/html/rfc7235#section-3.1)|Unauthorized - Admin authentication required|None|
-|404|[Not Found](https://tools.ietf.org/html/rfc7231#section-6.5.4)|Competition or team not found|None|
-|500|[Internal Server Error](https://tools.ietf.org/html/rfc7231#section-6.6.1)|Server error|None|
+### /api/admin/reports/performance
 
-<h3 id="get-competition-snapshots-responseschema">Response Schema</h3>
+#### GET
 
-Status Code **200**
+##### Summary:
 
-|Name|Type|Required|Restrictions|Description|
-|---|---|---|---|---|
-|» success|boolean|false|none|Operation success status|
-|» snapshots|[object]|false|none|none|
-|»» id|string|false|none|Snapshot ID|
-|»» competitionId|string|false|none|Competition ID|
-|»» teamId|string|false|none|Team ID|
-|»» totalValue|number|false|none|Total portfolio value at snapshot time|
-|»» timestamp|string(date-time)|false|none|Snapshot timestamp|
+Get performance reports
 
-<aside class="warning">
-To perform this operation, you must be authenticated by means of one of the following methods:
-BearerAuth
-</aside>
-
-## Get performance reports
-
-> Code samples
-
-```javascript
-
-const headers = {
-  'Accept':'application/json',
-  'Authorization':'Bearer {access-token}'
-};
-
-fetch('http://localhost:3000/api/admin/reports/performance?competitionId=string',
-{
-  method: 'GET',
-
-  headers: headers
-})
-.then(function(res) {
-    return res.json();
-}).then(function(body) {
-    console.log(body);
-});
-
-```
-
-`GET /api/admin/reports/performance`
+##### Description:
 
 Get performance reports and leaderboard for a competition
 
-<h3 id="get-performance-reports-parameters">Parameters</h3>
+##### Parameters
 
-|Name|In|Type|Required|Description|
-|---|---|---|---|---|
-|competitionId|query|string|true|ID of the competition|
+| Name          | Located in | Description           | Required | Schema |
+| ------------- | ---------- | --------------------- | -------- | ------ |
+| competitionId | query      | ID of the competition | Yes      | string |
 
-> Example responses
+##### Responses
 
-> 200 Response
+| Code | Description                                  |
+| ---- | -------------------------------------------- |
+| 200  | Performance reports                          |
+| 400  | Missing competitionId parameter              |
+| 401  | Unauthorized - Admin authentication required |
+| 404  | Competition not found                        |
+| 500  | Server error                                 |
 
-```json
-{
-  "success": true,
-  "competition": {
-    "id": "string",
-    "name": "string",
-    "description": "string",
-    "startDate": "2019-08-24T14:15:22Z",
-    "endDate": "2019-08-24T14:15:22Z",
-    "status": "PENDING"
-  },
-  "leaderboard": [
-    {
-      "rank": 0,
-      "teamId": "string",
-      "teamName": "string",
-      "portfolioValue": 0
-    }
-  ]
-}
-```
+##### Security
 
-<h3 id="get-performance-reports-responses">Responses</h3>
+| Security Schema | Scopes |
+| --------------- | ------ |
+| BearerAuth      |        |
 
-|Status|Meaning|Description|Schema|
-|---|---|---|---|
-|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|Performance reports|Inline|
-|400|[Bad Request](https://tools.ietf.org/html/rfc7231#section-6.5.1)|Missing competitionId parameter|None|
-|401|[Unauthorized](https://tools.ietf.org/html/rfc7235#section-3.1)|Unauthorized - Admin authentication required|None|
-|404|[Not Found](https://tools.ietf.org/html/rfc7231#section-6.5.4)|Competition not found|None|
-|500|[Internal Server Error](https://tools.ietf.org/html/rfc7231#section-6.6.1)|Server error|None|
+### /api/admin/teams/{teamId}/deactivate
 
-<h3 id="get-performance-reports-responseschema">Response Schema</h3>
+#### POST
 
-Status Code **200**
+##### Summary:
 
-|Name|Type|Required|Restrictions|Description|
-|---|---|---|---|---|
-|» success|boolean|false|none|Operation success status|
-|» competition|object|false|none|none|
-|»» id|string|false|none|Competition ID|
-|»» name|string|false|none|Competition name|
-|»» description|string|false|none|Competition description|
-|»» startDate|string(date-time)|false|none|Competition start date|
-|»» endDate|string(date-time)¦null|false|none|Competition end date|
-|»» status|string|false|none|Competition status|
-|» leaderboard|[object]|false|none|none|
-|»» rank|integer|false|none|Team rank on the leaderboard|
-|»» teamId|string|false|none|Team ID|
-|»» teamName|string|false|none|Team name|
-|»» portfolioValue|number|false|none|Portfolio value|
+Deactivate a team
 
-#### Enumerated Values
-
-|Property|Value|
-|---|---|
-|status|PENDING|
-|status|ACTIVE|
-|status|COMPLETED|
-
-<aside class="warning">
-To perform this operation, you must be authenticated by means of one of the following methods:
-BearerAuth
-</aside>
-
-## Deactivate a team
-
-> Code samples
-
-```javascript
-const inputBody = '{
-  "reason": "Violated competition rules by using external API"
-}';
-const headers = {
-  'Content-Type':'application/json',
-  'Accept':'application/json',
-  'Authorization':'Bearer {access-token}'
-};
-
-fetch('http://localhost:3000/api/admin/teams/{teamId}/deactivate',
-{
-  method: 'POST',
-  body: inputBody,
-  headers: headers
-})
-.then(function(res) {
-    return res.json();
-}).then(function(body) {
-    console.log(body);
-});
-
-```
-
-`POST /api/admin/teams/{teamId}/deactivate`
+##### Description:
 
 Deactivate a team from the competition. The team will no longer be able to perform any actions.
 
-> Body parameter
+##### Parameters
 
-```json
-{
-  "reason": "Violated competition rules by using external API"
-}
-```
+| Name   | Located in | Description                  | Required | Schema |
+| ------ | ---------- | ---------------------------- | -------- | ------ |
+| teamId | path       | ID of the team to deactivate | Yes      | string |
 
-<h3 id="deactivate-a-team-parameters">Parameters</h3>
+##### Responses
 
-|Name|In|Type|Required|Description|
-|---|---|---|---|---|
-|teamId|path|string|true|ID of the team to deactivate|
-|body|body|object|true|none|
-|» reason|body|string|true|Reason for deactivation|
+| Code | Description                                  |
+| ---- | -------------------------------------------- |
+| 200  | Team deactivated successfully                |
+| 400  | Missing required parameters                  |
+| 401  | Unauthorized - Admin authentication required |
+| 403  | Cannot deactivate admin accounts             |
+| 404  | Team not found                               |
+| 500  | Server error                                 |
 
-> Example responses
+##### Security
 
-> 200 Response
+| Security Schema | Scopes |
+| --------------- | ------ |
+| BearerAuth      |        |
 
-```json
-{
-  "success": true,
-  "team": {
-    "id": "string",
-    "name": "string",
-    "active": true,
-    "deactivationReason": "string",
-    "deactivationDate": "2019-08-24T14:15:22Z"
-  }
-}
-```
+### /api/admin/teams/{teamId}/reactivate
 
-<h3 id="deactivate-a-team-responses">Responses</h3>
+#### POST
 
-|Status|Meaning|Description|Schema|
-|---|---|---|---|
-|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|Team deactivated successfully|Inline|
-|400|[Bad Request](https://tools.ietf.org/html/rfc7231#section-6.5.1)|Missing required parameters|None|
-|401|[Unauthorized](https://tools.ietf.org/html/rfc7235#section-3.1)|Unauthorized - Admin authentication required|None|
-|403|[Forbidden](https://tools.ietf.org/html/rfc7231#section-6.5.3)|Cannot deactivate admin accounts|None|
-|404|[Not Found](https://tools.ietf.org/html/rfc7231#section-6.5.4)|Team not found|None|
-|500|[Internal Server Error](https://tools.ietf.org/html/rfc7231#section-6.6.1)|Server error|None|
+##### Summary:
 
-<h3 id="deactivate-a-team-responseschema">Response Schema</h3>
+Reactivate a team
 
-Status Code **200**
-
-|Name|Type|Required|Restrictions|Description|
-|---|---|---|---|---|
-|» success|boolean|false|none|Operation success status|
-|» team|object|false|none|none|
-|»» id|string|false|none|Team ID|
-|»» name|string|false|none|Team name|
-|»» active|boolean|false|none|Active status (will be false)|
-|»» deactivationReason|string|false|none|Reason for deactivation|
-|»» deactivationDate|string(date-time)|false|none|Date of deactivation|
-
-<aside class="warning">
-To perform this operation, you must be authenticated by means of one of the following methods:
-BearerAuth
-</aside>
-
-## Reactivate a team
-
-> Code samples
-
-```javascript
-
-const headers = {
-  'Accept':'application/json',
-  'Authorization':'Bearer {access-token}'
-};
-
-fetch('http://localhost:3000/api/admin/teams/{teamId}/reactivate',
-{
-  method: 'POST',
-
-  headers: headers
-})
-.then(function(res) {
-    return res.json();
-}).then(function(body) {
-    console.log(body);
-});
-
-```
-
-`POST /api/admin/teams/{teamId}/reactivate`
+##### Description:
 
 Reactivate a previously deactivated team, allowing them to participate in the competition again.
 
-<h3 id="reactivate-a-team-parameters">Parameters</h3>
+##### Parameters
 
-|Name|In|Type|Required|Description|
-|---|---|---|---|---|
-|teamId|path|string|true|ID of the team to reactivate|
+| Name   | Located in | Description                  | Required | Schema |
+| ------ | ---------- | ---------------------------- | -------- | ------ |
+| teamId | path       | ID of the team to reactivate | Yes      | string |
 
-> Example responses
+##### Responses
 
-> 200 Response
+| Code | Description                                  |
+| ---- | -------------------------------------------- |
+| 200  | Team reactivated successfully                |
+| 400  | Team is already active                       |
+| 401  | Unauthorized - Admin authentication required |
+| 404  | Team not found                               |
+| 500  | Server error                                 |
 
-```json
-{
-  "success": true,
-  "team": {
-    "id": "string",
-    "name": "string",
-    "active": true
-  }
-}
-```
+##### Security
 
-<h3 id="reactivate-a-team-responses">Responses</h3>
+| Security Schema | Scopes |
+| --------------- | ------ |
+| BearerAuth      |        |
 
-|Status|Meaning|Description|Schema|
-|---|---|---|---|
-|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|Team reactivated successfully|Inline|
-|400|[Bad Request](https://tools.ietf.org/html/rfc7231#section-6.5.1)|Team is already active|None|
-|401|[Unauthorized](https://tools.ietf.org/html/rfc7235#section-3.1)|Unauthorized - Admin authentication required|None|
-|404|[Not Found](https://tools.ietf.org/html/rfc7231#section-6.5.4)|Team not found|None|
-|500|[Internal Server Error](https://tools.ietf.org/html/rfc7231#section-6.6.1)|Server error|None|
+### /api/competition/leaderboard
 
-<h3 id="reactivate-a-team-responseschema">Response Schema</h3>
+#### GET
 
-Status Code **200**
+##### Summary:
 
-|Name|Type|Required|Restrictions|Description|
-|---|---|---|---|---|
-|» success|boolean|false|none|Operation success status|
-|» team|object|false|none|none|
-|»» id|string|false|none|Team ID|
-|»» name|string|false|none|Team name|
-|»» active|boolean|false|none|Active status (will be true)|
+Get competition leaderboard
 
-<aside class="warning">
-To perform this operation, you must be authenticated by means of one of the following methods:
-BearerAuth
-</aside>
+##### Description:
 
-<h1 id="trading-simulator-api-health">Health</h1>
+Get the leaderboard for the active competition or a specific competition. Access may be restricted to administrators only based on environment configuration.
 
-Health check endpoints
+##### Parameters
 
-## Basic health check
+| Name          | Located in | Description                                                               | Required | Schema |
+| ------------- | ---------- | ------------------------------------------------------------------------- | -------- | ------ |
+| Authorization | header     | Bearer token for authentication (format "Bearer YOUR_API_KEY")            | Yes      | string |
+| competitionId | query      | Optional competition ID (if not provided, the active competition is used) | No       | string |
 
-> Code samples
+##### Responses
 
-```javascript
+| Code | Description                                                                                           |
+| ---- | ----------------------------------------------------------------------------------------------------- |
+| 200  | Competition leaderboard                                                                               |
+| 400  | Bad request - No active competition and no competitionId provided                                     |
+| 401  | Unauthorized - Missing or invalid authentication                                                      |
+| 403  | Forbidden - Access denied due to permission restrictions or team not participating in the competition |
+| 404  | Competition not found                                                                                 |
+| 500  | Server error                                                                                          |
 
-const headers = {
-  'Accept':'application/json'
-};
+##### Security
 
-fetch('http://localhost:3000/api/health',
-{
-  method: 'GET',
+| Security Schema | Scopes |
+| --------------- | ------ |
+| BearerAuth      |        |
 
-  headers: headers
-})
-.then(function(res) {
-    return res.json();
-}).then(function(body) {
-    console.log(body);
-});
+### /api/competition/status
 
-```
+#### GET
 
-`GET /api/health`
+##### Summary:
+
+Get competition status
+
+##### Description:
+
+Get the status of the active competition
+
+##### Parameters
+
+| Name          | Located in | Description                                                    | Required | Schema |
+| ------------- | ---------- | -------------------------------------------------------------- | -------- | ------ |
+| Authorization | header     | Bearer token for authentication (format "Bearer YOUR_API_KEY") | Yes      | string |
+
+##### Responses
+
+| Code | Description                                      |
+| ---- | ------------------------------------------------ |
+| 200  | Competition status                               |
+| 401  | Unauthorized - Missing or invalid authentication |
+| 500  | Server error                                     |
+
+##### Security
+
+| Security Schema | Scopes |
+| --------------- | ------ |
+| BearerAuth      |        |
+
+### /api/competition/rules
+
+#### GET
+
+##### Summary:
+
+Get competition rules
+
+##### Description:
+
+Get the rules, rate limits, and other configuration details for the competition
+
+##### Parameters
+
+| Name          | Located in | Description                                                    | Required | Schema |
+| ------------- | ---------- | -------------------------------------------------------------- | -------- | ------ |
+| Authorization | header     | Bearer token for authentication (format "Bearer YOUR_API_KEY") | Yes      | string |
+
+##### Responses
+
+| Code | Description                                           |
+| ---- | ----------------------------------------------------- |
+| 200  | Competition rules retrieved successfully              |
+| 400  | Bad request - No active competition                   |
+| 401  | Unauthorized - Missing or invalid authentication      |
+| 403  | Forbidden - Team not participating in the competition |
+| 500  | Server error                                          |
+
+##### Security
+
+| Security Schema | Scopes |
+| --------------- | ------ |
+| BearerAuth      |        |
+
+### /api/health
+
+#### GET
+
+##### Summary:
+
+Basic health check
+
+##### Description:
 
 Check if the API is running
 
-> Example responses
+##### Responses
 
-> 200 Response
+| Code | Description    |
+| ---- | -------------- |
+| 200  | API is healthy |
+| 500  | Server error   |
 
-```json
-{
-  "status": "ok",
-  "timestamp": "2019-08-24T14:15:22Z",
-  "uptime": 0,
-  "version": "string"
-}
-```
+### /api/health/detailed
 
-<h3 id="basic-health-check-responses">Responses</h3>
+#### GET
 
-|Status|Meaning|Description|Schema|
-|---|---|---|---|
-|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|API is healthy|Inline|
-|500|[Internal Server Error](https://tools.ietf.org/html/rfc7231#section-6.6.1)|Server error|None|
+##### Summary:
 
-<h3 id="basic-health-check-responseschema">Response Schema</h3>
+Detailed health check
 
-Status Code **200**
-
-|Name|Type|Required|Restrictions|Description|
-|---|---|---|---|---|
-|» status|string|false|none|Health status of the API|
-|» timestamp|string(date-time)|false|none|Current server time|
-|» uptime|number|false|none|Server uptime in seconds|
-|» version|string|false|none|API version|
-
-<aside class="success">
-This operation does not require authentication
-</aside>
-
-## Detailed health check
-
-> Code samples
-
-```javascript
-
-const headers = {
-  'Accept':'application/json'
-};
-
-fetch('http://localhost:3000/api/health/detailed',
-{
-  method: 'GET',
-
-  headers: headers
-})
-.then(function(res) {
-    return res.json();
-}).then(function(body) {
-    console.log(body);
-});
-
-```
-
-`GET /api/health/detailed`
+##### Description:
 
 Check if the API and all its services are running properly
 
-> Example responses
+##### Responses
 
-> 200 Response
+| Code | Description            |
+| ---- | ---------------------- |
+| 200  | Detailed health status |
+| 500  | Server error           |
 
-```json
-{
-  "status": "ok",
-  "timestamp": "2019-08-24T14:15:22Z",
-  "uptime": 0,
-  "version": "string",
-  "services": {
-    "priceTracker": "ok",
-    "balanceManager": "ok",
-    "tradeSimulator": "ok",
-    "competitionManager": "ok",
-    "teamManager": "ok"
-  }
-}
-```
+### /api/price
 
-<h3 id="detailed-health-check-responses">Responses</h3>
+#### GET
 
-|Status|Meaning|Description|Schema|
-|---|---|---|---|
-|200|[OK](https://tools.ietf.org/html/rfc7231#section-6.3.1)|Detailed health status|Inline|
-|500|[Internal Server Error](https://tools.ietf.org/html/rfc7231#section-6.6.1)|Server error|None|
+##### Summary:
 
-<h3 id="detailed-health-check-responseschema">Response Schema</h3>
+Get price for a token
 
-Status Code **200**
+##### Description:
 
-|Name|Type|Required|Restrictions|Description|
-|---|---|---|---|---|
-|» status|string|false|none|Overall health status of the API|
-|» timestamp|string(date-time)|false|none|Current server time|
-|» uptime|number|false|none|Server uptime in seconds|
-|» version|string|false|none|API version|
-|» services|object|false|none|Status of individual services|
-|»» priceTracker|string|false|none|Status of the price tracker service|
-|»» balanceManager|string|false|none|Status of the balance manager service|
-|»» tradeSimulator|string|false|none|Status of the trade simulator service|
-|»» competitionManager|string|false|none|Status of the competition manager service|
-|»» teamManager|string|false|none|Status of the team manager service|
+Get the current price of a specified token
 
-<aside class="success">
-This operation does not require authentication
-</aside>
+##### Parameters
 
-# Schemas
+| Name          | Located in | Description                                                    | Required | Schema |
+| ------------- | ---------- | -------------------------------------------------------------- | -------- | ------ |
+| Authorization | header     | Bearer token for authentication (format "Bearer YOUR_API_KEY") | Yes      | string |
+| token         | query      | Token address                                                  | Yes      | string |
+| chain         | query      | Blockchain type of the token                                   | No       | string |
+| specificChain | query      | Specific chain for EVM tokens                                  | No       | string |
 
-<h2 id="tocS_Error">Error</h2>
-<!-- backwards compatibility -->
-<a id="schemaerror"></a>
-<a id="schema_Error"></a>
-<a id="tocSerror"></a>
-<a id="tocserror"></a>
+##### Responses
 
-```json
-{
-  "error": "string",
-  "status": 0,
-  "timestamp": "2019-08-24T14:15:22Z"
-}
+| Code | Description                                      |
+| ---- | ------------------------------------------------ |
+| 200  | Token price information                          |
+| 400  | Invalid request parameters                       |
+| 401  | Unauthorized - Missing or invalid authentication |
+| 500  | Server error                                     |
 
-```
+##### Security
 
-### Properties
+| Security Schema | Scopes |
+| --------------- | ------ |
+| BearerAuth      |        |
 
-|Name|Type|Required|Restrictions|Description|
-|---|---|---|---|---|
-|error|string|false|none|Error message|
-|status|integer|false|none|HTTP status code|
-|timestamp|string(date-time)|false|none|Timestamp of when the error occurred|
+### /api/price/token-info
 
-<h2 id="tocS_Trade">Trade</h2>
-<!-- backwards compatibility -->
-<a id="schematrade"></a>
-<a id="schema_Trade"></a>
-<a id="tocStrade"></a>
-<a id="tocstrade"></a>
+#### GET
 
-```json
-{
-  "id": "string",
-  "teamId": "string",
-  "competitionId": "string",
-  "fromToken": "string",
-  "toToken": "string",
-  "fromAmount": 0,
-  "toAmount": 0,
-  "price": 0,
-  "success": true,
-  "error": "string",
-  "timestamp": "2019-08-24T14:15:22Z",
-  "fromChain": "string",
-  "toChain": "string",
-  "fromSpecificChain": "string",
-  "toSpecificChain": "string"
-}
+##### Summary:
 
-```
+Get detailed token information
 
-### Properties
+##### Description:
 
-|Name|Type|Required|Restrictions|Description|
-|---|---|---|---|---|
-|id|string|false|none|Unique trade ID|
-|teamId|string|false|none|Team ID that executed the trade|
-|competitionId|string|false|none|ID of the competition this trade is part of|
-|fromToken|string|false|none|Token address that was sold|
-|toToken|string|false|none|Token address that was bought|
-|fromAmount|number|false|none|Amount of fromToken that was sold|
-|toAmount|number|false|none|Amount of toToken that was received|
-|price|number|false|none|Price at which the trade was executed|
-|success|boolean|false|none|Whether the trade was successfully completed|
-|error|string|false|none|Error message if the trade failed|
-|timestamp|string(date-time)|false|none|Timestamp of when the trade was executed|
-|fromChain|string|false|none|Blockchain type of the source token|
-|toChain|string|false|none|Blockchain type of the destination token|
-|fromSpecificChain|string|false|none|Specific chain for the source token|
-|toSpecificChain|string|false|none|Specific chain for the destination token|
+Get detailed token information including price and specific chain
 
-<h2 id="tocS_TokenBalance">TokenBalance</h2>
-<!-- backwards compatibility -->
-<a id="schematokenbalance"></a>
-<a id="schema_TokenBalance"></a>
-<a id="tocStokenbalance"></a>
-<a id="tocstokenbalance"></a>
+##### Parameters
 
-```json
-{
-  "token": "string",
-  "amount": 0,
-  "chain": "string",
-  "specificChain": "string"
-}
+| Name          | Located in | Description                                                    | Required | Schema |
+| ------------- | ---------- | -------------------------------------------------------------- | -------- | ------ |
+| Authorization | header     | Bearer token for authentication (format "Bearer YOUR_API_KEY") | Yes      | string |
+| token         | query      | Token address                                                  | Yes      | string |
+| chain         | query      | Blockchain type of the token                                   | No       | string |
+| specificChain | query      | Specific chain for EVM tokens                                  | No       | string |
 
-```
+##### Responses
 
-### Properties
+| Code | Description                                      |
+| ---- | ------------------------------------------------ |
+| 200  | Token information                                |
+| 400  | Invalid request parameters                       |
+| 401  | Unauthorized - Missing or invalid authentication |
+| 500  | Server error                                     |
 
-|Name|Type|Required|Restrictions|Description|
-|---|---|---|---|---|
-|token|string|false|none|Token address|
-|amount|number|false|none|Token balance amount|
-|chain|string|false|none|Chain the token belongs to|
-|specificChain|string|false|none|Specific chain for EVM tokens|
+##### Security
 
+| Security Schema | Scopes |
+| --------------- | ------ |
+| BearerAuth      |        |
+
+### /api/public/teams/register
+
+#### POST
+
+##### Summary:
+
+Register a new team
+
+##### Description:
+
+Public endpoint to register a new team. Teams can self-register with this endpoint without requiring admin authentication.
+
+##### Responses
+
+| Code | Description                                           |
+| ---- | ----------------------------------------------------- |
+| 201  | Team registered successfully                          |
+| 400  | Missing required parameters or invalid wallet address |
+| 409  | Team with this email or wallet address already exists |
+| 500  | Server error                                          |
+
+### /api/trade/execute
+
+#### POST
+
+##### Summary:
+
+Execute a trade
+
+##### Description:
+
+Execute a trade between two tokens
+
+##### Parameters
+
+| Name          | Located in | Description                                                    | Required | Schema |
+| ------------- | ---------- | -------------------------------------------------------------- | -------- | ------ |
+| Authorization | header     | Bearer token for authentication (format "Bearer YOUR_API_KEY") | Yes      | string |
+
+##### Responses
+
+| Code | Description                                                   |
+| ---- | ------------------------------------------------------------- |
+| 200  | Trade executed successfully                                   |
+| 400  | Invalid input parameters                                      |
+| 401  | Unauthorized - Missing or invalid authentication              |
+| 403  | Forbidden - Competition not in progress or other restrictions |
+| 500  | Server error                                                  |
+
+##### Security
+
+| Security Schema | Scopes |
+| --------------- | ------ |
+| BearerAuth      |        |
+
+### /api/trade/quote
+
+#### GET
+
+##### Summary:
+
+Get a quote for a trade
+
+##### Description:
+
+Get a quote for a potential trade between two tokens
+
+##### Parameters
+
+| Name              | Located in | Description                                                    | Required | Schema |
+| ----------------- | ---------- | -------------------------------------------------------------- | -------- | ------ |
+| Authorization     | header     | Bearer token for authentication (format "Bearer YOUR_API_KEY") | Yes      | string |
+| fromToken         | query      | Token address to sell                                          | Yes      | string |
+| toToken           | query      | Token address to buy                                           | Yes      | string |
+| amount            | query      | Amount of fromToken to get quote for                           | Yes      | string |
+| fromChain         | query      | Optional blockchain type for fromToken                         | No       | string |
+| fromSpecificChain | query      | Optional specific chain for fromToken                          | No       | string |
+| toChain           | query      | Optional blockchain type for toToken                           | No       | string |
+| toSpecificChain   | query      | Optional specific chain for toToken                            | No       | string |
+
+##### Responses
+
+| Code | Description                                      |
+| ---- | ------------------------------------------------ |
+| 200  | Quote generated successfully                     |
+| 400  | Invalid input parameters                         |
+| 401  | Unauthorized - Missing or invalid authentication |
+| 500  | Server error                                     |
+
+##### Security
+
+| Security Schema | Scopes |
+| --------------- | ------ |
+| BearerAuth      |        |
+
+### Models
+
+#### Error
+
+| Name      | Type     | Description                          | Required |
+| --------- | -------- | ------------------------------------ | -------- |
+| error     | string   | Error message                        | No       |
+| status    | integer  | HTTP status code                     | No       |
+| timestamp | dateTime | Timestamp of when the error occurred | No       |
+
+#### Trade
+
+| Name              | Type     | Description                                  | Required |
+| ----------------- | -------- | -------------------------------------------- | -------- |
+| id                | string   | Unique trade ID                              | No       |
+| teamId            | string   | Team ID that executed the trade              | No       |
+| competitionId     | string   | ID of the competition this trade is part of  | No       |
+| fromToken         | string   | Token address that was sold                  | No       |
+| toToken           | string   | Token address that was bought                | No       |
+| fromAmount        | number   | Amount of fromToken that was sold            | No       |
+| toAmount          | number   | Amount of toToken that was received          | No       |
+| price             | number   | Price at which the trade was executed        | No       |
+| success           | boolean  | Whether the trade was successfully completed | No       |
+| error             | string   | Error message if the trade failed            | No       |
+| timestamp         | dateTime | Timestamp of when the trade was executed     | No       |
+| fromChain         | string   | Blockchain type of the source token          | No       |
+| toChain           | string   | Blockchain type of the destination token     | No       |
+| fromSpecificChain | string   | Specific chain for the source token          | No       |
+| toSpecificChain   | string   | Specific chain for the destination token     | No       |
+
+#### TokenBalance
+
+| Name          | Type   | Description                   | Required |
+| ------------- | ------ | ----------------------------- | -------- |
+| token         | string | Token address                 | No       |
+| amount        | number | Token balance amount          | No       |
+| chain         | string | Chain the token belongs to    | No       |
+| specificChain | string | Specific chain for EVM tokens | No       |

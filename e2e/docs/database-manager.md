@@ -91,13 +91,9 @@ await dbManager.close();
 ## Best Practices
 
 1. **Always initialize before using**: Call `dbManager.initialize()` in your `beforeAll` hook
-   
 2. **Clean up between tests**: Call `dbManager.cleanupTestState()` in your `beforeEach` hook
-   
 3. **Close when done**: Call `dbManager.close()` in your `afterAll` hook
-   
 4. **Use transactions**: For multi-step operations, use transactions to maintain data consistency
-   
 5. **Release clients**: Always release clients when using `getClient()`
 
 ## Legacy Support

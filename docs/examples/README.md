@@ -64,22 +64,26 @@ The Trading Simulator supports tokens on multiple blockchains:
 ### Common Token Addresses
 
 #### Base Chain (EVM)
+
 - ETH: `0x4200000000000000000000000000000000000006`
 - USDC: `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913`
 - TOSHI: `0x0b3e328455c4059EEb9e3f84b5543F74E24e7E1b`
 
 #### Ethereum (EVM)
+
 - WETH: `0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2`
 - USDC: `0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48`
 - LINK: `0x514910771af9ca656af840dff83e8264ecf986ca`
 
 #### Solana (SVM)
+
 - SOL: `So11111111111111111111111111111111111111112`
 - USDC: `EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v`
 
 ### Chain Detection
 
 The system automatically detects which blockchain a token belongs to based on its address format:
+
 - Ethereum addresses start with '0x' followed by 40 hex characters
 - Solana addresses are Base58 encoded strings (typically around 44 characters)
 
@@ -87,7 +91,7 @@ All price-related API responses include a `chain` field indicating which blockch
 
 ### Chain Override Feature
 
-For EVM tokens, the system needs to determine which specific chain the token exists on (Ethereum, Polygon, Base, etc.). By default, this requires checking multiple chains, which can take 1-3 seconds. 
+For EVM tokens, the system needs to determine which specific chain the token exists on (Ethereum, Polygon, Base, etc.). By default, this requires checking multiple chains, which can take 1-3 seconds.
 
 The chain override feature allows you to specify the exact chain for a token, significantly improving API response times:
 
@@ -97,6 +101,7 @@ The chain override feature allows you to specify the exact chain for a token, si
 #### Supported Chains
 
 The following chains can be specified:
+
 - `eth` - Ethereum Mainnet
 - `polygon` - Polygon Network
 - `bsc` - Binance Smart Chain
@@ -112,22 +117,22 @@ The following chains can be specified:
 ```typescript
 // Get price for USDC on Base WITH chain override (fast)
 const usdcPriceWithOverride = await client.getPrice(
-  "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", // USDC on Base
+  '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', // USDC on Base
   BlockchainType.EVM,
-  SpecificChain.BASE  // Specifying exact chain (Base)
+  SpecificChain.BASE, // Specifying exact chain (Base)
 );
 console.log(`USDC Price with override: $${usdcPriceWithOverride.price}`);
 console.log(`Response time: much faster (typically 50-100ms)`);
 
 // Execute a trade on Base with chain override (fast)
 const tradeResult = await client.executeTrade({
-  fromToken: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", // USDC on Base
-  toToken: "0x0b3e328455c4059EEb9e3f84b5543F74E24e7E1b", // TOSHI on Base
-  amount: "50",
+  fromToken: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', // USDC on Base
+  toToken: '0x0b3e328455c4059EEb9e3f84b5543F74E24e7E1b', // TOSHI on Base
+  amount: '50',
   fromChain: BlockchainType.EVM,
   toChain: BlockchainType.EVM,
-  fromSpecificChain: SpecificChain.BASE,  // Specifying exact chain (Base)
-  toSpecificChain: SpecificChain.BASE     // Specifying exact chain (Base)
+  fromSpecificChain: SpecificChain.BASE, // Specifying exact chain (Base)
+  toSpecificChain: SpecificChain.BASE, // Specifying exact chain (Base)
 });
 ```
 
@@ -141,8 +146,8 @@ The `multi-chain-examples.ts` file includes examples that demonstrate the perfor
 // WITHOUT chain override (slower)
 const startTime1 = Date.now();
 const priceNoOverride = await client.getPrice(
-  "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", // USDC on Base
-  BlockchainType.EVM
+  '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', // USDC on Base
+  BlockchainType.EVM,
 );
 const duration1 = Date.now() - startTime1;
 console.log(`Time taken without override: ${duration1}ms`);
@@ -150,23 +155,24 @@ console.log(`Time taken without override: ${duration1}ms`);
 // WITH chain override (faster)
 const startTime2 = Date.now();
 const priceWithOverride = await client.getPrice(
-  "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", // USDC on Base
+  '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', // USDC on Base
   BlockchainType.EVM,
-  SpecificChain.BASE
+  SpecificChain.BASE,
 );
 const duration2 = Date.now() - startTime2;
 console.log(`Time taken with override: ${duration2}ms`);
 
 // Calculate improvement
-const improvement = ((duration1 - duration2) / duration1 * 100).toFixed(2);
+const improvement = (((duration1 - duration2) / duration1) * 100).toFixed(2);
 console.log(`Performance improvement: ${improvement}% faster`);
 ```
 
 #### When to Use Chain Override
 
 Use chain override when:
+
 1. You already know which specific chain a token is on
-2. You need the fastest possible response times 
+2. You need the fastest possible response times
 3. You're making multiple requests for the same token
 
 For best results, maintain a mapping of tokens to their specific chains in your application, as demonstrated by the `TOKEN_CHAINS` map in the examples.
@@ -186,7 +192,7 @@ import { TradingSimulatorClient, BlockchainType, SpecificChain, COMMON_TOKENS } 
 const client = new TradingSimulatorClient(
   'your-api-key',
   'http://localhost:3000', // Use the correct API URL
-  false // Debug mode (optional)
+  false, // Debug mode (optional)
 );
 
 // Get balances
@@ -195,13 +201,13 @@ console.log('Balances:', balances);
 
 // Execute a trade on Base chain
 const baseTrade = await client.executeTrade({
-  fromToken: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", // USDC on Base
-  toToken: "0x0b3e328455c4059EEb9e3f84b5543F74E24e7E1b", // TOSHI on Base
-  amount: "50.00", // Use strings for amounts
+  fromToken: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', // USDC on Base
+  toToken: '0x0b3e328455c4059EEb9e3f84b5543F74E24e7E1b', // TOSHI on Base
+  amount: '50.00', // Use strings for amounts
   fromChain: BlockchainType.EVM,
   toChain: BlockchainType.EVM,
   fromSpecificChain: SpecificChain.BASE,
-  toSpecificChain: SpecificChain.BASE
+  toSpecificChain: SpecificChain.BASE,
 });
 console.log('Base Trade Result:', baseTrade);
 
@@ -233,4 +239,4 @@ For comprehensive API documentation, see:
 
 1. The generated OpenAPI specification at `../openapi.json`
 2. The Markdown API documentation at `../API.md`
-3. The Swagger UI available at `http://localhost:3000/api/docs` when the server is running 
+3. The Swagger UI available at `http://localhost:3000/api/docs` when the server is running

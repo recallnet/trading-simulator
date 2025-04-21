@@ -16,23 +16,23 @@ export interface TokenInfo {
  */
 export enum BlockchainType {
   SVM = 'svm',
-  EVM = 'evm'
+  EVM = 'evm',
 }
 
 // New type for specific chains
-export type SpecificChain = 
-  | 'eth'      // Ethereum Mainnet
-  | 'polygon'  // Polygon
-  | 'bsc'      // Binance Smart Chain
+export type SpecificChain =
+  | 'eth' // Ethereum Mainnet
+  | 'polygon' // Polygon
+  | 'bsc' // Binance Smart Chain
   | 'arbitrum' // Arbitrum
   | 'optimism' // Optimism
-  | 'avalanche'// Avalanche
-  | 'base'     // Base
-  | 'linea'    // Linea
-  | 'zksync'   // zkSync Era
-  | 'scroll'   // Scroll
-  | 'mantle'   // Mantle
-  | 'svm';     // Solana (for consistency)
+  | 'avalanche' // Avalanche
+  | 'base' // Base
+  | 'linea' // Linea
+  | 'zksync' // zkSync Era
+  | 'scroll' // Scroll
+  | 'mantle' // Mantle
+  | 'svm'; // Solana (for consistency)
 
 // Mapping from SpecificChain to BlockchainType
 export const chainTypeMapping: Record<SpecificChain, BlockchainType> = {
@@ -47,7 +47,7 @@ export const chainTypeMapping: Record<SpecificChain, BlockchainType> = {
   zksync: BlockchainType.EVM,
   scroll: BlockchainType.EVM,
   mantle: BlockchainType.EVM,
-  svm: BlockchainType.SVM
+  svm: BlockchainType.SVM,
 };
 
 // Get general chain type from specific chain
@@ -86,7 +86,7 @@ export interface Trade {
   teamId: string;
   competitionId: string;
   error?: string;
-  
+
   // Chain information
   fromChain: BlockchainType;
   toChain: BlockchainType;
@@ -99,7 +99,11 @@ export interface Trade {
  */
 export interface PriceSource {
   getName(): string;
-  getPrice(tokenAddress: string, chain: BlockchainType, specificChain: SpecificChain): Promise<PriceReport | null>;
+  getPrice(
+    tokenAddress: string,
+    chain: BlockchainType,
+    specificChain: SpecificChain,
+  ): Promise<PriceReport | null>;
   supports(tokenAddress: string, specificChain: SpecificChain): Promise<boolean>;
 }
 
@@ -129,6 +133,33 @@ export interface AccountState {
 }
 
 /**
+ * Social media information for a team's agent
+ */
+export interface AgentSocial {
+  name?: string;
+  email?: string;
+  twitter?: string;
+}
+
+/**
+ * Reference information for a team's agent
+ */
+export interface AgentRef {
+  name: string;
+  version: string;
+  url?: string;
+}
+
+/**
+ * Team's agent metadata
+ */
+export interface AgentMetadata {
+  ref?: AgentRef;
+  description?: string;
+  social?: AgentSocial;
+}
+
+/**
  * Team interface
  */
 export interface Team {
@@ -138,6 +169,8 @@ export interface Team {
   contactPerson: string;
   apiKey: string;
   walletAddress: string;
+  bucket_addresses?: string[];
+  metadata?: AgentMetadata; // Agent-specific metadata
   isAdmin?: boolean;
   active?: boolean;
   deactivationReason?: string;
@@ -166,7 +199,7 @@ export interface Competition {
 export enum CompetitionStatus {
   PENDING = 'PENDING',
   ACTIVE = 'ACTIVE',
-  COMPLETED = 'COMPLETED'
+  COMPLETED = 'COMPLETED',
 }
 
 /**
@@ -198,4 +231,4 @@ export interface AuthenticatedRequest extends Request {
     id: string;
     name: string;
   };
-} 
+}

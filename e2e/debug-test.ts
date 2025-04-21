@@ -2,7 +2,7 @@
 
 /**
  * Debug script to run a single E2E test file
- * 
+ *
  * This script handles:
  * 1. Setting up the test environment
  * 2. Running a single test
@@ -49,13 +49,13 @@ async function runTest() {
     // Kill any existing server processes first
     log('\n🔍 Checking for existing server processes...');
     await killExistingServers();
-    
+
     // Ensure test database exists and is set up
     log('\n📦 Setting up test database...');
     const dbSetupResult = spawnSync('npx', ['ts-node', 'e2e/utils/setup-db.ts'], {
       env: { ...process.env, NODE_ENV: 'test' },
       stdio: ['inherit', logStream, logStream],
-      cwd: path.resolve(__dirname, '..')
+      cwd: path.resolve(__dirname, '..'),
     });
 
     if (dbSetupResult.status !== 0) {
@@ -67,7 +67,7 @@ async function runTest() {
     const adminSetupResult = spawnSync('npx', ['ts-node', 'e2e/utils/setup-admin.ts'], {
       env: { ...process.env, NODE_ENV: 'test' },
       stdio: ['inherit', logStream, logStream],
-      cwd: path.resolve(__dirname, '..')
+      cwd: path.resolve(__dirname, '..'),
     });
 
     if (adminSetupResult.status !== 0) {
@@ -76,17 +76,22 @@ async function runTest() {
 
     // Run Jest test for a specific file
     log(`\n🧪 Running test file: ${testFile}...`);
-    const jestResult = spawnSync('npx', [
-      'jest', 
-      '-c', 'e2e/jest.config.js', 
-      `e2e/${testFile}`,
-      '--verbose',
-      '--detectOpenHandles',
-      '--forceExit'
-    ], {
-      stdio: ['inherit', logStream, logStream],
-      cwd: path.resolve(__dirname, '..')
-    });
+    const jestResult = spawnSync(
+      'npx',
+      [
+        'jest',
+        '-c',
+        'e2e/jest.config.js',
+        `e2e/${testFile}`,
+        '--verbose',
+        '--detectOpenHandles',
+        '--forceExit',
+      ],
+      {
+        stdio: ['inherit', logStream, logStream],
+        cwd: path.resolve(__dirname, '..'),
+      },
+    );
 
     // Clean up server processes after running tests
     log('\n🧹 Cleaning up server processes...');
@@ -99,14 +104,14 @@ async function runTest() {
     log('\n✅ Test completed successfully');
   } catch (error) {
     log('\n❌ Test run failed:' + (error instanceof Error ? error.message : String(error)));
-    
+
     // Try to clean up server processes even if the test failed
     try {
       await killExistingServers();
     } catch (cleanupError) {
       log('Failed to clean up server processes:' + String(cleanupError));
     }
-    
+
     process.exit(1);
   } finally {
     // Close the log stream
@@ -115,9 +120,9 @@ async function runTest() {
 }
 
 // Run the test and handle any errors
-runTest().catch(error => {
+runTest().catch((error) => {
   console.error('Unhandled error in test runner:', error);
   logStream.write('Unhandled error in test runner: ' + String(error) + '\n');
   logStream.end();
   process.exit(1);
-}); 
+});

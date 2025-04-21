@@ -10,7 +10,7 @@ import { PriceRepository } from './price-repository';
  */
 class RepositoryRegistry {
   private static instance: RepositoryRegistry;
-  
+
   private _teamRepository: TeamRepository;
   private _competitionRepository: CompetitionRepository;
   private _balanceRepository: BalanceRepository;
@@ -23,7 +23,7 @@ class RepositoryRegistry {
     this._balanceRepository = new BalanceRepository();
     this._tradeRepository = new TradeRepository();
     this._priceRepository = new PriceRepository();
-    
+
     console.log('[RepositoryRegistry] All repositories initialized');
   }
 
@@ -67,5 +67,5 @@ export {
   CompetitionRepository,
   BalanceRepository,
   TradeRepository,
-  PriceRepository
-}; 
+  PriceRepository,
+};
