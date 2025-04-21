@@ -346,7 +346,7 @@ export interface DetailedHealthCheckResponse extends ApiResponse {
   };
 }
 
-// Portfolio snapshot type
+// Portfolio snapshot
 export interface PortfolioSnapshot {
   id: string;
   teamId: string;
@@ -388,4 +388,14 @@ export interface EndCompetitionResponse extends ApiResponse {
     teamId: string;
     value: number;
   }[];
+}
+
+// Team API key response
+export interface TeamApiKeyResponse extends ApiResponse {
+  success: true;
+  team: {
+    id: string;
+    name: string;
+    apiKey: string;
+  };
 }

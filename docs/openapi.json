@@ -915,6 +915,76 @@
         }
       }
     },
+    "/api/admin/teams/{teamId}/key": {
+      "get": {
+        "tags": ["Admin"],
+        "summary": "Get a team's API key",
+        "description": "Retrieves the original API key for a team. Use this when teams lose or misplace their API key.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "teamId",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "description": "ID of the team"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "API key retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Operation success status"
+                    },
+                    "team": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "description": "Team ID"
+                        },
+                        "name": {
+                          "type": "string",
+                          "description": "Team name"
+                        },
+                        "apiKey": {
+                          "type": "string",
+                          "description": "The team's API key"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Admin authentication required"
+          },
+          "403": {
+            "description": "Cannot retrieve API key for admin accounts"
+          },
+          "404": {
+            "description": "Team not found"
+          },
+          "500": {
+            "description": "Server error"
+          }
+        }
+      }
+    },
     "/api/admin/teams/{teamId}": {
       "delete": {
         "tags": ["Admin"],

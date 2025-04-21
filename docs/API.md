@@ -280,6 +280,40 @@ Get a list of all non-admin teams
 | --------------- | ------ |
 | BearerAuth      |        |
 
+### /api/admin/teams/{teamId}/key
+
+#### GET
+
+##### Summary:
+
+Get a team's API key
+
+##### Description:
+
+Retrieves the original API key for a team. Use this when teams lose or misplace their API key.
+
+##### Parameters
+
+| Name   | Located in | Description    | Required | Schema |
+| ------ | ---------- | -------------- | -------- | ------ |
+| teamId | path       | ID of the team | Yes      | string |
+
+##### Responses
+
+| Code | Description                                  |
+| ---- | -------------------------------------------- |
+| 200  | API key retrieved successfully               |
+| 401  | Unauthorized - Admin authentication required |
+| 403  | Cannot retrieve API key for admin accounts   |
+| 404  | Team not found                               |
+| 500  | Server error                                 |
+
+##### Security
+
+| Security Schema | Scopes |
+| --------------- | ------ |
+| BearerAuth      |        |
+
 ### /api/admin/teams/{teamId}
 
 #### DELETE
