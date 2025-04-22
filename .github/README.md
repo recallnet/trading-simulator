@@ -17,6 +17,12 @@ To run the complete CI workflow with all jobs in sequence (similar to how GitHub
 act -W .github/workflows/ci.yml --container-architecture linux/amd64
 ```
 
+or with Apple Silicon:
+
+```bash
+act -W .github/workflows/ci.yml --container-architecture linux/arm64
+```
+
 This will execute all jobs defined in the workflow: `lint-and-format`, `unit-tests`, and `e2e-tests`.
 
 ### Running Individual Jobs

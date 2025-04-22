@@ -19,5 +19,4 @@ module.exports = {
     },
   },
   reporters: ['default', '<rootDir>/utils/log-reporter.js'], // Add custom reporter
-  testSequencer: '<rootDir>/utils/custom-sequencer.js', // Use JavaScript sequencer
 };
