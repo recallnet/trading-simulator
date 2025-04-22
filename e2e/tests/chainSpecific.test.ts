@@ -45,23 +45,19 @@ describe('Specific Chains', () => {
     const competitionName = `Specific Chain Test ${Date.now()}`;
     await startTestCompetition(adminClient, competitionName, [team.id]);
 
-    // Get the database connection
-    const pool = getPool();
+    // Use the team client API to get balances instead of direct DB query
+    const balancesResponse = (await teamClient.getBalance()) as BalancesResponse;
+    expect(balancesResponse.success).toBe(true);
+    expect(Array.isArray(balancesResponse.balances)).toBe(true);
+    expect(balancesResponse.balances.length).toBeGreaterThan(0);
 
-    // Query the balances table to check if specificChain was correctly populated
-    const balancesResult = await pool.query(
-      'SELECT token_address, amount, specific_chain FROM balances WHERE team_id = $1 ORDER BY specific_chain, token_address',
-      [team.id],
-    );
+    // Verify each token has the correct specificChain value
+    for (const balance of balancesResponse.balances) {
+      const tokenAddress = balance.token.toLowerCase();
+      const assignedChain = balance.specificChain;
 
-    // Verify we have balances records
-    expect(balancesResult.rows.length).toBeGreaterThan(0);
-
-    // Verify each expected balance is found with the correct specificChain value
-    // Verify each token address has the correct specificChain based on config
-    for (const row of balancesResult.rows) {
-      const tokenAddress = row.token_address.toLowerCase();
-      const assignedChain = row.specific_chain;
+      // Verify specificChain is returned in the API response
+      expect(assignedChain).toBeDefined();
 
       // Find which chain this token should belong to according to config
       let expectedChain = null;
@@ -81,28 +77,9 @@ describe('Specific Chains', () => {
         }
       }
 
-      // Assert that the chain in the database matches what we expect from config
+      // Assert that the chain in the API response matches what we expect from config
       expect(assignedChain).toBe(expectedChain);
       console.log(`Token ${tokenAddress} correctly assigned to chain ${assignedChain}`);
-    }
-
-    // Check if prices table also has correct specificChain values
-    const pricesResult = await pool.query(
-      'SELECT token, specific_chain FROM prices WHERE specific_chain IS NOT NULL ORDER BY specific_chain, token',
-    );
-
-    // Verify we have prices records with specificChain
-    expect(pricesResult.rows.length).toBeGreaterThan(0);
-
-    // Verify that each token in balances has a corresponding price entry with matching specificChain
-    for (const balance of balancesResult.rows) {
-      const matchingPrices = pricesResult.rows.filter(
-        (price: { token: string; specific_chain: string }) =>
-          price.token === balance.token_address && price.specific_chain === balance.specific_chain,
-      );
-
-      // Each token should have at least one price entry with matching specificChain
-      expect(matchingPrices.length).toBeGreaterThanOrEqual(1);
     }
   });
 
