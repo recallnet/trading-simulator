@@ -184,7 +184,7 @@ jobs:
       - name: Run E2E tests
         run: |
           # Run the tests and capture the output
-          npm run test:e2e
+          npm run test:e2e -- --detectOpenHandles --forceExit
         env:
           TEST_MODE: true
           DB_HOST: ${{ steps.detect-env.outputs.db_host }}
@@ -194,3 +194,5 @@ jobs:
           DB_NAME: trading_simulator_test
           TEST_HOST: ${{ steps.detect-env.outputs.test_host }}
           JEST_WORKER_ID: 1 # Force single worker to prevent open handles from child processes
+          DB_CONNECTION_TIMEOUT: 5000
+          DB_IDLE_TIMEOUT: 1000
