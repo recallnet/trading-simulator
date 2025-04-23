@@ -55,7 +55,7 @@ function prompt(question: string): Promise<string> {
 }
 
 // Safe console log that won't be overridden
-function safeLog(...args: any[]) {
+function safeLog(...args: unknown[]) {
   originalConsoleLog.apply(console, args);
 }
 

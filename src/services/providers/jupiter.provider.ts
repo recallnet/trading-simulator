@@ -1,4 +1,5 @@
 import { PriceSource } from '../../types';
+import { BlockchainType, PriceReport, SpecificChain } from '../../types';
 import axios from 'axios';
 
 /**
@@ -51,15 +52,30 @@ export class JupiterProvider implements PriceSource {
     });
   }
 
-  async getPrice(tokenAddress: string): Promise<number | null> {
+  async getPrice(
+    tokenAddress: string,
+    chain: BlockchainType = BlockchainType.SVM,
+    specificChain: SpecificChain = 'svm',
+  ): Promise<PriceReport | null> {
     try {
+      // Jupiter only supports Solana tokens
+      if (chain !== BlockchainType.SVM) {
+        return null;
+      }
+
       // Check cache first
       const cachedPrice = this.getCachedPrice(tokenAddress);
       if (cachedPrice !== null && cachedPrice.confidence === 'high') {
         console.log(
           `[JupiterProvider] Using cached price for ${tokenAddress}: $${cachedPrice.price}`,
         );
-        return cachedPrice.price;
+        return {
+          token: tokenAddress,
+          price: cachedPrice.price,
+          timestamp: new Date(),
+          chain: BlockchainType.SVM,
+          specificChain: 'svm',
+        };
       }
 
       console.log(`[JupiterProvider] Getting price for ${tokenAddress}`);
@@ -108,7 +124,14 @@ export class JupiterProvider implements PriceSource {
           console.log(
             `[JupiterProvider] Successfully fetched price for ${tokenAddress}: $${price}`,
           );
-          return price;
+
+          return {
+            token: tokenAddress,
+            price,
+            timestamp: new Date(),
+            chain: BlockchainType.SVM,
+            specificChain: 'svm',
+          };
         } catch (error) {
           if (attempt === this.MAX_RETRIES) {
             throw error;
@@ -135,15 +158,21 @@ export class JupiterProvider implements PriceSource {
     }
   }
 
-  async supports(tokenAddress: string): Promise<boolean> {
+  async supports(tokenAddress: string, specificChain: SpecificChain = 'svm'): Promise<boolean> {
     try {
       console.log(`[JupiterProvider] Checking support for token: ${tokenAddress}`);
+
+      // Jupiter only supports Solana tokens
+      if (specificChain !== 'svm') {
+        return false;
+      }
+
       // First check cache
       if (this.getCachedPrice(tokenAddress) !== null) {
         return true;
       }
 
-      const price = await this.getPrice(tokenAddress);
+      const price = await this.getPrice(tokenAddress, BlockchainType.SVM, 'svm');
       return price !== null;
     } catch (error) {
       console.error(

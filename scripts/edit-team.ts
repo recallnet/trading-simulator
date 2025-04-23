@@ -53,7 +53,7 @@ function prompt(question: string): Promise<string> {
 }
 
 // Safe console log that won't be overridden
-function safeLog(...args: any[]) {
+function safeLog(...args: unknown[]) {
   originalConsoleLog.apply(console, args);
 }
 
@@ -63,6 +63,16 @@ const originalConsoleLog = console.log;
 // Validate Ethereum address
 function isValidEthereumAddress(address: string): boolean {
   return /^0x[a-fA-F0-9]{40}$/.test(address);
+}
+
+// Define team interface for type safety
+interface TeamRecord {
+  id: string;
+  name: string;
+  email: string;
+  contact_person: string;
+  wallet_address?: string;
+  bucket_addresses?: string[];
 }
 
 /**
@@ -127,7 +137,7 @@ async function editTeam() {
       throw new Error(`No team found with email: ${teamEmail}`);
     }
 
-    const currentTeam = team.rows[0];
+    const currentTeam = team.rows[0] as unknown as TeamRecord;
 
     safeLog(`\n${colors.green}✓ Team found: ${currentTeam.name}${colors.reset}`);
     safeLog(`\n${colors.cyan}Current Team Details:${colors.reset}`);
@@ -234,7 +244,7 @@ async function editTeam() {
       `;
 
       const result = await db.query(updateQuery, params);
-      const updatedTeam = result.rows[0];
+      const updatedTeam = result.rows[0] as unknown as TeamRecord;
 
       safeLog(`\n${colors.green}✓ Team updated successfully!${colors.reset}`);
       safeLog(`\n${colors.cyan}Updated Team Details:${colors.reset}`);

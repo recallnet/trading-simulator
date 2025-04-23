@@ -1,5 +1,11 @@
 import { v4 as uuidv4 } from 'uuid';
-import { Competition, CompetitionStatus, PortfolioValue, SpecificChain } from '../types';
+import {
+  Competition,
+  CompetitionStatus,
+  PortfolioValue,
+  PriceReport,
+  SpecificChain,
+} from '../types';
 import { BalanceManager } from './balance-manager.service';
 import { TradeSimulator } from './trade-simulator.service';
 import { PriceTracker } from './price-tracker.service';
@@ -257,7 +263,7 @@ export class CompetitionManager {
       const balances = await this.balanceManager.getAllBalances(teamId);
       const valuesByToken: Record<
         string,
-        { amount: number; valueUsd: number; price: number; specificChain?: SpecificChain }
+        { amount: number; valueUsd: number; price: number; specificChain: SpecificChain }
       > = {};
       let totalValue = 0;
 
@@ -267,8 +273,8 @@ export class CompetitionManager {
         // First try to get latest price record from the database to reuse chain information
         const latestPriceRecord = await repositories.priceRepository.getLatestPrice(balance.token);
 
-        let price: number | null = null;
-        let specificChain: SpecificChain | undefined = undefined;
+        let specificChain: SpecificChain;
+        let priceResult: PriceReport | undefined = undefined;
 
         if (latestPriceRecord) {
           dbPriceHitCount++;
@@ -280,10 +286,16 @@ export class CompetitionManager {
 
           if (isFreshPrice) {
             // Use the existing price if it's fresh
-            price = latestPriceRecord.price;
+            priceResult = {
+              price: latestPriceRecord.price,
+              timestamp: latestPriceRecord.timestamp,
+              chain: latestPriceRecord.chain,
+              specificChain: latestPriceRecord.specificChain,
+              token: latestPriceRecord.token,
+            };
             reusedPriceCount++;
             console.log(
-              `[CompetitionManager] Using fresh price for ${balance.token} from DB: $${price} (${specificChain || 'unknown chain'}) - age ${Math.round(priceAge / 1000)}s, threshold ${Math.round(config.portfolio.priceFreshnessMs / 1000)}s`,
+              `[CompetitionManager] Using fresh price for ${balance.token} from DB: $${priceResult.price} (${specificChain || 'unknown chain'}) - age ${Math.round(priceAge / 1000)}s, threshold ${Math.round(config.portfolio.priceFreshnessMs / 1000)}s`,
             );
           } else if (specificChain && latestPriceRecord.chain) {
             // Use specific chain information to avoid chain detection when fetching a new price
@@ -292,27 +304,36 @@ export class CompetitionManager {
             );
 
             // Pass both chain type and specific chain to getPrice to bypass chain detection
-            price = await this.priceTracker.getPrice(
+            const result = await this.priceTracker.getPrice(
               balance.token,
               latestPriceRecord.chain,
               specificChain,
             );
+            if (result !== null) {
+              priceResult = result;
+            }
           } else {
             // Fallback to regular price lookup
-            price = await this.priceTracker.getPrice(balance.token);
+            const result = await this.priceTracker.getPrice(balance.token);
+            if (result !== null) {
+              priceResult = result;
+            }
           }
         } else {
           // No price record found, do regular price lookup
-          price = await this.priceTracker.getPrice(balance.token);
+          const result = await this.priceTracker.getPrice(balance.token);
+          if (result !== null) {
+            priceResult = result;
+          }
         }
 
-        if (price) {
-          const valueUsd = balance.amount * price;
+        if (priceResult) {
+          const valueUsd = balance.amount * priceResult.price;
           valuesByToken[balance.token] = {
             amount: balance.amount,
             valueUsd,
-            price,
-            specificChain,
+            price: priceResult.price,
+            specificChain: priceResult.specificChain,
           };
           totalValue += valueUsd;
         } else {

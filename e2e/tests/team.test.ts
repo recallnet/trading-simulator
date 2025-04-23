@@ -8,6 +8,12 @@ import {
 } from '../utils/test-helpers';
 import axios from 'axios';
 import { getBaseUrl } from '../utils/server';
+import {
+  TeamProfileResponse,
+  AdminTeamsListResponse,
+  TeamMetadata,
+  TeamRegistrationResponse,
+} from '../utils/api-types';
 
 describe('Team API', () => {
   // Clean up test state before each test
@@ -52,15 +58,15 @@ describe('Team API', () => {
     expect(team.id).toBeDefined();
     expect(team.name).toBe(teamName);
     expect(team.email).toBe(email);
-    expect(team.contact_person).toBe(contactPerson);
+    expect(team.contactPerson).toBe(contactPerson);
     expect(apiKey).toBeDefined();
 
     // Verify team client is authenticated
     const profileResponse = await teamClient.getProfile();
     expect(profileResponse.success).toBe(true);
-    expect(profileResponse.team).toBeDefined();
-    expect(profileResponse.team.id).toBe(team.id);
-    expect(profileResponse.team.name).toBe(teamName);
+    expect((profileResponse as TeamProfileResponse).team).toBeDefined();
+    expect((profileResponse as TeamProfileResponse).team.id).toBe(team.id);
+    expect((profileResponse as TeamProfileResponse).team.name).toBe(teamName);
   });
 
   test('teams can update their profile information', async () => {
@@ -81,13 +87,53 @@ describe('Team API', () => {
     });
 
     expect(updateResponse.success).toBe(true);
-    expect(updateResponse.team).toBeDefined();
-    expect(updateResponse.team.contact_person).toBe(newContactPerson);
+    expect((updateResponse as TeamProfileResponse).team).toBeDefined();
+    expect((updateResponse as TeamProfileResponse).team.contactPerson).toBe(newContactPerson);
 
     // Verify changes persisted
     const profileResponse = await teamClient.getProfile();
     expect(profileResponse.success).toBe(true);
-    expect(profileResponse.team.contact_person).toBe(newContactPerson);
+    expect((profileResponse as TeamProfileResponse).team.contactPerson).toBe(newContactPerson);
+  });
+
+  test('teams can update their profile metadata', async () => {
+    // Setup admin client
+    const client = createTestClient();
+    console.log(`TEST: Attempting to login with admin API key: ${adminApiKey.substring(0, 8)}...`);
+    const loginSuccess = await client.loginAsAdmin(adminApiKey);
+    console.log(`TEST: Login result: ${loginSuccess}`);
+
+    // Register a team
+    const { client: teamClient } = await registerTeamAndGetClient(client);
+
+    // Define metadata for the update
+    const metadata = {
+      ref: {
+        name: 'TradingBot',
+        version: '1.0.0',
+        url: 'https://github.com/example/trading-bot',
+      },
+      description: 'An algorithmic trading bot for the competition',
+      social: {
+        name: 'Trading Team',
+        email: 'contact@tradingteam.com',
+        twitter: '@tradingbot',
+      },
+    };
+
+    // Update team profile with metadata
+    const updateResponse = await teamClient.updateProfile({
+      metadata,
+    });
+
+    expect(updateResponse.success).toBe(true);
+    expect((updateResponse as TeamProfileResponse).team).toBeDefined();
+    expect((updateResponse as TeamProfileResponse).team.metadata).toEqual(metadata);
+
+    // Verify changes persisted
+    const profileResponse = await teamClient.getProfile();
+    expect(profileResponse.success).toBe(true);
+    expect((profileResponse as TeamProfileResponse).team.metadata).toEqual(metadata);
   });
 
   test('team cannot authenticate with invalid API key', async () => {
@@ -143,15 +189,73 @@ describe('Team API', () => {
     const teamsResponse = await adminClient.listAllTeams();
 
     expect(teamsResponse.success).toBe(true);
-    expect(teamsResponse.teams).toBeDefined();
-    expect(teamsResponse.teams.length).toBeGreaterThanOrEqual(teamData.length);
+    expect((teamsResponse as AdminTeamsListResponse).teams).toBeDefined();
+    expect((teamsResponse as AdminTeamsListResponse).teams.length).toBeGreaterThanOrEqual(
+      teamData.length,
+    );
 
     // Verify all our teams are in the list
     for (const data of teamData) {
-      const foundTeam = teamsResponse.teams.find(
+      const foundTeam = (teamsResponse as AdminTeamsListResponse).teams.find(
         (t: any) => t.name === data.name && t.email === data.email,
       );
       expect(foundTeam).toBeDefined();
     }
+  });
+
+  test('team can retrieve profile with metadata', async () => {
+    // Setup admin client
+    const client = createTestClient();
+    console.log(`TEST: Attempting to login with admin API key: ${adminApiKey.substring(0, 8)}...`);
+    const loginSuccess = await client.loginAsAdmin(adminApiKey);
+    console.log(`TEST: Login result: ${loginSuccess}`);
+
+    // Define metadata for the team
+    const metadata: TeamMetadata = {
+      ref: {
+        name: 'ProfileTestBot',
+        version: '1.5.0',
+        url: 'https://github.com/example/profile-test-bot',
+      },
+      description: 'A bot for testing profile retrieval',
+      social: {
+        name: 'Profile Testing Team',
+        email: 'profile@testingteam.com',
+        twitter: '@profilebot',
+      },
+    };
+
+    // Register a team with metadata
+    const teamName = `Profile Metadata Team ${Date.now()}`;
+    const email = `profile-metadata-${Date.now()}@example.com`;
+    const contactPerson = 'Profile Test Contact';
+
+    // Register team with metadata
+    const registerResponse = await client.registerTeam(
+      teamName,
+      email,
+      contactPerson,
+      undefined,
+      metadata,
+    );
+    expect(registerResponse.success).toBe(true);
+
+    // Create a client for the new team
+    const registrationResponse = registerResponse as TeamRegistrationResponse;
+    const teamClient = client.createTeamClient(registrationResponse.team.apiKey);
+
+    // Get the team profile
+    const profileResponse = await teamClient.getProfile();
+    const teamProfile = profileResponse as TeamProfileResponse;
+
+    // Verify all profile fields including metadata
+    expect(teamProfile.success).toBe(true);
+    expect(teamProfile.team.id).toBeDefined();
+    expect(teamProfile.team.name).toBe(teamName);
+    expect(teamProfile.team.email).toBe(email);
+    expect(teamProfile.team.contactPerson).toBe(contactPerson);
+    expect(teamProfile.team.metadata).toEqual(metadata);
+    expect(teamProfile.team.createdAt).toBeDefined();
+    expect(teamProfile.team.updatedAt).toBeDefined();
   });
 });

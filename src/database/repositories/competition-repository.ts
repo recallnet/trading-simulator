@@ -1,5 +1,5 @@
 import { BaseRepository } from '../base-repository';
-import { Competition, CompetitionStatus } from '../../types';
+import { Competition, CompetitionStatus, SpecificChain } from '../../types';
 import { PortfolioSnapshot, PortfolioTokenValue, DatabaseRow } from '../types';
 import { PoolClient } from 'pg';
 
@@ -278,9 +278,9 @@ export class CompetitionRepository extends BaseRepository<Competition> {
     try {
       const query = `
         INSERT INTO portfolio_token_values (
-          portfolio_snapshot_id, token_address, amount, value_usd, price
+          portfolio_snapshot_id, token_address, amount, value_usd, price, specific_chain
         ) VALUES (
-          $1, $2, $3, $4, $5
+          $1, $2, $3, $4, $5, $6
         ) RETURNING *
       `;
 
@@ -290,6 +290,7 @@ export class CompetitionRepository extends BaseRepository<Competition> {
         tokenValue.amount,
         tokenValue.valueUsd,
         tokenValue.price,
+        tokenValue.specificChain,
       ];
 
       const result = client
@@ -304,6 +305,7 @@ export class CompetitionRepository extends BaseRepository<Competition> {
         amount: parseFloat(String(row.amount)),
         valueUsd: parseFloat(String(row.valueUsd)),
         price: parseFloat(String(row.price)),
+        specificChain: row.specificChain as SpecificChain,
       };
     } catch (error) {
       console.error('[CompetitionRepository] Error creating portfolio token value:', error);
@@ -430,9 +432,10 @@ export class CompetitionRepository extends BaseRepository<Competition> {
           id: camelRow.id as number,
           portfolioSnapshotId: camelRow.portfolioSnapshotId as number,
           tokenAddress: camelRow.tokenAddress as string,
-          amount: parseFloat(String(camelRow.amount)),
-          valueUsd: parseFloat(String(camelRow.valueUsd)),
-          price: parseFloat(String(camelRow.price)),
+          amount: parseFloat(camelRow.amount as string),
+          valueUsd: parseFloat(camelRow.valueUsd as string),
+          price: parseFloat(camelRow.price as string),
+          specificChain: camelRow.specificChain as SpecificChain,
         };
       });
     } catch (error) {

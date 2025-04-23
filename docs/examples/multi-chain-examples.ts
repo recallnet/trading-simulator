@@ -5,29 +5,20 @@
  * multiple blockchains (Solana and Ethereum).
  */
 
+import { TradingSimulatorClient, COMMON_TOKENS } from './api-client';
 import {
-  TradingSimulatorClient,
   BlockchainType,
   SpecificChain,
-  COMMON_TOKENS,
   PriceResponse,
   BalancesResponse,
   TradeResponse,
   TokenInfoResponse,
   TradeHistoryResponse,
-} from './api-client';
+  TradeExecutionParams,
+} from '../../e2e/utils/api-types';
 
-// Define the interfaces that aren't explicitly exported from api-client.ts
-interface TradeDetails {
-  fromToken: string;
-  toToken: string;
-  amount: string;
-  slippageTolerance?: string;
-  fromChain?: BlockchainType;
-  toChain?: BlockchainType;
-  fromSpecificChain?: SpecificChain;
-  toSpecificChain?: SpecificChain;
-}
+// Use TradeExecutionParams for trade details
+type TradeDetails = TradeExecutionParams;
 
 interface TradeHistoryParams {
   limit?: number;

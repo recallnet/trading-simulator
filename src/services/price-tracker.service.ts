@@ -1,22 +1,8 @@
-import { PriceSource, BlockchainType, SpecificChain } from '../types';
-// Comment out other providers that we're not using anymore
-// import { JupiterProvider } from './providers/jupiter.provider';
-// import { RaydiumProvider } from './providers/raydium.provider';
-// import { SerumProvider } from './providers/serum.provider';
-// import { NovesProvider } from './providers/noves.provider';
+import { PriceSource, BlockchainType, SpecificChain, PriceReport } from '../types';
 import { MultiChainProvider } from './providers/multi-chain.provider';
 import { config } from '../config';
 import { repositories } from '../database';
-
-// Define PriceRecord type for consistent use
-interface PriceRecord {
-  id?: number;
-  token: string;
-  price: number;
-  timestamp: Date;
-  chain?: BlockchainType; // General chain type (EVM, SVM)
-  specificChain?: SpecificChain; // Specific chain (eth, polygon, base, svm, etc.)
-}
+import { PriceRecord } from '../database/types';
 
 /**
  * Price Tracker Service
@@ -26,7 +12,7 @@ export class PriceTracker {
   private providers: PriceSource[];
   // private novesProvider: NovesProvider | null = null;
   private multiChainProvider: MultiChainProvider | null = null;
-  private priceCache: Map<string, { price: number; timestamp: number }>;
+  private priceCache: Map<string, PriceReport>;
   private readonly CACHE_DURATION = config.priceCacheDuration; // 30 seconds
 
   constructor() {
@@ -89,7 +75,7 @@ export class PriceTracker {
     tokenAddress: string,
     blockchainType?: BlockchainType,
     specificChain?: SpecificChain,
-  ): Promise<number | null> {
+  ): Promise<PriceReport | null> {
     console.log(`[PriceTracker] Getting price for token: ${tokenAddress}`);
 
     // Determine which chain this token belongs to if not provided
@@ -101,11 +87,11 @@ export class PriceTracker {
     // Check cache first
     const cacheKey = `${tokenChain}:${tokenAddress}`;
     const cached = this.priceCache.get(cacheKey);
-    if (cached && Date.now() - cached.timestamp < this.CACHE_DURATION) {
+    if (cached && Date.now() - new Date(cached.timestamp).getTime() < this.CACHE_DURATION) {
       console.log(
         `[PriceTracker] Using cached price for ${tokenAddress} on ${tokenChain}: $${cached.price}`,
       );
-      return cached.price;
+      return cached;
     }
 
     // If no cache hit, use MultiChainProvider
@@ -114,25 +100,29 @@ export class PriceTracker {
         console.log(`[PriceTracker] Using MultiChainProvider for token ${tokenAddress}`);
 
         // Get price from MultiChainProvider
-        const price = await this.multiChainProvider.getPrice(
+        const priceResult = await this.multiChainProvider.getPrice(
           tokenAddress,
           tokenChain,
           specificChain,
         );
 
-        if (price !== null) {
+        if (priceResult !== null) {
+          // Handle both number and PriceReport return types
+          const price = priceResult.price;
+          const chain = priceResult.chain;
+
+          // For number results, ensure we have a valid specificChain
+          const tokenSpecificChain = priceResult.specificChain;
+
           console.log(`[PriceTracker] Got price $${price} from MultiChainProvider`);
 
           // Store price in cache
-          this.priceCache.set(cacheKey, {
-            price,
-            timestamp: Date.now(),
-          });
+          this.priceCache.set(cacheKey, priceResult);
 
           // Store price in database for historical record
-          await this.storePrice(tokenAddress, price, tokenChain, specificChain);
+          await this.storePrice(tokenAddress, price, chain, tokenSpecificChain);
 
-          return price;
+          return priceResult;
         } else {
           console.log(
             `[PriceTracker] No price available from MultiChainProvider for ${tokenAddress}`,
@@ -155,7 +145,13 @@ export class PriceTracker {
         console.log(
           `[PriceTracker] Using last stored price for ${tokenAddress}: $${lastPrice.price} (WARNING: not real-time price)`,
         );
-        return lastPrice.price;
+        return {
+          price: lastPrice.price,
+          token: lastPrice.token,
+          chain: lastPrice.chain,
+          timestamp: lastPrice.timestamp,
+          specificChain: lastPrice.specificChain,
+        };
       }
     } catch (error) {
       console.error(`[PriceTracker] Error fetching last price from database:`, error);
@@ -176,9 +172,9 @@ export class PriceTracker {
     blockchainType?: BlockchainType,
     specificChain?: SpecificChain,
   ): Promise<{
-    price: number | null;
+    price: number;
     chain: BlockchainType;
-    specificChain: SpecificChain | null;
+    specificChain: SpecificChain;
   } | null> {
     console.log(`[PriceTracker] Getting detailed token info for: ${tokenAddress}`);
 
@@ -191,13 +187,14 @@ export class PriceTracker {
       // Make sure we store the specificChain for SVM tokens
       if (price !== null) {
         // Store the SVM chain info explicitly (getPrice may already do this, but we ensure it here)
-        await this.storePrice(tokenAddress, price, BlockchainType.SVM, 'svm');
+        await this.storePrice(tokenAddress, price.price, BlockchainType.SVM, 'svm');
+        return {
+          price: price.price,
+          chain: BlockchainType.SVM,
+          specificChain: 'svm',
+        };
       }
-      return {
-        price,
-        chain: BlockchainType.SVM,
-        specificChain: 'svm',
-      };
+      return null;
     }
 
     // Use MultiChainProvider for EVM tokens
@@ -217,7 +214,7 @@ export class PriceTracker {
               tokenAddress,
               tokenInfo.price,
               tokenInfo.chain,
-              tokenInfo.specificChain || undefined,
+              tokenInfo.specificChain,
             );
           }
 
@@ -238,18 +235,15 @@ export class PriceTracker {
     );
     const price = await this.getPrice(tokenAddress, chainType, specificChain);
 
-    // Determine specificChain based on chainType, using provided specificChain if available
-    let detectedSpecificChain: SpecificChain | null = specificChain || null;
-    if (chainType.toString() === 'svm') {
-      detectedSpecificChain = 'svm';
+    if (price !== null) {
+      // Return combined token info
+      return {
+        price: price.price,
+        chain: price.chain,
+        specificChain: price.specificChain,
+      };
     }
-
-    // Return combined token info
-    return {
-      price,
-      chain: chainType,
-      specificChain: detectedSpecificChain,
-    };
+    return null;
   }
 
   /**
@@ -262,17 +256,15 @@ export class PriceTracker {
   private async storePrice(
     tokenAddress: string,
     price: number,
-    chain?: BlockchainType,
-    specificChain?: SpecificChain,
+    chain: BlockchainType,
+    specificChain: SpecificChain,
   ): Promise<void> {
     try {
-      const generalChain = chain || this.determineChain(tokenAddress);
-
       await repositories.priceRepository.create({
         token: tokenAddress,
         price,
         timestamp: new Date(),
-        chain: generalChain,
+        chain,
         specificChain,
       });
     } catch (error) {
@@ -285,13 +277,13 @@ export class PriceTracker {
    * @param tokenAddress The token address to check
    * @returns True if the provider supports the token
    */
-  async isTokenSupported(tokenAddress: string): Promise<boolean> {
+  async isTokenSupported(tokenAddress: string, specificChain: SpecificChain): Promise<boolean> {
     if (!this.multiChainProvider) {
       return false;
     }
 
     try {
-      return await this.multiChainProvider.supports(tokenAddress);
+      return await this.multiChainProvider.supports(tokenAddress, specificChain);
     } catch (error) {
       console.log(
         `[PriceTracker] Error checking support for ${tokenAddress}:`,
@@ -385,7 +377,7 @@ export class PriceTracker {
       const randomVariation = 0.98 + Math.random() * 0.04;
       history.push({
         timestamp: new Date(time).toISOString(),
-        price: currentPrice * randomVariation,
+        price: currentPrice.price * randomVariation,
         simulated: true, // Add a flag to indicate this is simulated data
       });
     }

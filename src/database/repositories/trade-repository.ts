@@ -189,10 +189,10 @@ export class TradeRepository extends BaseRepository<Trade> {
       error: data.error as string | undefined,
       timestamp: new Date(data.timestamp as string | number | Date),
       // Map chain fields from database to the Trade interface
-      fromChain: data.fromChain as BlockchainType | undefined,
-      toChain: data.toChain as BlockchainType | undefined,
-      fromSpecificChain: data.fromSpecificChain as SpecificChain | undefined,
-      toSpecificChain: data.toSpecificChain as SpecificChain | undefined,
+      fromChain: data.fromChain as BlockchainType,
+      toChain: data.toChain as BlockchainType,
+      fromSpecificChain: data.fromSpecificChain as SpecificChain,
+      toSpecificChain: data.toSpecificChain as SpecificChain,
     };
   }
 }

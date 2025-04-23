@@ -10,6 +10,7 @@ The Multi-Chain Trading Simulator is a standalone server designed to host tradin
 
 - Multi-chain support for both EVM chains (Ethereum, Polygon, Base, etc.) and SVM chains (Solana)
 - Team registration with secure API key authentication
+- Self-service team registration through public API endpoint
 - Real-time token price tracking from DexScreener API with support for all major chains (Ethereum, Polygon, Base, Solana, and more)
 - Simulated trading with realistic slippage and market conditions
 - Balance and portfolio management across multiple chains
@@ -38,7 +39,7 @@ The application follows an MVC (Model-View-Controller) architecture with a robus
 - ✅ Competition management service
 - ✅ Chain override feature for high-performance price lookups
 - ✅ Portfolio snapshots with configurable intervals and price freshness optimization
-- ✅ Multiple price providers (DexScreener, Noves, Jupiter, Raydium, Serum)
+- ✅ Multiple price providers (DexScreener, Noves, Jupiter, Raydium)
 - ✅ Testing (Complete - E2E testing comprehensive)
 - ✅ Documentation
 - ⏳ Integration with front-end (planned)
@@ -82,7 +83,6 @@ The application uses a layered architecture:
   - `DexScreenerProvider`: EVM and SVM chain price data via DexScreener API
   - `NovesProvider`: Advanced EVM chain price data (disabled)
   - `RaydiumProvider`: Solana token price data from Raydium (disabled)
-  - `SerumProvider`: Solana token price data from Serum markets (disabled)
   - `JupiterProvider`: Solana token price data from Jupiter API (disabled)
   - `SolanaProvider`: Basic SOL token information (disabled)
   - `BalanceManager`: Team balance tracking across multiple chains
@@ -107,6 +107,7 @@ The application uses a layered architecture:
   - `TradeController`: Trade execution and quotes
   - `DocsController`: API documentation endpoints
   - `HealthController`: Health check endpoints
+  - `PublicController`: Public endpoints for self-service team registration
 
 - **Repositories**: Data access layer
   - `TeamRepository`: Team data management
@@ -238,7 +239,7 @@ This is the easiest way to get the system up and running with minimal effort.
 
 When registering a team or creating a competition, the server **does not** need to be running.
 
-- **Register a new team**:
+- **Register a new team as admin**:
 
   ```
   npm run register:team
@@ -251,6 +252,34 @@ When registering a team or creating a competition, the server **does not** need 
   - Generate a secure API key
   - Register the team in the system
   - Display the credentials (keep this API key secure)
+
+- **Self-register a team using the public API**:
+
+  Teams can self-register using the public API endpoint `/api/public/teams/register` without requiring admin involvement. They need to provide:
+
+  ```json
+  {
+    "teamName": "Team Name",
+    "email": "team@example.com",
+    "contactPerson": "Contact Person",
+    "walletAddress": "0x1234567890123456789012345678901234567890",
+    "metadata": {
+      "ref": {
+        "name": "tradingbot",
+        "version": "1.0.0",
+        "url": "github.com/example/tradingbot"
+      },
+      "description": "Trading bot description",
+      "social": {
+        "name": "Trading Team",
+        "email": "contact@tradingteam.com",
+        "twitter": "@tradingbot"
+      }
+    }
+  }
+  ```
+
+  The endpoint will return an API key that the team can use for authentication.
 
 - **Edit a team**:
 
@@ -401,6 +430,7 @@ For teams participating in trading competitions, we provide comprehensive API do
 - **[API Documentation](docs/API.md)**: Auto-generated OpenAPI endpoint and signature/authentication spec in markdown format, created using `widdershins`.
 - **[OpenAPI JSON](docs/openapi.json)**: Auto-generated OpenAPI spec in JSON format.
 - **[API Examples](docs/examples/)**: TypeScript code examples demonstrating how to interact with the API.
+- **Public API**: Teams can self-register through the public API endpoint `/api/public/teams/register` without requiring admin authentication.
 
 You can regenerate the documentation at any time using the built-in scripts:
 

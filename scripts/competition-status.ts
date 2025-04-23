@@ -3,6 +3,7 @@ import * as path from 'path';
 import { services } from '../src/services';
 import { DatabaseConnection } from '../src/database';
 import { repositories } from '../src/database';
+import { Competition, CompetitionStatus } from '../src/types';
 
 // Load environment variables
 dotenv.config({ path: path.resolve(process.cwd(), '.env') });
@@ -81,11 +82,13 @@ async function showCompetitionStatus() {
 
       // Check if there are any previous competitions
       const pastCompetitions = await repositories.competitionRepository.findAll();
-      const completedCompetitions = pastCompetitions.filter((c: any) => c.status === 'completed');
+      const completedCompetitions = pastCompetitions.filter(
+        (c: Competition) => c.status === CompetitionStatus.COMPLETED,
+      );
 
       if (completedCompetitions.length > 0) {
         console.log(`\n${colors.blue}Previous completed competitions:${colors.reset}`);
-        completedCompetitions.forEach((comp: any, index: number) => {
+        completedCompetitions.forEach((comp: Competition, index: number) => {
           const startDateValue = comp.startDate as string | Date | undefined;
           const endDateValue = comp.endDate as string | Date | undefined;
           console.log(

@@ -14,6 +14,7 @@ import config from '../../src/config';
 import { services } from '../../src/services';
 import { BlockchainType } from '../../src/types';
 import { PriceTracker } from '../../src/services/price-tracker.service';
+import { BalancesResponse, SnapshotResponse, TokenPortfolioItem } from '../utils/api-types';
 
 describe('Portfolio Snapshots', () => {
   let adminApiKey: string;
@@ -63,16 +64,16 @@ describe('Portfolio Snapshots', () => {
       'get',
       `/api/admin/competition/${competitionId}/snapshots`,
     );
-
-    expect(snapshotsResponse.success).toBe(true);
-    expect(snapshotsResponse.snapshots).toBeDefined();
-    expect(snapshotsResponse.snapshots.length).toBeGreaterThan(0);
+    const typedResponse = snapshotsResponse as SnapshotResponse;
+    console.log(JSON.stringify(typedResponse), 'typedResponse');
+    expect(typedResponse.success).toBe(true);
+    expect(typedResponse.snapshots).toBeDefined();
+    expect(typedResponse.snapshots.length).toBeGreaterThan(0);
 
     // Verify the snapshot has the correct team ID and competition ID
-    const snapshot = snapshotsResponse.snapshots[0];
+    const snapshot = typedResponse.snapshots[0];
     expect(snapshot.teamId).toBe(team.id);
     expect(snapshot.competitionId).toBe(competitionId);
-
     // Verify the snapshot has token values
     expect(snapshot.valuesByToken).toBeDefined();
     expect(Object.keys(snapshot.valuesByToken).length).toBeGreaterThan(0);
@@ -101,28 +102,26 @@ describe('Portfolio Snapshots', () => {
     await wait(500);
 
     // Initial snapshot count
-    const initialSnapshotsResponse = await adminClient.request(
+    const initialSnapshotsResponse = (await adminClient.request(
       'get',
       `/api/admin/competition/${competitionId}/snapshots`,
-    );
+    )) as SnapshotResponse;
     const initialSnapshotCount = initialSnapshotsResponse.snapshots.length;
 
     // Force a snapshot directly
     await services.competitionManager.takePortfolioSnapshots(competitionId);
-
     // Wait for snapshot to be processed
     await wait(500);
 
     // Get snapshots again
-    const afterFirstSnapshotResponse = await adminClient.request(
+    const afterFirstSnapshotResponse = (await adminClient.request(
       'get',
       `/api/admin/competition/${competitionId}/snapshots`,
-    );
+    )) as SnapshotResponse;
     const afterFirstSnapshotCount = afterFirstSnapshotResponse.snapshots.length;
 
     // Should have at least one more snapshot (account for potential auto snapshots)
     expect(afterFirstSnapshotCount).toBeGreaterThan(initialSnapshotCount);
-
     // Store the current count for next comparison
     const countAfterFirstManualSnapshot = afterFirstSnapshotCount;
 
@@ -133,10 +132,10 @@ describe('Portfolio Snapshots', () => {
     await wait(500);
 
     // Get snapshots again
-    const afterSecondSnapshotResponse = await adminClient.request(
+    const afterSecondSnapshotResponse = (await adminClient.request(
       'get',
       `/api/admin/competition/${competitionId}/snapshots`,
-    );
+    )) as SnapshotResponse;
     const afterSecondSnapshotCount = afterSecondSnapshotResponse.snapshots.length;
 
     // Should have at least one more snapshot than after the first manual snapshot
@@ -181,32 +180,30 @@ describe('Portfolio Snapshots', () => {
     await wait(500);
 
     // Get snapshot count before ending
-    const beforeEndResponse = await adminClient.request(
+    const beforeEndResponse = (await adminClient.request(
       'get',
       `/api/admin/competition/${competitionId}/snapshots`,
-    );
+    )) as SnapshotResponse;
     const beforeEndCount = beforeEndResponse.snapshots.length;
 
     // End the competition
     const endResult = await adminClient.endCompetition(competitionId);
-
     // Wait for operations to complete
     await wait(500);
 
     // Get snapshots after ending
-    const afterEndResponse = await adminClient.request(
+    const afterEndResponse = (await adminClient.request(
       'get',
       `/api/admin/competition/${competitionId}/snapshots`,
-    );
+    )) as SnapshotResponse;
     const afterEndCount = afterEndResponse.snapshots.length;
 
     // Should have at least one more snapshot
     expect(afterEndCount).toBeGreaterThan(beforeEndCount);
-
     // Verify the final snapshot has current portfolio values
     const finalSnapshot = afterEndResponse.snapshots[afterEndResponse.snapshots.length - 1];
     expect(finalSnapshot.valuesByToken[solTokenAddress]).toBeDefined();
-    expect(finalSnapshot.valuesByToken[solTokenAddress].amount).toBeGreaterThan(0);
+    expect(finalSnapshot.valuesByToken[solTokenAddress]?.amount).toBeGreaterThan(0);
   });
 
   // Test portfolio value calculation accuracy
@@ -232,33 +229,34 @@ describe('Portfolio Snapshots', () => {
     await wait(500);
 
     // Get initial balances
-    const initialBalanceResponse = await teamClient.getBalance();
+    const initialBalanceResponse = (await teamClient.getBalance()) as BalancesResponse;
     const usdcTokenAddress = config.specificChainTokens.svm.usdc;
-    const initialUsdcBalance = parseFloat(
-      initialBalanceResponse.balance[usdcTokenAddress]?.toString() || '0',
-    );
+    const initialUsdcBalance =
+      initialBalanceResponse.balances.find((b) => b.token === usdcTokenAddress)?.amount || 0;
 
     // Get token price using direct service call instead of API
     const priceTracker = new PriceTracker();
     const usdcPriceResponse = await priceTracker.getPrice(usdcTokenAddress);
     expect(usdcPriceResponse).not.toBeNull();
-    const usdcPrice = usdcPriceResponse !== null ? usdcPriceResponse : 1; // Default to 1 if null
+    const usdcPrice = usdcPriceResponse;
 
     // Get initial snapshot
-    const initialSnapshotsResponse = await adminClient.request(
+    const initialSnapshotsResponse = (await adminClient.request(
       'get',
       `/api/admin/competition/${competitionId}/snapshots`,
-    );
+    )) as SnapshotResponse;
     const initialSnapshot = initialSnapshotsResponse.snapshots[0];
 
     // Verify the USDC value is calculated correctly
     const usdcValue = initialSnapshot.valuesByToken[usdcTokenAddress];
-    expect(usdcValue.amount).toBeCloseTo(initialUsdcBalance);
-    expect(usdcValue.valueUsd).toBeCloseTo(initialUsdcBalance * usdcPrice, 0);
+    expect(usdcValue?.amount).toBeCloseTo(initialUsdcBalance);
+    if (usdcPrice) {
+      expect(usdcValue?.valueUsd).toBeCloseTo(initialUsdcBalance * usdcPrice.price, 0);
+    }
 
     // Verify total portfolio value is the sum of all token values
     const totalValue = Object.values(initialSnapshot.valuesByToken).reduce(
-      (sum: number, token: any) => sum + token.valueUsd,
+      (sum: number, token) => sum + token.valueUsd,
       0,
     );
     expect(initialSnapshot.totalValue).toBeCloseTo(totalValue, 0);

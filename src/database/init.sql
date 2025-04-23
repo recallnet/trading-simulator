@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS teams (
   api_key VARCHAR(400) UNIQUE NOT NULL,
   wallet_address VARCHAR(42) UNIQUE,
   bucket_addresses TEXT[],
+  metadata JSONB,
   is_admin BOOLEAN DEFAULT FALSE,
   active BOOLEAN DEFAULT FALSE,
   deactivation_reason TEXT,
@@ -19,6 +20,7 @@ CREATE TABLE IF NOT EXISTS teams (
 CREATE INDEX IF NOT EXISTS idx_teams_api_key ON teams(api_key);
 CREATE INDEX IF NOT EXISTS idx_teams_is_admin ON teams(is_admin);
 CREATE INDEX IF NOT EXISTS idx_teams_active ON teams(active);
+CREATE INDEX IF NOT EXISTS idx_teams_metadata_ref_name ON teams((metadata->'ref'->>'name'));
 
 -- Competitions table
 CREATE TABLE IF NOT EXISTS competitions (

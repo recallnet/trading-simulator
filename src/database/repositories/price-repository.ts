@@ -28,47 +28,22 @@ export class PriceRepository extends BaseRepository<PriceRecord> {
     );
 
     try {
-      // Check if chain field exists in the table - for backward compatibility
-      const chainColumnExists = await this.checkIfColumnExists('prices', 'chain');
-      const specificChainColumnExists = await this.checkIfColumnExists('prices', 'specific_chain');
-
       let query: string;
       let values: SqlParams;
 
-      if (specificChainColumnExists && priceData.specificChain) {
-        // Full support for chain and specific_chain columns
-        query = `
+      query = `
           INSERT INTO prices (token, price, timestamp, chain, specific_chain)
           VALUES ($1, $2, $3, $4, $5)
           RETURNING id, token, price, timestamp, chain, specific_chain
         `;
 
-        values = [
-          priceData.token,
-          priceData.price,
-          priceData.timestamp,
-          priceData.chain,
-          priceData.specificChain,
-        ];
-      } else if (chainColumnExists && priceData.chain) {
-        // Support for chain column only
-        query = `
-          INSERT INTO prices (token, price, timestamp, chain)
-          VALUES ($1, $2, $3, $4)
-          RETURNING id, token, price, timestamp, chain
-        `;
-
-        values = [priceData.token, priceData.price, priceData.timestamp, priceData.chain];
-      } else {
-        // Basic support (legacy)
-        query = `
-          INSERT INTO prices (token, price, timestamp)
-          VALUES ($1, $2, $3)
-          RETURNING id, token, price, timestamp
-        `;
-
-        values = [priceData.token, priceData.price, priceData.timestamp];
-      }
+      values = [
+        priceData.token,
+        priceData.price,
+        priceData.timestamp,
+        priceData.chain,
+        priceData.specificChain,
+      ];
 
       const result = await this.db.query(query, values);
       return this.mapToEntity(this.toCamelCase(result.rows[0]));
@@ -364,8 +339,8 @@ export class PriceRepository extends BaseRepository<PriceRecord> {
       token: data.token as string,
       price: parseFloat(String(data.price)),
       timestamp: new Date(data.timestamp as string | number | Date),
-      chain: data.chain as BlockchainType | undefined,
-      specificChain: (data.specificChain as SpecificChain | undefined) || undefined,
+      chain: data.chain as BlockchainType,
+      specificChain: data.specificChain as SpecificChain,
     };
   }
 }

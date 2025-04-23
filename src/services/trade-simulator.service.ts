@@ -116,6 +116,7 @@ export class TradeSimulator {
         console.log(`[TradeSimulator] Detected chain for toToken: ${toTokenChain}`);
       }
 
+      // Get prices with chain information for better performance
       const fromPrice = await this.priceTracker.getPrice(
         fromToken,
         fromTokenChain,
@@ -123,19 +124,41 @@ export class TradeSimulator {
       );
       const toPrice = await this.priceTracker.getPrice(toToken, toTokenChain, toTokenSpecificChain);
 
+      console.log(`[TradeSimulator] Got prices:
+        From Token (${fromToken}): $${fromPrice} (${fromTokenChain})
+        To Token (${toToken}): $${toPrice} (${toTokenChain})
+    `);
+
       if (!fromPrice || !toPrice) {
         console.log(`[TradeSimulator] Missing price data:
-                    From Token Price: ${fromPrice}
-                    To Token Price: ${toPrice}
-                `);
+            From Token Price: ${fromPrice}
+            To Token Price: ${toPrice}
+        `);
         return {
           success: false,
           error: 'Unable to determine price for tokens',
         };
       }
 
+      // Check for cross-chain trades if not allowed
+      if (
+        !this.allowCrossChainTrading &&
+        (fromTokenChain !== toTokenChain ||
+          (fromTokenSpecificChain &&
+            toTokenSpecificChain &&
+            fromTokenSpecificChain !== toTokenSpecificChain))
+      ) {
+        console.log(
+          `[TradeSimulator] Cross-chain trading is disabled. Cannot trade between ${fromTokenChain}(${fromTokenSpecificChain || 'none'}) and ${toTokenChain}(${toTokenSpecificChain || 'none'})`,
+        );
+        return {
+          success: false,
+          error: 'Cross-chain trading is disabled. Both tokens must be on the same blockchain.',
+        };
+      }
+
       // Calculate the trade using USD values
-      const fromValueUSD = fromAmount * fromPrice;
+      const fromValueUSD = fromAmount * fromPrice.price;
 
       // Validate balances
       const currentBalance = await this.balanceManager.getBalance(teamId, fromToken);
@@ -166,11 +189,6 @@ export class TradeSimulator {
         };
       }
 
-      console.log(`[TradeSimulator] Got prices:
-                From Token (${fromToken}): $${fromPrice} (${fromTokenChain})
-                To Token (${toToken}): $${toPrice} (${toTokenChain})
-            `);
-
       // Calculate portfolio value to check maximum trade size (configurable percentage of portfolio)
       const portfolioValue = await this.calculatePortfolioValue(teamId);
       const maxTradeValue = portfolioValue * (this.maxTradePercentage / 100);
@@ -195,13 +213,13 @@ export class TradeSimulator {
 
       // Calculate final amount with slippage
       const effectiveFromValueUSD = fromValueUSD * (1 - actualSlippage);
-      const toAmount = effectiveFromValueUSD / toPrice;
+      const toAmount = effectiveFromValueUSD / toPrice.price;
 
       // Debug logging for price calculations
       console.log(`[TradeSimulator] Trade calculation details:
                 From Token (${fromToken}):
                 - Amount: ${fromAmount}
-                - Price: $${fromPrice}
+                - Price: $${fromPrice.price}
                 - USD Value: $${fromValueUSD.toFixed(6)}
                 
                 Slippage:
@@ -210,7 +228,7 @@ export class TradeSimulator {
                 - Effective USD Value: $${effectiveFromValueUSD.toFixed(6)}
 
                 To Token (${toToken}):
-                - Price: $${toPrice}
+                - Price: $${toPrice.price}
                 - Calculated Amount: ${toAmount.toFixed(6)}
 
                 Exchange Rate: 1 ${fromToken} = ${(toAmount / fromAmount).toFixed(6)} ${toToken}
@@ -235,8 +253,8 @@ export class TradeSimulator {
         // Add chain information to the trade record
         fromChain: fromTokenChain,
         toChain: toTokenChain,
-        fromSpecificChain: fromTokenSpecificChain,
-        toSpecificChain: toTokenSpecificChain,
+        fromSpecificChain: fromPrice.specificChain,
+        toSpecificChain: toPrice.specificChain,
       };
 
       // Store the trade in database
@@ -346,7 +364,7 @@ export class TradeSimulator {
     for (const balance of balances) {
       const price = await this.priceTracker.getPrice(balance.token);
       if (price) {
-        totalValue += balance.amount * price;
+        totalValue += balance.amount * price.price;
       }
     }
 

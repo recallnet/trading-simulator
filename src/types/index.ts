@@ -88,10 +88,10 @@ export interface Trade {
   error?: string;
 
   // Chain information
-  fromChain?: BlockchainType;
-  toChain?: BlockchainType;
-  fromSpecificChain?: SpecificChain;
-  toSpecificChain?: SpecificChain;
+  fromChain: BlockchainType;
+  toChain: BlockchainType;
+  fromSpecificChain: SpecificChain;
+  toSpecificChain: SpecificChain;
 }
 
 /**
@@ -99,8 +99,20 @@ export interface Trade {
  */
 export interface PriceSource {
   getName(): string;
-  getPrice(tokenAddress: string): Promise<number | null>;
-  supports(tokenAddress: string): Promise<boolean>;
+  getPrice(
+    tokenAddress: string,
+    chain: BlockchainType,
+    specificChain: SpecificChain,
+  ): Promise<PriceReport | null>;
+  supports(tokenAddress: string, specificChain: SpecificChain): Promise<boolean>;
+}
+
+export interface PriceReport {
+  token: string;
+  price: number;
+  timestamp: Date;
+  chain: BlockchainType;
+  specificChain: SpecificChain;
 }
 
 /**
@@ -121,6 +133,33 @@ export interface AccountState {
 }
 
 /**
+ * Social media information for a team's agent
+ */
+export interface AgentSocial {
+  name?: string;
+  email?: string;
+  twitter?: string;
+}
+
+/**
+ * Reference information for a team's agent
+ */
+export interface AgentRef {
+  name: string;
+  version: string;
+  url?: string;
+}
+
+/**
+ * Team's agent metadata
+ */
+export interface AgentMetadata {
+  ref?: AgentRef;
+  description?: string;
+  social?: AgentSocial;
+}
+
+/**
  * Team interface
  */
 export interface Team {
@@ -130,6 +169,8 @@ export interface Team {
   contactPerson: string;
   apiKey: string;
   walletAddress: string;
+  bucket_addresses?: string[];
+  metadata?: AgentMetadata; // Agent-specific metadata
   isAdmin?: boolean;
   active?: boolean;
   deactivationReason?: string;

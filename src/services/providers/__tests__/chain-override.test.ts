@@ -75,8 +75,8 @@ describe('Chain Override Tests', () => {
           atLeastOneSuccess = true;
 
           // Verify price format
-          expect(typeof price).toBe('number');
-          expect(price).toBeGreaterThan(0);
+          expect(typeof price?.price).toBe('number');
+          expect(price?.price).toBeGreaterThan(0);
 
           // Also get detailed token info with chain override
           const tokenInfo = await multiChainProvider.getTokenInfo(

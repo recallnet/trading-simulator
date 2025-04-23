@@ -13,6 +13,16 @@ import { getBaseUrl } from '../utils/server';
 import config from '../../src/config';
 import { BlockchainType } from '../../src/types';
 import { services } from '../../src/services';
+import {
+  BalancesResponse,
+  CompetitionStatusResponse,
+  ErrorResponse,
+  LeaderboardResponse,
+  SnapshotResponse,
+  TeamProfileResponse,
+  TradeResponse,
+} from '../utils/api-types';
+import { ApiClient } from '../utils/api-client';
 
 describe('Multi-Team Competition', () => {
   let adminApiKey: string;
@@ -35,10 +45,18 @@ describe('Multi-Team Competition', () => {
 
   // Base specific chain identifier
   const BASE_CHAIN = 'base';
-
   // Store team details for use in tests
-  let teamClients: { client: any; team: any; apiKey: string }[] = [];
-  let adminClient: any;
+  let teamClients: {
+    client: ApiClient;
+    team: {
+      id: string;
+      name: string;
+      email: string;
+      contactPerson: string;
+    };
+    apiKey: string;
+  }[] = [];
+  let adminClient: ApiClient;
   let competitionId: string;
 
   // Clean up test state before each test
@@ -100,40 +118,46 @@ describe('Multi-Team Competition', () => {
     console.log('Validating starting balances...');
 
     // Get first team's balance as reference
-    const referenceBalanceResponse = await teamClients[0].client.getBalance();
+    const referenceBalanceResponse = (await teamClients[0].client.getBalance()) as BalancesResponse;
     expect(referenceBalanceResponse.success).toBe(true);
-    expect(referenceBalanceResponse.balance).toBeDefined();
+    expect(referenceBalanceResponse.balances).toBeDefined();
 
     // Check key token balances for reference
-    const referenceBalance = referenceBalanceResponse.balance;
+    const referenceBalance = referenceBalanceResponse.balances;
 
     // Get common tokens from config
     const usdcTokenAddress = config.specificChainTokens.svm.usdc;
     const solTokenAddress = config.specificChainTokens.svm.sol;
 
     // Track reference balances for key tokens
-    const referenceUsdcBalance = parseFloat(referenceBalance[usdcTokenAddress]?.toString() || '0');
-    const referenceSolBalance = parseFloat(referenceBalance[solTokenAddress]?.toString() || '0');
+    const referenceUsdcBalance = parseFloat(
+      referenceBalance.find((b) => b.token === usdcTokenAddress)?.amount.toString() || '0',
+    );
+    const referenceSolBalance = parseFloat(
+      referenceBalance.find((b) => b.token === solTokenAddress)?.amount.toString() || '0',
+    );
 
     console.log(`Reference USDC balance: ${referenceUsdcBalance}`);
     console.log(`Reference SOL balance: ${referenceSolBalance}`);
-
     // Validate other teams have identical balances
     for (let i = 1; i < NUM_TEAMS; i++) {
       const teamClient = teamClients[i].client;
-      const teamBalanceResponse = await teamClient.getBalance();
+      const teamBalanceResponse = (await teamClient.getBalance()) as BalancesResponse;
 
       expect(teamBalanceResponse.success).toBe(true);
-      expect(teamBalanceResponse.balance).toBeDefined();
+      expect(teamBalanceResponse.balances).toBeDefined();
 
-      const teamBalance = teamBalanceResponse.balance;
-
+      const teamBalance = teamBalanceResponse.balances;
       // Validate USDC balance
-      const teamUsdcBalance = parseFloat(teamBalance[usdcTokenAddress]?.toString() || '0');
+      const teamUsdcBalance = parseFloat(
+        teamBalance.find((b) => b.token === usdcTokenAddress)?.amount.toString() || '0',
+      );
       expect(teamUsdcBalance).toBe(referenceUsdcBalance);
 
       // Validate SOL balance
-      const teamSolBalance = parseFloat(teamBalance[solTokenAddress]?.toString() || '0');
+      const teamSolBalance = parseFloat(
+        teamBalance.find((b) => b.token === solTokenAddress)?.amount.toString() || '0',
+      );
       expect(teamSolBalance).toBe(referenceSolBalance);
 
       console.log(
@@ -177,29 +201,28 @@ describe('Multi-Team Competition', () => {
     }
 
     // Verify Team 1's client can access its own data
-    const team1ProfileResponse = await teamClients[0].client.getProfile();
+    const team1ProfileResponse = (await teamClients[0].client.getProfile()) as TeamProfileResponse;
     expect(team1ProfileResponse.success).toBe(true);
     expect(team1ProfileResponse.team.id).toBe(teamClients[0].team.id);
 
     // Verify Team 2's client can access its own data
-    const team2ProfileResponse = await teamClients[1].client.getProfile();
+    const team2ProfileResponse = (await teamClients[1].client.getProfile()) as TeamProfileResponse;
     expect(team2ProfileResponse.success).toBe(true);
     expect(team2ProfileResponse.team.id).toBe(teamClients[1].team.id);
 
     // Step 6: Validate that all teams can see the competition and leaderboard
     console.log('Validating competition visibility...');
-
     for (let i = 0; i < NUM_TEAMS; i++) {
       const teamClient = teamClients[i].client;
 
       // Check competition status
-      const statusResponse = await teamClient.getCompetitionStatus();
+      const statusResponse = (await teamClient.getCompetitionStatus()) as CompetitionStatusResponse;
       expect(statusResponse.success).toBe(true);
       expect(statusResponse.competition).toBeDefined();
-      expect(statusResponse.competition.id).toBe(competitionId);
+      expect(statusResponse.competition?.id).toBe(competitionId);
 
       // Check leaderboard
-      const leaderboardResponse = await teamClient.getLeaderboard();
+      const leaderboardResponse = (await teamClient.getLeaderboard()) as LeaderboardResponse;
       expect(leaderboardResponse.success).toBe(true);
       expect(leaderboardResponse.leaderboard).toBeDefined();
       expect(leaderboardResponse.leaderboard).toBeInstanceOf(Array);
@@ -271,7 +294,7 @@ describe('Multi-Team Competition', () => {
       console.log(`Team ${i + 1} trading ${tradeAmount} USDC for token ${tokenToTrade}`);
 
       // Execute trade using the client - each team buys a different BASE token with 100 USDC
-      const tradeResponse = await team.client.request('post', '/api/trade/execute', {
+      const tradeResponse = (await team.client.request('post', '/api/trade/execute', {
         fromToken: BASE_USDC_ADDRESS,
         toToken: tokenToTrade,
         amount: tradeAmount.toString(),
@@ -279,7 +302,7 @@ describe('Multi-Team Competition', () => {
         toChain: BlockchainType.EVM,
         fromSpecificChain: BASE_CHAIN,
         toSpecificChain: BASE_CHAIN,
-      });
+      })) as TradeResponse;
 
       // Verify trade was successful
       expect(tradeResponse.success).toBe(true);
@@ -287,11 +310,10 @@ describe('Multi-Team Competition', () => {
 
       // Record the token amount received (will be different for each token due to price differences)
       if (tradeResponse.transaction.toAmount) {
-        const tokenAmount = parseFloat(tradeResponse.transaction.toAmount);
+        const tokenAmount = tradeResponse.transaction.toAmount;
         tokenQuantities[tokenToTrade] = tokenAmount;
         console.log(`Team ${i + 1} received ${tokenAmount} of token ${tokenToTrade}`);
       }
-
       // Wait briefly between trades
       await wait(100);
     }
@@ -307,12 +329,13 @@ describe('Multi-Team Competition', () => {
       const expectedToken = BASE_TOKENS[i];
 
       // Get team's current balance
-      const balanceResponse = await team.client.getBalance();
+      const balanceResponse = (await team.client.getBalance()) as BalancesResponse;
       expect(balanceResponse.success).toBe(true);
-      expect(balanceResponse.balance).toBeDefined();
-
+      expect(balanceResponse.balances).toBeDefined();
       // Check that the team has the expected token
-      const tokenBalance = parseFloat(balanceResponse.balance[expectedToken]?.toString() || '0');
+      const tokenBalance = parseFloat(
+        balanceResponse.balances.find((b) => b.token === expectedToken)?.amount.toString() || '0',
+      );
       console.log(`Team ${i + 1} final balance of token ${expectedToken}: ${tokenBalance}`);
 
       // Verify they have a non-zero balance of their unique token
@@ -324,12 +347,11 @@ describe('Multi-Team Competition', () => {
           // Skip their own token
           const otherToken = BASE_TOKENS[j];
           const otherTokenBalance = parseFloat(
-            balanceResponse.balance[otherToken]?.toString() || '0',
+            balanceResponse.balances.find((b) => b.token === otherToken)?.amount.toString() || '0',
           );
 
           // They should have 0 of other teams' tokens
           expect(otherTokenBalance).toBe(0);
-
           if (otherTokenBalance > 0) {
             console.error(
               `ERROR: Team ${i + 1} unexpectedly has ${otherTokenBalance} of token ${otherToken}`,
@@ -376,6 +398,10 @@ describe('Multi-Team Competition', () => {
     console.log(`Registering ${NUM_TEAMS} teams...`);
     teamClients = [];
 
+    // Store token quantities and initial portfolio values
+    const initialPortfolioValues: { [teamId: string]: number } = {};
+    const tokensByTeam: { [teamId: string]: string } = {};
+
     for (let i = 0; i < NUM_TEAMS; i++) {
       const teamName = `Price Team ${i + 1} ${Date.now()}`;
       const email = `price_team${i + 1}_${Date.now()}@example.com`;
@@ -410,10 +436,6 @@ describe('Multi-Team Competition', () => {
     // Amount of USDC each team will trade
     const tradeAmount = 500; // Using a larger amount to make price fluctuations more noticeable
 
-    // Store token quantities and initial portfolio values
-    const initialPortfolioValues: { [teamId: string]: number } = {};
-    const tokensByTeam: { [teamId: string]: string } = {};
-
     // Execute trades for each team
     for (let i = 0; i < NUM_TEAMS; i++) {
       const team = teamClients[i];
@@ -425,7 +447,7 @@ describe('Multi-Team Competition', () => {
       );
 
       // Execute trade - each team buys a different BASE token with USDC
-      const tradeResponse = await team.client.request('post', '/api/trade/execute', {
+      const tradeResponse = (await team.client.request('post', '/api/trade/execute', {
         fromToken: BASE_USDC_ADDRESS,
         toToken: tokenToTrade,
         amount: tradeAmount.toString(),
@@ -433,7 +455,7 @@ describe('Multi-Team Competition', () => {
         toChain: BlockchainType.EVM,
         fromSpecificChain: BASE_CHAIN,
         toSpecificChain: BASE_CHAIN,
-      });
+      })) as TradeResponse;
 
       // Verify trade was successful
       expect(tradeResponse.success).toBe(true);
@@ -441,7 +463,7 @@ describe('Multi-Team Competition', () => {
 
       // Log the token amount received
       if (tradeResponse.transaction.toAmount) {
-        const tokenAmount = parseFloat(tradeResponse.transaction.toAmount);
+        const tokenAmount = parseFloat(String(tradeResponse.transaction.toAmount));
         console.log(`Team ${i + 1} received ${tokenAmount} of token ${tokenToTrade}`);
       }
 
@@ -463,10 +485,10 @@ describe('Multi-Team Competition', () => {
       await wait(500);
 
       // Get team's initial portfolio value
-      const snapshotsResponse = await adminClient.request(
+      const snapshotsResponse = (await adminClient.request(
         'get',
         `/api/admin/competition/${competitionId}/snapshots?teamId=${team.team.id}`,
-      );
+      )) as SnapshotResponse;
       expect(snapshotsResponse.success).toBe(true);
       expect(snapshotsResponse.snapshots).toBeDefined();
       expect(snapshotsResponse.snapshots.length).toBeGreaterThan(0);
@@ -485,7 +507,7 @@ describe('Multi-Team Competition', () => {
       const tokenValue = latestSnapshot.valuesByToken[token];
       if (tokenValue) {
         console.log(
-          `  - Token ${token}: ${tokenValue.amount} units at $${tokenValue.price} = $${tokenValue.valueUsd.toFixed(2)}`,
+          `  - Token ${token}: ${tokenValue.amount} units at $${tokenValue.valueUsd / tokenValue.amount} = $${tokenValue.valueUsd.toFixed(2)}`,
         );
       }
     }
@@ -521,11 +543,12 @@ describe('Multi-Team Competition', () => {
       await wait(500);
 
       // Get team's final portfolio value
-      const snapshotsResponse = await adminClient.request(
+      const snapshotsResponse = (await adminClient.request(
         'get',
         `/api/admin/competition/${competitionId}/snapshots?teamId=${team.team.id}`,
-      );
+      )) as SnapshotResponse;
       expect(snapshotsResponse.success).toBe(true);
+      expect(snapshotsResponse.snapshots).toBeDefined();
       expect(snapshotsResponse.snapshots.length).toBeGreaterThan(0);
 
       // Get the most recent snapshot
@@ -556,7 +579,7 @@ describe('Multi-Team Competition', () => {
       const tokenValue = latestSnapshot.valuesByToken[token];
       if (tokenValue) {
         console.log(
-          `  - Token ${token}: ${tokenValue.amount} units at $${tokenValue.price} = $${tokenValue.valueUsd.toFixed(2)}`,
+          `  - Token ${token}: ${tokenValue.amount} units, value = $${tokenValue.valueUsd.toFixed(2)}`,
         );
       }
 

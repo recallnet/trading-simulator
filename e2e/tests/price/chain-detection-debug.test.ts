@@ -12,6 +12,7 @@ import { ApiClient } from '../../utils/api-client';
 import { PriceTracker } from '../../../src/services/price-tracker.service';
 import { BlockchainType } from '../../../src/types';
 import dotenv from 'dotenv';
+import { TokenInfoResponse } from '../../utils/api-types';
 
 // Load environment variables
 dotenv.config();
@@ -84,7 +85,7 @@ describe('Chain Detection Debug', () => {
 
   describe('API Tests', () => {
     it('should detect Ethereum token as EVM chain', async () => {
-      const response = await client.getTokenInfo(ethereumTokens.ETH);
+      const response = (await client.getTokenInfo(ethereumTokens.ETH)) as TokenInfoResponse;
       console.log(`API response for Ethereum token info: ${JSON.stringify(response)}`);
       expect(response.chain).toBe(BlockchainType.EVM);
     });
@@ -98,8 +99,8 @@ describe('Chain Detection Debug', () => {
       const price = await priceTracker.getPrice(ethereumTokens.ETH);
       console.log(`PriceTracker ETH price response: ${price}`);
       expect(price).not.toBeNull();
-      expect(typeof price).toBe('number');
-      expect(price).toBeGreaterThan(0);
+      expect(typeof price?.price).toBe('number');
+      expect(price?.price).toBeGreaterThan(0);
     });
   });
 

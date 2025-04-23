@@ -9,6 +9,7 @@ import {
 } from '../utils/test-helpers';
 import axios from 'axios';
 import { getBaseUrl } from '../utils/server';
+import { ErrorResponse, LeaderboardResponse } from '../utils/api-types';
 
 /**
  * Leaderboard Access Control Tests
@@ -55,14 +56,14 @@ describe('Leaderboard Access Control', () => {
     await startTestCompetition(adminClient, competitionName, [team.id]);
 
     // Verify the admin can still access the leaderboard
-    const adminResponse = await adminClient.getLeaderboard();
+    const adminResponse = (await adminClient.getLeaderboard()) as LeaderboardResponse;
     expect(adminResponse.success).toBe(true);
     expect(adminResponse.leaderboard).toBeDefined();
     console.log('Admin successfully accessed leaderboard when toggle is true');
 
     // Team should not be able to access leaderboard
     try {
-      const result = await teamClient.getLeaderboard();
+      const result = (await teamClient.getLeaderboard()) as ErrorResponse | LeaderboardResponse;
       // If we get here with a success response, the access control is not working as expected
       if (result.success === true) {
         console.log('ERROR: Participant was able to access leaderboard:', result);
@@ -71,7 +72,7 @@ describe('Leaderboard Access Control', () => {
         // If we get a success:false response, that's also good - the API blocked access
         console.log(
           'Correctly blocked participant from accessing leaderboard with error:',
-          result.error,
+          (result as ErrorResponse).error,
         );
         expect(result.success).toBe(false);
       }

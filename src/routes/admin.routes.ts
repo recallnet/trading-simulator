@@ -119,6 +119,22 @@ router.use(adminAuthMiddleware(services.teamManager));
  *                 type: string
  *                 description: Ethereum wallet address (must start with 0x)
  *                 example: 0x1234567890123456789012345678901234567890
+ *               metadata:
+ *                 type: object
+ *                 description: Optional metadata about the team's agent
+ *                 example: {
+ *                     "ref": {
+ *                       "name": "ksobot",
+ *                       "version": "1.0.0",
+ *                       "url": "github.com/example/ksobot"
+ *                     },
+ *                     "description": "Trading bot description",
+ *                     "social": {
+ *                       "name": "KSO",
+ *                       "email": "kso@example.com",
+ *                       "twitter": "hey_kso"
+ *                     }
+ *                   }
  *     responses:
  *       201:
  *         description: Team registered successfully
@@ -145,9 +161,6 @@ router.use(adminAuthMiddleware(services.teamManager));
  *                     contactPerson:
  *                       type: string
  *                       description: Contact person name
- *                     contact_person:
- *                       type: string
- *                       description: Contact person name (snake_case version)
  *                     walletAddress:
  *                       type: string
  *                       description: Ethereum wallet address
@@ -155,6 +168,9 @@ router.use(adminAuthMiddleware(services.teamManager));
  *                       type: string
  *                       description: API key for the team to use with Bearer authentication. Admin should securely provide this to the team.
  *                       example: abc123def456_ghi789jkl012
+ *                     metadata:
+ *                       type: object
+ *                       description: Optional agent metadata if provided
  *                     createdAt:
  *                       type: string
  *                       format: date-time
@@ -203,7 +219,7 @@ router.post('/teams/register', AdminController.registerTeam);
  *                       email:
  *                         type: string
  *                         description: Team email
- *                       contact_person:
+ *                       contactPerson:
  *                         type: string
  *                         description: Contact person name
  *                       createdAt:
@@ -220,6 +236,57 @@ router.post('/teams/register', AdminController.registerTeam);
  *         description: Server error
  */
 router.get('/teams', AdminController.listAllTeams);
+
+/**
+ * @openapi
+ * /api/admin/teams/{teamId}/key:
+ *   get:
+ *     tags:
+ *       - Admin
+ *     summary: Get a team's API key
+ *     description: Retrieves the original API key for a team. Use this when teams lose or misplace their API key.
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: teamId
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: ID of the team
+ *     responses:
+ *       200:
+ *         description: API key retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   description: Operation success status
+ *                 team:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                       description: Team ID
+ *                     name:
+ *                       type: string
+ *                       description: Team name
+ *                     apiKey:
+ *                       type: string
+ *                       description: The team's API key
+ *       401:
+ *         description: Unauthorized - Admin authentication required
+ *       403:
+ *         description: Cannot retrieve API key for admin accounts
+ *       404:
+ *         description: Team not found
+ *       500:
+ *         description: Server error
+ */
+router.get('/teams/:teamId/key', AdminController.getTeamApiKey);
 
 /**
  * @openapi

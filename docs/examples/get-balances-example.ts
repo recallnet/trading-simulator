@@ -1,4 +1,5 @@
-import { TradingSimulatorClient, BalancesResponse } from './api-client';
+import { TradingSimulatorClient } from './api-client';
+import { BalancesResponse } from '../../e2e/utils/api-types';
 
 /**
  * Example: Get Team Balances

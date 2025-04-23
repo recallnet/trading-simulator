@@ -221,12 +221,15 @@ export class DbManager {
       // Disable foreign key constraints temporarily
       await client.query('SET session_replication_role = replica');
 
-      // Truncate specific tables that might contain test data
+      // Truncate all tables that contain test data
       await client.query('TRUNCATE teams CASCADE');
       await client.query('TRUNCATE balances CASCADE');
       await client.query('TRUNCATE trades CASCADE');
       await client.query('TRUNCATE competitions CASCADE');
       await client.query('TRUNCATE prices CASCADE');
+      await client.query('TRUNCATE portfolio_snapshots CASCADE');
+      await client.query('TRUNCATE portfolio_token_values CASCADE');
+      await client.query('TRUNCATE competition_teams CASCADE');
 
       // Re-enable foreign key constraints
       await client.query('SET session_replication_role = DEFAULT');

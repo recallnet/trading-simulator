@@ -2,6 +2,7 @@ import { ApiClient } from './api-client';
 import { dbManager } from './db-manager';
 import { resetRateLimiters } from '../../src/middleware/rate-limiter.middleware';
 import * as crypto from 'crypto';
+import { StartCompetitionResponse, CreateCompetitionResponse } from './api-types';
 
 // Configured test token address
 export const TEST_TOKEN_ADDRESS =
@@ -62,7 +63,7 @@ export async function startTestCompetition(
   adminClient: ApiClient,
   name: string,
   teamIds: string[],
-): Promise<any> {
+): Promise<StartCompetitionResponse> {
   // Ensure database is initialized
   await ensureDatabaseInitialized();
 
@@ -76,7 +77,7 @@ export async function startTestCompetition(
     throw new Error('Failed to start competition');
   }
 
-  return result;
+  return result as StartCompetitionResponse;
 }
 
 /**
@@ -86,7 +87,7 @@ export async function createTestCompetition(
   adminClient: ApiClient,
   name: string,
   description?: string,
-): Promise<any> {
+): Promise<CreateCompetitionResponse> {
   // Ensure database is initialized
   await ensureDatabaseInitialized();
 
@@ -99,7 +100,7 @@ export async function createTestCompetition(
     throw new Error('Failed to create competition');
   }
 
-  return result;
+  return result as CreateCompetitionResponse;
 }
 
 /**
@@ -109,7 +110,7 @@ export async function startExistingTestCompetition(
   adminClient: ApiClient,
   competitionId: string,
   teamIds: string[],
-): Promise<any> {
+): Promise<StartCompetitionResponse> {
   // Ensure database is initialized
   await ensureDatabaseInitialized();
 
@@ -119,7 +120,7 @@ export async function startExistingTestCompetition(
     throw new Error('Failed to start existing competition');
   }
 
-  return result;
+  return result as StartCompetitionResponse;
 }
 
 /**

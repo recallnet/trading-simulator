@@ -7,6 +7,13 @@ import {
 } from '../utils/test-helpers';
 import axios from 'axios';
 import { getBaseUrl } from '../utils/server';
+import {
+  AdminTeamsListResponse,
+  ApiResponse,
+  ErrorResponse,
+  TeamRegistrationResponse,
+  TeamProfileResponse,
+} from '../utils/api-types';
 
 describe('Admin API', () => {
   let adminApiKey: string;
@@ -60,7 +67,11 @@ describe('Admin API', () => {
     const teamEmail = `team${Date.now()}@test.com`;
     const contactPerson = 'John Doe';
 
-    const result = await adminClient.registerTeam(teamName, teamEmail, contactPerson);
+    const result = (await adminClient.registerTeam(
+      teamName,
+      teamEmail,
+      contactPerson,
+    )) as TeamRegistrationResponse;
 
     // Assert registration success
     expect(result.success).toBe(true);
@@ -69,6 +80,61 @@ describe('Admin API', () => {
     expect(result.team.email).toBe(teamEmail);
     expect(result.team.contactPerson).toBe(contactPerson);
     expect(result.team.apiKey).toBeDefined();
+  });
+
+  test('should register a team with metadata via admin API', async () => {
+    // Setup admin client with the API key
+    const adminClient = createTestClient();
+    await adminClient.loginAsAdmin(adminApiKey);
+
+    // Register a new team with metadata
+    const teamName = `Metadata Team ${Date.now()}`;
+    const teamEmail = `metadata-team-${Date.now()}@test.com`;
+    const contactPerson = 'Meta Data';
+
+    // Define the metadata for the team
+    const metadata = {
+      ref: {
+        name: 'AdminBot',
+        version: '2.0.0',
+        url: 'https://github.com/example/admin-bot',
+      },
+      description: 'A trading bot created by the admin',
+      social: {
+        name: 'Admin Trading Team',
+        email: 'admin@tradingteam.com',
+        twitter: '@adminbot',
+      },
+    };
+
+    // Register the team with metadata
+    const result = await adminClient.registerTeam(
+      teamName,
+      teamEmail,
+      contactPerson,
+      undefined, // Auto-generate wallet address since not explicitly provided
+      metadata, // Pass the metadata
+    );
+
+    // Assert registration success using type assertion
+    expect(result.success).toBe(true);
+
+    // Safely check team properties with type assertion
+    const registrationResponse = result as TeamRegistrationResponse;
+    expect(registrationResponse.team).toBeDefined();
+    expect(registrationResponse.team.name).toBe(teamName);
+    expect(registrationResponse.team.email).toBe(teamEmail);
+    expect(registrationResponse.team.contactPerson).toBe(contactPerson);
+    expect(registrationResponse.team.apiKey).toBeDefined();
+
+    // Now get the team's profile to verify the metadata was saved
+    const teamClient = adminClient.createTeamClient(registrationResponse.team.apiKey);
+    const profileResponse = await teamClient.getProfile();
+
+    // Safely check profile properties with type assertion
+    const teamProfile = profileResponse as TeamProfileResponse;
+    expect(teamProfile.success).toBe(true);
+    expect(teamProfile.team.metadata).toEqual(metadata);
   });
 
   test('should not allow team registration without admin auth', async () => {
@@ -103,11 +169,11 @@ describe('Admin API', () => {
     expect(firstResult.success).toBe(true);
 
     // Try to register second team with the same email
-    const secondResult = await adminClient.registerTeam(
+    const secondResult = (await adminClient.registerTeam(
       `Second Team ${Date.now()}`,
       teamEmail, // Same email as first team
       'Jane Smith',
-    );
+    )) as ErrorResponse;
 
     // Assert second registration failure due to duplicate email
     expect(secondResult.success).toBe(false);
@@ -124,20 +190,24 @@ describe('Admin API', () => {
     const teamEmail = `delete-${Date.now()}@test.com`;
     const contactPerson = 'Delete Me';
 
-    const registerResult = await adminClient.registerTeam(teamName, teamEmail, contactPerson);
+    const registerResult = (await adminClient.registerTeam(
+      teamName,
+      teamEmail,
+      contactPerson,
+    )) as TeamRegistrationResponse;
     expect(registerResult.success).toBe(true);
 
     const teamId = registerResult.team.id;
 
     // Now delete the team
-    const deleteResult = await adminClient.deleteTeam(teamId);
+    const deleteResult = (await adminClient.deleteTeam(teamId)) as ApiResponse;
 
     // Assert deletion success
     expect(deleteResult.success).toBe(true);
     expect(deleteResult.message).toContain('successfully deleted');
 
     // Verify the team is gone by trying to get the list of teams
-    const teamsResult = await adminClient.listTeams();
+    const teamsResult = (await adminClient.listTeams()) as AdminTeamsListResponse;
     expect(teamsResult.success).toBe(true);
 
     // Check that the deleted team is not in the list
@@ -155,7 +225,11 @@ describe('Admin API', () => {
     const teamEmail = `nodelete-${Date.now()}@test.com`;
     const contactPerson = 'Keep Me';
 
-    const registerResult = await adminClient.registerTeam(teamName, teamEmail, contactPerson);
+    const registerResult = (await adminClient.registerTeam(
+      teamName,
+      teamEmail,
+      contactPerson,
+    )) as TeamRegistrationResponse;
     expect(registerResult.success).toBe(true);
 
     const teamId = registerResult.team.id;
@@ -170,7 +244,7 @@ describe('Admin API', () => {
     expect(deleteResult.success).toBe(false);
 
     // Verify the team still exists
-    const teamsResult = await adminClient.listTeams();
+    const teamsResult = (await adminClient.listTeams()) as AdminTeamsListResponse;
     const teamExists = teamsResult.teams.some((t: { id: string }) => t.id === teamId);
     expect(teamExists).toBe(true);
   });
@@ -182,7 +256,7 @@ describe('Admin API', () => {
 
     // Try to delete a team with a non-existent ID (using a valid UUID format)
     const nonExistentId = '00000000-0000-4000-a000-000000000000'; // Valid UUID that doesn't exist
-    const deleteResult = await adminClient.deleteTeam(nonExistentId);
+    const deleteResult = (await adminClient.deleteTeam(nonExistentId)) as ErrorResponse;
 
     // Assert deletion failure
     expect(deleteResult.success).toBe(false);
@@ -216,7 +290,11 @@ describe('Admin API', () => {
     const teamEmail = `admin-test-${Date.now()}@test.com`;
     const contactPerson = 'Test Person';
 
-    const registerResult = await adminClient.registerTeam(teamName, teamEmail, contactPerson);
+    const registerResult = (await adminClient.registerTeam(
+      teamName,
+      teamEmail,
+      contactPerson,
+    )) as TeamRegistrationResponse;
     expect(registerResult.success).toBe(true);
 
     // Delete the team to verify our delete functionality works correctly
