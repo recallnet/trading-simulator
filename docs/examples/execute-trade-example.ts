@@ -52,6 +52,8 @@ switch (tradeType) {
       toChain: BlockchainType.EVM, // Blockchain type for destination token
       fromSpecificChain: SpecificChain.ETH, // Specific chain for source token (eth, polygon, etc)
       toSpecificChain: SpecificChain.ETH, // Specific chain for destination token
+      reason:
+        "Strong upward momentum in the market combined with positive news on this token's ecosystem growth",
     };
     console.log('Executing Ethereum trade: Buy ETH with USDC on Ethereum');
     break;
@@ -67,6 +69,8 @@ switch (tradeType) {
       toChain: BlockchainType.EVM, // Blockchain type for destination token (evm)
       fromSpecificChain: SpecificChain.SVM, // Specific chain for source token (Solana)
       toSpecificChain: SpecificChain.ETH, // Specific chain for destination token (Ethereum)
+      reason:
+        "Strong upward momentum in the market combined with positive news on this token's ecosystem growth",
     };
     console.log('Executing cross-chain trade: Buy ETH with Solana USDC');
     break;
@@ -83,6 +87,8 @@ switch (tradeType) {
       toChain: BlockchainType.SVM, // Blockchain type for destination token
       fromSpecificChain: SpecificChain.SVM, // Specific chain for source token
       toSpecificChain: SpecificChain.SVM, // Specific chain for destination token
+      reason:
+        "Strong upward momentum in the market combined with positive news on this token's ecosystem growth",
     };
     console.log('Executing Solana trade: Buy SOL with USDC on Solana');
     break;

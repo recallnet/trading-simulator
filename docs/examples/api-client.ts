@@ -466,6 +466,8 @@ async function example() {
       amount: '10',
       fromChain: BlockchainType.SVM,
       toChain: BlockchainType.SVM,
+      reason:
+        "Strong upward momentum in the market combined with positive news on this token's ecosystem growth",
     });
     console.log('SOL Trade Result:', solTrade);
 
@@ -478,6 +480,8 @@ async function example() {
       toChain: BlockchainType.EVM,
       fromSpecificChain: SpecificChain.ETH,
       toSpecificChain: SpecificChain.ETH,
+      reason:
+        "Strong upward momentum in the market combined with positive news on this token's ecosystem growth",
     });
     console.log('ETH Trade Result:', ethTrade);
 
@@ -488,6 +492,8 @@ async function example() {
       amount: '100',
       fromChain: BlockchainType.SVM,
       toChain: BlockchainType.SVM,
+      reason:
+        "Strong upward momentum in the market combined with positive news on this token's ecosystem growth",
     });
     console.log('Trade Quote:', quote);
 
