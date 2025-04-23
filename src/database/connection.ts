@@ -18,6 +18,17 @@ export class DatabaseConnection {
         return { ssl: undefined };
       }
 
+      // If a certificate is provided as an environment variable, use it
+      const certBase64 = process.env.DB_CA_CERT_BASE64; // Suitable for Vercel deployments
+      if (certBase64) {
+        return {
+          ssl: {
+            ca: Buffer.from(certBase64, 'base64').toString(),
+            rejectUnauthorized: true,
+          },
+        };
+      }
+
       // If a custom CA certificate path is provided, use it
       // This allows using self-signed certs while maintaining validation
       const caPath = process.env.DB_CA_CERT_PATH;

@@ -560,16 +560,38 @@ Below is a comprehensive list of all environment variables available in `.env.ex
 
 ### Database Configuration
 
-| Variable          | Required           | Default                    | Description                                                                                             |
-| ----------------- | ------------------ | -------------------------- | ------------------------------------------------------------------------------------------------------- |
-| `POSTGRES_URL`    | Optional           | None                       | PostgreSQL connection string in the format `postgresql://username:password@host:port/database?ssl=true` |
-| `DB_HOST`         | Required if no URL | `localhost`                | Database host when not using `POSTGRES_URL`                                                             |
-| `DB_PORT`         | Optional           | `5432`                     | Database port when not using `POSTGRES_URL`                                                             |
-| `DB_USERNAME`     | Required if no URL | `postgres`                 | Database username when not using `POSTGRES_URL`                                                         |
-| `DB_PASSWORD`     | Required if no URL | `postgres`                 | Database password when not using `POSTGRES_URL`                                                         |
-| `DB_NAME`         | Required if no URL | `solana_trading_simulator` | Database name when not using `POSTGRES_URL`                                                             |
-| `DB_SSL`          | Optional           | `false`                    | Enable SSL for database connection (`true` or `false`)                                                  |
-| `DB_CA_CERT_PATH` | Optional           | None                       | Path to CA certificate for SSL database connection (e.g., `./certs/ca-certificate.crt`)                 |
+| Variable            | Required           | Default                    | Description                                                                                             |
+| ------------------- | ------------------ | -------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `POSTGRES_URL`      | Optional           | None                       | PostgreSQL connection string in the format `postgresql://username:password@host:port/database?ssl=true` |
+| `DB_HOST`           | Required if no URL | `localhost`                | Database host when not using `POSTGRES_URL`                                                             |
+| `DB_PORT`           | Optional           | `5432`                     | Database port when not using `POSTGRES_URL`                                                             |
+| `DB_USERNAME`       | Required if no URL | `postgres`                 | Database username when not using `POSTGRES_URL`                                                         |
+| `DB_PASSWORD`       | Required if no URL | `postgres`                 | Database password when not using `POSTGRES_URL`                                                         |
+| `DB_NAME`           | Required if no URL | `solana_trading_simulator` | Database name when not using `POSTGRES_URL`                                                             |
+| `DB_SSL`            | Optional           | `false`                    | Enable SSL for database connection (`true` or `false`)                                                  |
+| `DB_CA_CERT_PATH`   | Optional           | None                       | Path to CA certificate for SSL database connection (e.g., `./certs/ca-certificate.crt`)                 |
+| `DB_CA_CERT_BASE64` | Optional           | None                       | Base64-encoded CA certificate for SSL connection (alternative to using certificate file path)           |
+
+### Using Base64-Encoded Certificates for Deployment
+
+When deploying to platforms like Vercel or other serverless environments, using certificate files isn't always ideal. Instead, you can provide your SSL certificate as a base64-encoded string in an environment variable.
+
+To convert your certificate to base64 format:
+
+```bash
+# Encode the certificate to base64, removing newlines
+base64 -i ./certs/your-certificate.crt | tr -d '\n' > ./cert-base64.txt
+
+# View the encoded value (copy this to your environment variable)
+cat ./cert-base64.txt
+```
+
+Then set the environment variable in your deployment platform:
+
+- Variable name: `DB_CA_CERT_BASE64`
+- Value: The base64-encoded string from the previous step
+
+The application will automatically detect and use the base64-encoded certificate when `DB_CA_CERT_BASE64` is provided, falling back to `DB_CA_CERT_PATH` if available, or using the default SSL configuration if neither is specified.
 
 ### Security Settings
 
