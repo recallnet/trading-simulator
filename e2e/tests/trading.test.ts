@@ -25,6 +25,8 @@ import {
   TradeTransaction,
 } from '../utils/api-types';
 
+const reason = 'trading end-to-end test';
+
 describe('Trading API', () => {
   let adminApiKey: string;
 
@@ -100,6 +102,7 @@ describe('Trading API', () => {
       amount: tradeAmount.toString(),
       fromChain: BlockchainType.SVM,
       toChain: BlockchainType.SVM,
+      reason,
     });
 
     console.log(`Buy trade response: ${JSON.stringify(buyTradeResponse)}`);
@@ -169,6 +172,7 @@ describe('Trading API', () => {
       amount: tokenToSell.toString(),
       fromChain: BlockchainType.SVM,
       toChain: BlockchainType.SVM,
+      reason,
     });
 
     console.log(`Sell trade response: ${JSON.stringify(sellTradeResponse)}`);
@@ -255,6 +259,7 @@ describe('Trading API', () => {
       amount: tradeAmount.toString(),
       fromChain: BlockchainType.SVM,
       toChain: BlockchainType.SVM,
+      reason,
     });
 
     console.log(`Buy trade response: ${JSON.stringify(buyTradeResponse)}`);
@@ -332,6 +337,7 @@ describe('Trading API', () => {
       amount: '100',
       fromChain: BlockchainType.SVM,
       toChain: BlockchainType.SVM,
+      reason,
     });
 
     expect(invalidTokenResponse.success).toBe(false);
@@ -346,6 +352,7 @@ describe('Trading API', () => {
       amount: '100',
       fromChain: BlockchainType.SVM,
       toChain: BlockchainType.SVM,
+      reason,
     });
 
     expect(noPriceTokenResponse.success).toBe(false);
@@ -358,6 +365,7 @@ describe('Trading API', () => {
       amount: (initialUsdcBalance * 2).toString(), // Double the available balance
       fromChain: BlockchainType.SVM,
       toChain: BlockchainType.SVM,
+      reason,
     });
 
     expect(excessiveAmountResponse.success).toBe(false);
@@ -386,6 +394,7 @@ describe('Trading API', () => {
       amount: insufficientBalanceAmount.toString(),
       fromChain: BlockchainType.SVM,
       toChain: BlockchainType.SVM,
+      reason,
     });
 
     expect(solanaPriceResponse.success).toBe(false);
@@ -398,6 +407,7 @@ describe('Trading API', () => {
       amount: '100',
       fromChain: BlockchainType.SVM,
       toChain: BlockchainType.SVM,
+      reason,
     });
 
     expect(invalidSellResponse.success).toBe(false);
@@ -456,6 +466,7 @@ describe('Trading API', () => {
           amount: balance.toString(),
           fromChain: BlockchainType.SVM,
           toChain: BlockchainType.SVM,
+          reason,
         });
 
         console.log(`Consolidation result: ${consolidateResponse.success ? 'success' : 'failure'}`);
@@ -506,6 +517,7 @@ describe('Trading API', () => {
       amount: tradeAmount.toString(),
       fromChain: BlockchainType.SVM,
       toChain: BlockchainType.SVM,
+      reason,
     });
 
     console.log(`Max percentage trade response: ${JSON.stringify(maxPercentageResponse)}`);
@@ -580,6 +592,7 @@ describe('Trading API', () => {
       amount: usdcAmount.toString(),
       fromChain: BlockchainType.SVM,
       toChain: BlockchainType.SVM,
+      reason,
     });
 
     console.log(`Buy trade response: ${JSON.stringify(buyTradeResponse)}`);
@@ -719,6 +732,7 @@ describe('Trading API', () => {
         amount: tradeAmount.toString(),
         fromChain: BlockchainType.SVM,
         toChain: BlockchainType.EVM,
+        reason,
       });
 
       console.log(`Buy ETH trade response: ${JSON.stringify(buyTradeResponse)}`);
@@ -810,6 +824,7 @@ describe('Trading API', () => {
       amount: tradeAmount.toString(),
       fromChain: BlockchainType.SVM,
       toChain: BlockchainType.SVM,
+      reason,
     });
 
     console.log(`Buy trade response: ${JSON.stringify(buyTradeResponse)}`);
@@ -874,6 +889,7 @@ describe('Trading API', () => {
         toChain: BlockchainType.EVM,
         fromSpecificChain: SpecificChain.SVM,
         toSpecificChain: SpecificChain.ETH,
+        reason,
       });
 
       console.log(`Cross-chain trade response: ${JSON.stringify(crossChainTradeResponse)}`);

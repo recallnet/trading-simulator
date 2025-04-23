@@ -125,6 +125,7 @@ describe('Team Deactivation API', () => {
         amount: '100',
         fromChain: BlockchainType.SVM,
         toChain: BlockchainType.SVM,
+        reason,
       });
       // Should not reach here - trade should be blocked
       expect(false).toBe(true); // Force test to fail if we get here
@@ -251,6 +252,7 @@ describe('Team Deactivation API', () => {
       amount: '100',
       fromChain: BlockchainType.SVM,
       toChain: BlockchainType.SVM,
+      reason: 'inactive teams are filtered from leaderboard',
     });
 
     // Have the other teams make trades too to populate leaderboard
@@ -260,6 +262,7 @@ describe('Team Deactivation API', () => {
       amount: '50',
       fromChain: BlockchainType.SVM,
       toChain: BlockchainType.SVM,
+      reason: 'inactive teams are filtered from leaderboard',
     });
 
     await teamClient2.executeTrade({
@@ -268,6 +271,7 @@ describe('Team Deactivation API', () => {
       amount: '75',
       fromChain: BlockchainType.SVM,
       toChain: BlockchainType.SVM,
+      reason: 'inactive teams are filtered from leaderboard',
     });
 
     // Wait a moment for portfolio values to update

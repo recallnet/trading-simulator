@@ -32,6 +32,8 @@ console.log(`- Imported config from ../../src/config has initial balances:`, {
 });
 console.log('===========================================================\n');
 
+const reason = 'base-trades end to end tests';
+
 describe('Base Chain Trading', () => {
   let adminApiKey: string;
 
@@ -169,6 +171,7 @@ describe('Base Chain Trading', () => {
         toChain: BlockchainType.EVM,
         fromSpecificChain: SpecificChain.BASE,
         toSpecificChain: SpecificChain.BASE,
+        reason,
       })) as TradeResponse;
 
       console.log(`Trade response for ${token.address}: ${JSON.stringify(tradeResponse.success)}`);
@@ -326,6 +329,7 @@ describe('Base Chain Trading', () => {
         toChain: BlockchainType.EVM,
         fromSpecificChain: SpecificChain.BASE,
         toSpecificChain: SpecificChain.ETH, // Different chain from fromSpecificChain
+        reason,
       });
 
       // If we get here, the trade might have succeeded, which is unexpected if cross-chain trading is disabled
@@ -494,6 +498,7 @@ describe('Base Chain Trading', () => {
         toChain: BlockchainType.EVM,
         fromSpecificChain: SpecificChain.BASE,
         toSpecificChain: SpecificChain.BASE,
+        reason,
       });
 
       expect(tradeResponse.success).toBe(false); // The test should fail here if excessive trading is allowed
@@ -528,6 +533,7 @@ describe('Base Chain Trading', () => {
       toChain: BlockchainType.EVM,
       fromSpecificChain: SpecificChain.BASE,
       toSpecificChain: SpecificChain.BASE,
+      reason,
     })) as TradeResponse;
 
     // This trade should succeed
