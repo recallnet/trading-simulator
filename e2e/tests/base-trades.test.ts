@@ -496,8 +496,6 @@ describe('Base Chain Trading', () => {
         toSpecificChain: SpecificChain.BASE,
       });
 
-      // If we get here, the trade succeeded, which is unexpected for excessive amounts
-      console.log('Unexpected success: Excessive trade was allowed');
       expect(tradeResponse.success).toBe(false); // The test should fail here if excessive trading is allowed
     } catch (error: any) {
       // Type error as any for proper handling
