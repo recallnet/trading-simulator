@@ -14,7 +14,12 @@ import config, { features } from '../../src/config';
 import { BlockchainType, PriceReport } from '../../src/types';
 import { PriceTracker } from '../../src/services/price-tracker.service';
 import { MultiChainProvider } from '../../src/services/providers/multi-chain.provider';
-import { BalancesResponse, TradeHistoryResponse, TradeResponse } from '../utils/api-types';
+import {
+  BalancesResponse,
+  SpecificChain,
+  TradeHistoryResponse,
+  TradeResponse,
+} from '../utils/api-types';
 
 // Log critical environment variables at test suite startup to verify which values are used
 console.log('\n========== BASE TRADES TEST ENVIRONMENT CHECK ==========');
@@ -156,14 +161,14 @@ describe('Base Chain Trading', () => {
       );
 
       // Use the API endpoint with explicit from/to token addresses
-      const tradeResponse = (await teamClient.request('post', '/api/trade/execute', {
+      const tradeResponse = (await teamClient.executeTrade({
         fromToken: BASE_USDC_ADDRESS, // Explicitly use Base USDC address
         toToken: token.address, // Target token to buy
         amount: spendPerToken.toString(),
         fromChain: BlockchainType.EVM,
         toChain: BlockchainType.EVM,
-        fromSpecificChain: BASE_CHAIN,
-        toSpecificChain: BASE_CHAIN,
+        fromSpecificChain: SpecificChain.BASE,
+        toSpecificChain: SpecificChain.BASE,
       })) as TradeResponse;
 
       console.log(`Trade response for ${token.address}: ${JSON.stringify(tradeResponse.success)}`);
@@ -313,15 +318,15 @@ describe('Base Chain Trading', () => {
     let errorResponse = null;
 
     try {
-      const tradeResponse = (await teamClient.request('post', '/api/trade/execute', {
+      const tradeResponse = await teamClient.executeTrade({
         fromToken: BASE_USDC_ADDRESS, // Base USDC
         toToken: ETH_ADDRESS, // Ethereum ETH
         amount: tradeAmount,
         fromChain: BlockchainType.EVM,
         toChain: BlockchainType.EVM,
-        fromSpecificChain: BASE_CHAIN,
-        toSpecificChain: ETH_CHAIN, // Different chain from fromSpecificChain
-      })) as TradeResponse;
+        fromSpecificChain: SpecificChain.BASE,
+        toSpecificChain: SpecificChain.ETH, // Different chain from fromSpecificChain
+      });
 
       // If we get here, the trade might have succeeded, which is unexpected if cross-chain trading is disabled
       console.log('No exception thrown. Trade response:', JSON.stringify(tradeResponse, null, 2));
@@ -481,15 +486,15 @@ describe('Base Chain Trading', () => {
     );
 
     try {
-      const tradeResponse = (await teamClient.request('post', '/api/trade/execute', {
+      const tradeResponse = await teamClient.executeTrade({
         fromToken: BASE_USDC_ADDRESS,
         toToken: targetToken,
         amount: excessiveAmount,
         fromChain: BlockchainType.EVM,
         toChain: BlockchainType.EVM,
-        fromSpecificChain: BASE_CHAIN,
-        toSpecificChain: BASE_CHAIN,
-      })) as TradeResponse;
+        fromSpecificChain: SpecificChain.BASE,
+        toSpecificChain: SpecificChain.BASE,
+      });
 
       // If we get here, the trade succeeded, which is unexpected for excessive amounts
       console.log('Unexpected success: Excessive trade was allowed');
@@ -517,14 +522,14 @@ describe('Base Chain Trading', () => {
     const validAmount = (initialBaseUsdcBalance * 0.5).toString(); // 50% of balance
 
     // Execute a valid trade
-    const validTradeResponse = (await teamClient.request('post', '/api/trade/execute', {
+    const validTradeResponse = (await teamClient.executeTrade({
       fromToken: BASE_USDC_ADDRESS,
       toToken: targetToken,
       amount: validAmount,
       fromChain: BlockchainType.EVM,
       toChain: BlockchainType.EVM,
-      fromSpecificChain: BASE_CHAIN,
-      toSpecificChain: BASE_CHAIN,
+      fromSpecificChain: SpecificChain.BASE,
+      toSpecificChain: SpecificChain.BASE,
     })) as TradeResponse;
 
     // This trade should succeed
