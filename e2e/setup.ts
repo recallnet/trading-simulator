@@ -44,6 +44,12 @@ export async function setup() {
     (arg) => arg.includes('leaderboard-access.test') || arg.includes('leaderboard-access'),
   );
 
+  const isTradingTest = args.some((arg) => arg.includes('trading.test') || arg.includes('trading'));
+  console.log(`Is trading test: ${isTradingTest}`);
+  const isBaseTradingTest = args.some(
+    (arg) => arg.includes('base-trades.test') || arg.includes('base-trades'),
+  );
+
   if (envTestExists) {
     // Save original values for debugging
     const originalBaseUsdcBalance = process.env.INITIAL_BASE_USDC_BALANCE;
@@ -57,6 +63,14 @@ export async function setup() {
       ...(isLeaderboardTest && {
         // Preserve our manual setting instead of loading from .env.test
         ignoreProcessEnv: false, // This tells dotenv to use process.env as the starting point
+      }),
+      ...(isTradingTest && {
+        //
+        ignoreProcessEnv: false,
+      }),
+      ...(isBaseTradingTest && {
+        //
+        ignoreProcessEnv: false,
       }),
     });
 
@@ -92,6 +106,14 @@ export async function setup() {
     console.log(
       `DISABLE_PARTICIPANT_LEADERBOARD_ACCESS set to: ${process.env.DISABLE_PARTICIPANT_LEADERBOARD_ACCESS}`,
     );
+  }
+  if (isTradingTest) {
+    process.env.MAX_TRADE_PERCENTAGE = '10';
+    console.log(`MAX_TRADE_PERCENTAGE set to: ${process.env.MAX_TRADE_PERCENTAGE}`);
+  }
+  if (isBaseTradingTest) {
+    process.env.MAX_TRADE_PERCENTAGE = '15';
+    console.log(`MAX_TRADE_PERCENTAGE set to: ${process.env.MAX_TRADE_PERCENTAGE}`);
   }
 
   // Ensure TEST_MODE is set

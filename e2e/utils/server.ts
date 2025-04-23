@@ -8,7 +8,9 @@ let server: Server | null = null;
 
 // Server configuration
 const PORT = process.env.TEST_PORT || '3001';
-const BASE_URL = `http://localhost:${PORT}`;
+// Allow configuring the host from environment (0.0.0.0 for Docker)
+const HOST = process.env.TEST_HOST || 'localhost';
+const BASE_URL = `http://${HOST}:${PORT}`;
 
 /**
  * Start the server for testing
@@ -22,8 +24,9 @@ export async function startServer(): Promise<Server> {
   return new Promise((resolve, reject) => {
     try {
       const testPort = process.env.TEST_PORT || '3001';
+      const testHost = process.env.TEST_HOST || '0.0.0.0'; // Bind to all interfaces in Docker
 
-      console.log(`Starting test server on port ${testPort}...`);
+      console.log(`Starting test server on ${testHost}:${testPort}...`);
 
       // Start the server script in a separate process
       // Use the index.ts file which is the main entry point
@@ -32,6 +35,7 @@ export async function startServer(): Promise<Server> {
           ...process.env,
           NODE_ENV: 'test',
           PORT: testPort,
+          HOST: testHost,
           TEST_MODE: 'true',
         },
         stdio: 'inherit',
@@ -63,7 +67,7 @@ export async function startServer(): Promise<Server> {
       // Wait for the server to be ready
       waitForServerReady(30, 500) // 30 retries, 500ms interval = 15 seconds max
         .then(() => {
-          console.log(`Server started and ready on port ${testPort}`);
+          console.log(`Server started and ready on ${testHost}:${testPort}`);
           resolve(mockServer);
         })
         .catch((error) => {
@@ -167,7 +171,7 @@ export async function killExistingServers(): Promise<void> {
  * Wait for the server to be ready by polling the health endpoint
  */
 async function waitForServerReady(maxRetries = 30, interval = 500): Promise<void> {
-  console.log('⏳ Waiting for server to be ready...');
+  console.log(`⏳ Waiting for server to be ready at ${BASE_URL}/health...`);
 
   let retries = 0;
   while (retries < maxRetries) {
