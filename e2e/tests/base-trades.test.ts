@@ -510,7 +510,7 @@ describe('Base Chain Trading', () => {
     // Wait longer to ensure system state is stable after the failed trade attempt
     // This helps prevent timing issues in CI environments
     console.log('Waiting for system to stabilize after failed trade attempt...');
-    await wait(2000);
+    await wait(5000);
 
     // Verify that a valid trade with proper amount works
     console.log('Now trying a valid trade with proper amount...');
