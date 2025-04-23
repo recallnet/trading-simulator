@@ -18,8 +18,8 @@ export class AccountController {
     try {
       const teamId = req.teamId as string;
 
-      // Get the team
-      const team = await repositories.teamRepository.findById(teamId);
+      // Get the team using the service
+      const team = await services.teamManager.getTeam(teamId);
 
       if (!team) {
         throw new ApiError(404, 'Team not found');
@@ -54,8 +54,8 @@ export class AccountController {
       const teamId = req.teamId as string;
       const { contactPerson, metadata } = req.body;
 
-      // Get the team
-      const team = await repositories.teamRepository.findById(teamId);
+      // Get the team using the service
+      const team = await services.teamManager.getTeam(teamId);
 
       if (!team) {
         throw new ApiError(404, 'Team not found');
@@ -71,9 +71,12 @@ export class AccountController {
         team.metadata = metadata;
       }
 
-      // Save the updated team
-      team.updatedAt = new Date();
-      const updatedTeam = await repositories.teamRepository.update(team);
+      // Use the TeamManager service instead of directly updating the repository
+      const updatedTeam = await services.teamManager.updateTeam(team);
+
+      if (!updatedTeam) {
+        throw new ApiError(500, 'Failed to update team profile');
+      }
 
       // Return the updated team profile
       res.status(200).json({

@@ -13,6 +13,8 @@ import {
   AdminTeamsListResponse,
   TeamMetadata,
   TeamRegistrationResponse,
+  CreateCompetitionResponse,
+  PriceResponse,
 } from '../utils/api-types';
 
 describe('Team API', () => {
@@ -257,5 +259,161 @@ describe('Team API', () => {
     expect(teamProfile.team.metadata).toEqual(metadata);
     expect(teamProfile.team.createdAt).toBeDefined();
     expect(teamProfile.team.updatedAt).toBeDefined();
+  });
+
+  test('team can continue using API between competitions after inactiveTeamsCache fix', async () => {
+    // Setup admin client
+    const adminClient = createTestClient();
+    const adminLoginSuccess = await adminClient.loginAsAdmin(adminApiKey);
+    expect(adminLoginSuccess).toBe(true);
+
+    // Step 1: Register a team
+    const teamName = `Test Team ${Date.now()}`;
+    const { client: teamClient, team } = await registerTeamAndGetClient(adminClient, teamName);
+    expect(team).toBeDefined();
+    expect(team.id).toBeDefined();
+
+    // Step 2: Create and start first competition with the team
+    const firstCompName = `Competition 1 ${Date.now()}`;
+    const createCompResult = await adminClient.createCompetition(
+      firstCompName,
+      'First test competition',
+    );
+    expect(createCompResult.success).toBe(true);
+    const createCompResponse = createCompResult as CreateCompetitionResponse;
+    const firstCompetitionId = createCompResponse.competition.id;
+
+    // Start the first competition with our team
+    const startCompResult = await adminClient.startExistingCompetition(firstCompetitionId, [
+      team.id,
+    ]);
+    expect(startCompResult.success).toBe(true);
+
+    // Verify team can use API during first competition
+    const firstProfileResponse = await teamClient.getProfile();
+    expect(firstProfileResponse.success).toBe(true);
+
+    // Get a token price to confirm API functionality
+    const firstPriceResponse = await teamClient.getPrice(
+      '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
+    ); // WETH token
+    expect(firstPriceResponse.success).toBe(true);
+    const firstPriceData = firstPriceResponse as PriceResponse;
+    expect(firstPriceData.price).toBeGreaterThan(0);
+
+    // Step 3: End the first competition
+    const endCompResult = await adminClient.endCompetition(firstCompetitionId);
+    expect(endCompResult.success).toBe(true);
+
+    // Step 4: Create and start a second competition with the same team
+    const secondCompName = `Competition 2 ${Date.now()}`;
+    const createCompResult2 = await adminClient.createCompetition(
+      secondCompName,
+      'Second test competition',
+    );
+    expect(createCompResult2.success).toBe(true);
+    const createCompResponse2 = createCompResult2 as CreateCompetitionResponse;
+    const secondCompetitionId = createCompResponse2.competition.id;
+
+    // Start the second competition with the same team
+    const startCompResult2 = await adminClient.startExistingCompetition(secondCompetitionId, [
+      team.id,
+    ]);
+    expect(startCompResult2.success).toBe(true);
+
+    // Step 5: Verify team can still use API after being added to second competition
+    // This validates our fix for the inactiveTeamsCache issue
+    const secondProfileResponse = await teamClient.getProfile();
+    expect(secondProfileResponse.success).toBe(true);
+
+    // Get a token price to confirm API functionality is working after being re-added
+    const secondPriceResponse = await teamClient.getPrice(
+      '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
+    ); // WETH token
+    expect(secondPriceResponse.success).toBe(true);
+    const secondPriceData = secondPriceResponse as PriceResponse;
+    expect(secondPriceData.price).toBeGreaterThan(0);
+  });
+
+  test('team profile updates maintain cache consistency', async () => {
+    // Setup admin client
+    const adminClient = createTestClient();
+    const adminLoginSuccess = await adminClient.loginAsAdmin(adminApiKey);
+    expect(adminLoginSuccess).toBe(true);
+
+    // Step 1: Register a team
+    const teamName = `Cache Test Team ${Date.now()}`;
+    const { client: teamClient, team } = await registerTeamAndGetClient(adminClient, teamName);
+    expect(team).toBeDefined();
+    expect(team.id).toBeDefined();
+
+    // Step 2: Create and start a competition with the team
+    const compName = `Cache Test Competition ${Date.now()}`;
+    const createCompResult = await adminClient.createCompetition(
+      compName,
+      'Competition to test cache consistency',
+    );
+    expect(createCompResult.success).toBe(true);
+    const createCompResponse = createCompResult as CreateCompetitionResponse;
+    const competitionId = createCompResponse.competition.id;
+
+    // Start the competition with our team
+    const startCompResult = await adminClient.startExistingCompetition(competitionId, [team.id]);
+    expect(startCompResult.success).toBe(true);
+
+    // Step 3: Verify initial API functionality
+    const initialProfileResponse = await teamClient.getProfile();
+    expect(initialProfileResponse.success).toBe(true);
+
+    // Step 4: Update the team's profile multiple times in rapid succession
+    // This tests that cache consistency is maintained during updates
+    const metadata = {
+      description: 'Testing cache consistency',
+      version: '1.0',
+    };
+
+    // Update 1: Set metadata
+    const updateResponse1 = await teamClient.updateProfile({ metadata });
+    expect(updateResponse1.success).toBe(true);
+
+    // Immediately verify API still works
+    const priceResponse1 = await teamClient.getPrice('0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2');
+    expect(priceResponse1.success).toBe(true);
+
+    // Update 2: Change contact person
+    const newContactPerson = `Cache Test Contact ${Date.now()}`;
+    const updateResponse2 = await teamClient.updateProfile({ contactPerson: newContactPerson });
+    expect(updateResponse2.success).toBe(true);
+
+    // Immediately verify API still works
+    const priceResponse2 = await teamClient.getPrice('0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48'); // USDC token
+    expect(priceResponse2.success).toBe(true);
+
+    // Update 3: Change both metadata and contact person
+    const newMetadata = {
+      ...metadata,
+      version: '1.1',
+      notes: 'Updated during test',
+    };
+    const updateResponse3 = await teamClient.updateProfile({
+      contactPerson: `${newContactPerson} Updated`,
+      metadata: newMetadata,
+    });
+    expect(updateResponse3.success).toBe(true);
+
+    // Step 5: Verify final profile state
+    const finalProfileResponse = await teamClient.getProfile();
+    expect(finalProfileResponse.success).toBe(true);
+    expect((finalProfileResponse as TeamProfileResponse).team.contactPerson).toBe(
+      `${newContactPerson} Updated`,
+    );
+    expect((finalProfileResponse as TeamProfileResponse).team.metadata).toEqual(newMetadata);
+
+    // Step 6: Make multiple API calls to verify authentication still works
+    // This confirms the apiKeyCache remains consistent
+    for (let i = 0; i < 3; i++) {
+      const verifyResponse = await teamClient.getBalance();
+      expect(verifyResponse.success).toBe(true);
+    }
   });
 });

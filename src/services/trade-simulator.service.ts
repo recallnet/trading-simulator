@@ -45,6 +45,7 @@ export class TradeSimulator {
    * @param fromToken The source token address
    * @param toToken The destination token address
    * @param fromAmount The amount to trade
+   * @param reason The reason for the trade
    * @param slippageTolerance Optional slippage tolerance percentage
    * @param chainOptions Optional chain specification for performance optimization
    * @returns TradeResult object with success status and trade details
@@ -55,6 +56,7 @@ export class TradeSimulator {
     fromToken: string,
     toToken: string,
     fromAmount: number,
+    reason: string,
     slippageTolerance?: number,
     chainOptions?: ChainOptions,
   ): Promise<TradeResult> {
@@ -65,6 +67,7 @@ export class TradeSimulator {
                 From Token: ${fromToken}
                 To Token: ${toToken}
                 Amount: ${fromAmount}
+                Reason: ${reason}
                 Slippage Tolerance: ${slippageTolerance || 'default'}
                 Chain Options: ${chainOptions ? JSON.stringify(chainOptions) : 'none'}
             `);
@@ -75,6 +78,15 @@ export class TradeSimulator {
         return {
           success: false,
           error: 'Trade amount too small (minimum: 0.000001)',
+        };
+      }
+
+      // Validate reason is provided
+      if (!reason) {
+        console.log(`[TradeSimulator] Trade reason is required`);
+        return {
+          success: false,
+          error: 'Trade reason is required',
         };
       }
 
@@ -250,6 +262,7 @@ export class TradeSimulator {
         success: true,
         teamId,
         competitionId,
+        reason,
         // Add chain information to the trade record
         fromChain: fromTokenChain,
         toChain: toTokenChain,

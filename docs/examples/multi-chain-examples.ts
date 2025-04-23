@@ -134,6 +134,8 @@ async function executeMultiChainTrades(client: TradingSimulatorClient): Promise<
       slippageTolerance: '0.5',
       fromChain: BlockchainType.SVM,
       toChain: BlockchainType.SVM,
+      reason:
+        "Strong upward momentum in the market combined with positive news on this token's ecosystem growth",
     };
 
     const solTrade: TradeResponse = await client.executeTrade(solanaTradeDetails);
@@ -154,6 +156,8 @@ async function executeMultiChainTrades(client: TradingSimulatorClient): Promise<
       toChain: BlockchainType.EVM,
       fromSpecificChain: SpecificChain.ETH,
       toSpecificChain: SpecificChain.ETH,
+      reason:
+        "Strong upward momentum in the market combined with positive news on this token's ecosystem growth",
     };
 
     const ethTrade: TradeResponse = await client.executeTrade(ethereumTradeDetails);
@@ -181,6 +185,8 @@ async function executeCrossChainTrades(client: TradingSimulatorClient): Promise<
       toChain: BlockchainType.EVM,
       fromSpecificChain: SpecificChain.SVM,
       toSpecificChain: SpecificChain.ETH,
+      reason:
+        "Strong upward momentum in the market combined with positive news on this token's ecosystem growth",
     };
 
     const crossTrade1: TradeResponse = await client.executeTrade(crossChainTradeDetails1);
@@ -204,6 +210,8 @@ async function executeCrossChainTrades(client: TradingSimulatorClient): Promise<
       toChain: BlockchainType.SVM,
       fromSpecificChain: SpecificChain.ETH,
       toSpecificChain: SpecificChain.SVM,
+      reason:
+        "Strong upward momentum in the market combined with positive news on this token's ecosystem growth",
     };
 
     const crossTrade2: TradeResponse = await client.executeTrade(crossChainTradeDetails2);

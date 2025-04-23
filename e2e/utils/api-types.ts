@@ -123,6 +123,7 @@ export interface TradeTransaction {
   price: number;
   success: boolean;
   error?: string;
+  reason: string;
   timestamp: string;
   fromChain: string;
   toChain: string;
@@ -390,6 +391,7 @@ export interface TradeExecutionParams {
   fromToken: string;
   toToken: string;
   amount: string;
+  reason: string;
   slippageTolerance?: string;
   fromChain?: BlockchainType;
   toChain?: BlockchainType;

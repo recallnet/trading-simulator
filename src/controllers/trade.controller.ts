@@ -20,6 +20,7 @@ export class TradeController {
         fromToken,
         toToken,
         amount,
+        reason,
         slippageTolerance,
         // New parameters for chain specification
         fromChain,
@@ -34,6 +35,11 @@ export class TradeController {
       // Validate required parameters
       if (!fromToken || !toToken || !amount) {
         throw new ApiError(400, 'Missing required parameters: fromToken, toToken, amount');
+      }
+
+      // Validate reason is provided
+      if (!reason) {
+        throw new ApiError(400, 'Missing required parameter: reason');
       }
 
       // Validate amount is a number
@@ -75,6 +81,7 @@ export class TradeController {
         fromToken,
         toToken,
         parsedAmount,
+        reason,
         slippageTolerance,
         chainOptions,
       );

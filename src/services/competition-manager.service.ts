@@ -131,8 +131,8 @@ export class CompetitionManager {
       // Register team in the competition
       await repositories.competitionRepository.addTeamToCompetition(competitionId, teamId);
 
-      // Activate the team using existing reactivateTeam method
-      await repositories.teamRepository.reactivateTeam(teamId);
+      // Use the team manager service to reactivate teams - this properly clears the cache
+      await services.teamManager.reactivateTeam(teamId);
       console.log(`[CompetitionManager] Activated team: ${teamId}`);
     }
 
