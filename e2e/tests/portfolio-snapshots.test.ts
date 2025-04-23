@@ -16,6 +16,8 @@ import { BlockchainType } from '../../src/types';
 import { PriceTracker } from '../../src/services/price-tracker.service';
 import { BalancesResponse, SnapshotResponse, TokenPortfolioItem } from '../utils/api-types';
 
+const reason = 'portfolio-snapshots end-to-end tests';
+
 describe('Portfolio Snapshots', () => {
   let adminApiKey: string;
 
@@ -174,6 +176,7 @@ describe('Portfolio Snapshots', () => {
       amount: '100',
       fromChain: BlockchainType.SVM,
       toChain: BlockchainType.SVM,
+      reason,
     });
 
     // Wait for trade to process

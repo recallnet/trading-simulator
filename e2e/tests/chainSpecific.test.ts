@@ -13,6 +13,8 @@ import { getPool } from '../utils/db-manager';
 import { BalancesResponse } from '../utils/api-types';
 import { config } from '../../src/config';
 
+const reason = 'chainSpecific end to end tests';
+
 describe('Specific Chains', () => {
   let adminApiKey: string;
 
@@ -140,6 +142,7 @@ describe('Specific Chains', () => {
       fromToken: ethToken,
       toToken: usdcToken,
       amount: tradeAmount,
+      reason,
     });
     expect(tradeResponse.success).toBe(true);
 

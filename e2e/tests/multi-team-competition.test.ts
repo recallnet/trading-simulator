@@ -19,6 +19,7 @@ import {
   ErrorResponse,
   LeaderboardResponse,
   SnapshotResponse,
+  SpecificChain,
   TeamProfileResponse,
   TradeResponse,
 } from '../utils/api-types';
@@ -58,6 +59,8 @@ describe('Multi-Team Competition', () => {
   }[] = [];
   let adminClient: ApiClient;
   let competitionId: string;
+
+  const reason = 'multi-team-competition end-to-end test';
 
   // Clean up test state before each test
   beforeEach(async () => {
@@ -294,14 +297,15 @@ describe('Multi-Team Competition', () => {
       console.log(`Team ${i + 1} trading ${tradeAmount} USDC for token ${tokenToTrade}`);
 
       // Execute trade using the client - each team buys a different BASE token with 100 USDC
-      const tradeResponse = (await team.client.request('post', '/api/trade/execute', {
+      const tradeResponse = (await team.client.executeTrade({
         fromToken: BASE_USDC_ADDRESS,
         toToken: tokenToTrade,
         amount: tradeAmount.toString(),
         fromChain: BlockchainType.EVM,
         toChain: BlockchainType.EVM,
-        fromSpecificChain: BASE_CHAIN,
-        toSpecificChain: BASE_CHAIN,
+        fromSpecificChain: SpecificChain.BASE,
+        toSpecificChain: SpecificChain.BASE,
+        reason,
       })) as TradeResponse;
 
       // Verify trade was successful
@@ -447,14 +451,15 @@ describe('Multi-Team Competition', () => {
       );
 
       // Execute trade - each team buys a different BASE token with USDC
-      const tradeResponse = (await team.client.request('post', '/api/trade/execute', {
+      const tradeResponse = (await team.client.executeTrade({
         fromToken: BASE_USDC_ADDRESS,
         toToken: tokenToTrade,
         amount: tradeAmount.toString(),
         fromChain: BlockchainType.EVM,
         toChain: BlockchainType.EVM,
-        fromSpecificChain: BASE_CHAIN,
-        toSpecificChain: BASE_CHAIN,
+        fromSpecificChain: SpecificChain.BASE,
+        toSpecificChain: SpecificChain.BASE,
+        reason,
       })) as TradeResponse;
 
       // Verify trade was successful
