@@ -909,4 +909,73 @@ describe('Trading API', () => {
       console.error('Error testing cross-chain trading:', error);
     }
   });
+
+  test('team can execute a trade and verify reason field is returned in responses', async () => {
+    // Setup admin client
+    const adminClient = createTestClient();
+    await adminClient.loginAsAdmin(adminApiKey);
+
+    // Register team and get client
+    const { client: teamClient, team } = await registerTeamAndGetClient(
+      adminClient,
+      'Reason Verification Team',
+    );
+
+    // Start a competition with our team
+    const competitionName = `Reason Verification Test ${Date.now()}`;
+    await startTestCompetition(adminClient, competitionName, [team.id]);
+
+    // Wait for balances to be properly initialized
+    await wait(500);
+
+    // Get tokens to trade
+    const usdcTokenAddress = config.specificChainTokens.svm.usdc;
+    const solTokenAddress = config.specificChainTokens.svm.sol;
+
+    // Define a specific reason for the trade
+    const specificReason = 'Testing reason field persistence and retrieval';
+
+    // Execute a trade with the specific reason
+    const tradeResponse = (await teamClient.executeTrade({
+      fromToken: usdcTokenAddress,
+      toToken: solTokenAddress,
+      amount: '10',
+      fromChain: BlockchainType.SVM,
+      toChain: BlockchainType.SVM,
+      reason: specificReason,
+    })) as TradeResponse;
+
+    // Verify trade executed successfully
+    expect(tradeResponse.success).toBe(true);
+    expect(tradeResponse.transaction).toBeDefined();
+
+    // Verify reason is included in the trade execution response
+    expect(tradeResponse.transaction.reason).toBe(specificReason);
+    console.log(
+      `Verified reason in trade execution response: "${tradeResponse.transaction.reason}"`,
+    );
+
+    // Wait for trade to be processed
+    await wait(500);
+
+    // Get trade history
+    const tradeHistoryResponse = (await teamClient.getTradeHistory()) as TradeHistoryResponse;
+
+    // Verify trade history response
+    expect(tradeHistoryResponse.success).toBe(true);
+    expect(tradeHistoryResponse.trades).toBeInstanceOf(Array);
+    expect(tradeHistoryResponse.trades.length).toBeGreaterThan(0);
+
+    // Get the most recent trade (should be the one we just executed)
+    const lastTrade = tradeHistoryResponse.trades[0];
+
+    // Verify reason is included in trade history
+    expect(lastTrade.reason).toBe(specificReason);
+    console.log(`Verified reason in trade history response: "${lastTrade.reason}"`);
+
+    // Further verify other trade details match
+    expect(lastTrade.fromToken).toBe(usdcTokenAddress);
+    expect(lastTrade.toToken).toBe(solTokenAddress);
+    expect(parseFloat(lastTrade.fromAmount.toString())).toBeCloseTo(10, 1);
+  });
 });
