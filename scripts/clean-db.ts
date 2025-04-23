@@ -140,7 +140,7 @@ const cleanDatabase = async () => {
               sequence_name: string;
             }
 
-            for (const row of sequencesResult.rows as SequenceRow[]) {
+            for (const row of sequencesResult.rows as unknown as SequenceRow[]) {
               const sequenceName = row.sequence_name;
               console.log(`  - Resetting sequence: ${sequenceName}`);
               await db.query(`ALTER SEQUENCE ${sequenceName} RESTART WITH 1`);
