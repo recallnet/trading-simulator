@@ -743,6 +743,10 @@
                             "type": "string",
                             "description": "Error message if the trade failed"
                           },
+                          "reason": {
+                            "type": "string",
+                            "description": "Reason provided for executing the trade"
+                          },
                           "timestamp": {
                             "type": "string",
                             "format": "date-time",
@@ -2754,7 +2758,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["fromToken", "toToken", "amount"],
+                "required": ["fromToken", "toToken", "amount", "reason"],
                 "properties": {
                   "fromToken": {
                     "type": "string",
@@ -2770,6 +2774,11 @@
                     "type": "string",
                     "description": "Amount of fromToken to trade",
                     "example": "1.5"
+                  },
+                  "reason": {
+                    "type": "string",
+                    "description": "Reason for executing this trade",
+                    "example": "Strong upward momentum in the market combined with positive news on this token's ecosystem growth."
                   },
                   "slippageTolerance": {
                     "type": "string",
@@ -2851,6 +2860,14 @@
                         "success": {
                           "type": "boolean",
                           "description": "Whether the trade was successfully completed"
+                        },
+                        "error": {
+                          "type": "string",
+                          "description": "Error message if the trade failed"
+                        },
+                        "reason": {
+                          "type": "string",
+                          "description": "Reason provided for executing the trade"
                         },
                         "timestamp": {
                           "type": "string",
