@@ -30,6 +30,7 @@ const router = Router();
  *               - fromToken
  *               - toToken
  *               - amount
+ *               - reason
  *             properties:
  *               fromToken:
  *                 type: string
@@ -43,6 +44,10 @@ const router = Router();
  *                 type: string
  *                 description: Amount of fromToken to trade
  *                 example: "1.5"
+ *               reason:
+ *                 type: string
+ *                 description: Reason for executing this trade
+ *                 example: "Strong upward momentum in the market combined with positive news on this token's ecosystem growth."
  *               slippageTolerance:
  *                 type: string
  *                 description: Optional slippage tolerance in percentage
@@ -104,6 +109,12 @@ const router = Router();
  *                     success:
  *                       type: boolean
  *                       description: Whether the trade was successfully completed
+ *                     error:
+ *                       type: string
+ *                       description: Error message if the trade failed
+ *                     reason:
+ *                       type: string
+ *                       description: Reason provided for executing the trade
  *                     timestamp:
  *                       type: string
  *                       format: date-time

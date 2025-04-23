@@ -22,10 +22,10 @@ export class TradeRepository extends BaseRepository<Trade> {
       const query = `
         INSERT INTO trades (
           id, team_id, competition_id, from_token, to_token, 
-          from_amount, to_amount, price, success, error, timestamp,
+          from_amount, to_amount, price, success, error, reason, timestamp,
           from_chain, to_chain, from_specific_chain, to_specific_chain
         ) VALUES (
-          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15
+          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16
         ) RETURNING *
       `;
 
@@ -40,6 +40,7 @@ export class TradeRepository extends BaseRepository<Trade> {
         trade.price,
         trade.success,
         trade.error || null,
+        trade.reason,
         trade.timestamp,
         trade.fromChain || null,
         trade.toChain || null,
@@ -187,6 +188,7 @@ export class TradeRepository extends BaseRepository<Trade> {
       price: parseFloat(String(data.price)),
       success: Boolean(data.success),
       error: data.error as string | undefined,
+      reason: data.reason as string,
       timestamp: new Date(data.timestamp as string | number | Date),
       // Map chain fields from database to the Trade interface
       fromChain: data.fromChain as BlockchainType,

@@ -85,6 +85,7 @@ export interface Trade {
   success: boolean;
   teamId: string;
   competitionId: string;
+  reason: string;
   error?: string;
 
   // Chain information

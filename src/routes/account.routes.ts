@@ -430,6 +430,9 @@ router.get('/portfolio', AccountController.getPortfolio);
  *                       error:
  *                         type: string
  *                         description: Error message if the trade failed
+ *                       reason:
+ *                         type: string
+ *                         description: Reason provided for executing the trade
  *                       timestamp:
  *                         type: string
  *                         format: date-time

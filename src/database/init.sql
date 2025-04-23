@@ -73,6 +73,7 @@ CREATE TABLE IF NOT EXISTS trades (
   price DECIMAL(30, 15) NOT NULL,
   success BOOLEAN NOT NULL,
   error TEXT,
+  reason TEXT NOT NULL, -- Reason for the trade
   timestamp TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
   from_chain VARCHAR(10), -- General chain type for from_token (evm, svm)
   to_chain VARCHAR(10), -- General chain type for to_token (evm, svm)
